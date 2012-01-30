@@ -1,0 +1,6 @@
+*.sw?
+lex.yy.c
+zco
+zco.tab.c
+zco.tab.h
+*.output
