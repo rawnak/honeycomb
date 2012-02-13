@@ -26,27 +26,46 @@
 #include "zco.tab.h"
 %}
 
+%x IN_COMMENT
+
 %%
+
 "\%h{"			         { yylval="%h{";            return HEADER_BLK_START;   }
 "\%{"			            { yylval="%{";             return SOURCE_BLK_START;   }
 "\%}"			            { yylval="%}";             return FILE_BLK_END;       }
-"class"			         { yylval="class";          return CLASS;              }
-"from"			         { yylval="from";           return FROM;               }
-"{"			            { yylval="{";              return OBRACE;             }
-"}"			            { yylval="}";              return EBRACE;             }
-"("			            { yylval="(";              return OPAREN;             }
-")"			            { yylval=")";              return EPAREN;             }
-";"			            { yylval=";";              return SEMICOLON;          }
-"public"		            { yylval="public";         return PUBLIC;             }
-"private"		         { yylval="private";        return PRIVATE;            }
-"property"		         { yylval="property";       return PROPERTY;           }
-"get"			            { yylval="get";            return GET;                }
-"set"			            { yylval="set";            return SET;                }
-"override"		         { yylval="override";       return OVERRIDE;           }
-"virtual"		         { yylval="virtual";        return VIRTUAL;            }
-[a-zA-Z_][a-zA-Z0-9_]*	{ yylval=strdup(yytext);   return WORD;               }
-[ \t\v\f\n]*            { yylval=yytext;           return SPACE;              }
-.			               { yylval=strdup(yytext);   return CODE;               }
+
+<INITIAL>{
+   "/*"     yylval=strdup(yytext);  BEGIN(IN_COMMENT);   return COMMENT;
+}
+<IN_COMMENT>{
+   "*/"     yylval=strdup(yytext);  BEGIN(INITIAL);      return COMMENT;
+   [^*\n]+  yylval=strdup(yytext);                       return COMMENT;   /* eat comment in chunks */
+   "*"      yylval=strdup(yytext);                       return COMMENT;   /* eat the lone star */
+   \n       yylval=strdup(yytext);  ++yylineno;          return COMMENT;
+}
+
+\/\/.*$                 { yylval=strdup(yytext);               return COMMENT;   }
+"class"			         { yylval="class";                      return CLASS;     }
+"from"			         { yylval="from";                       return FROM;      }
+"{"			            { yylval="{";                          return OBRACE;    }
+"}"			            { yylval="}";                          return EBRACE;    }
+"("			            { yylval="(";                          return OPAREN;    }
+")"			            { yylval=")";                          return EPAREN;    }
+";"			            { yylval=";";                          return SEMICOLON; }
+"*"                     { yylval="*";                          return ASTERISK;  }
+"global"                { yylval="global";                     return GLOBAL;    }
+"public"		            { yylval="public";                     return PUBLIC;    }
+"private"		         { yylval="private";                    return PRIVATE;   }
+"property"		         { yylval="property";                   return PROPERTY;  }
+"get"			            { yylval="get";                        return GET;       }
+"set"			            { yylval="set";                        return SET;       }
+"override"		         { yylval="override";                   return OVERRIDE;  }
+"virtual"		         { yylval="virtual";                    return VIRTUAL;   }
+","                     { yylval=",";                          return COMMA;     }
+[a-zA-Z_][a-zA-Z0-9_]*	{ yylval=strdup(yytext);               return WORD;      }
+\n                      { yylval=strdup(yytext);   ++yylineno; return SPACE;     }
+[ \t\v\f]*              { yylval=strdup(yytext);               return SPACE;     }
+.			               { yylval=strdup(yytext);               return CODE;      }
 
 %%
 
