@@ -80,3 +80,52 @@ int zco_allocate_type_id()
    return type_count++;
 }
 
+void zco_inherit_vtable(int **list, int *size, int *src_list, int src_size, void *base, void *target)
+{
+   /* if the source table is larger than the target table, increase the size of the target table
+      to match that of the source table */
+   if (src_size > *size) {
+      *list = (int *) realloc(*list, sizeof(int) * src_size);
+
+      /* fill the uninitialized elements with -1 */
+      for (int i=*size; i<src_size; ++i) {
+         (*list)[i] = -1;
+      }
+
+      *size = src_size;
+   }
+
+   /* compute the difference between the two address and store the offset into this element */
+   int offset = (int) ((unsigned long) target - (unsigned long) base);
+
+   /* copy the valid elements from the source table to the target table */
+   for (int i=0; i<src_size; ++i) {
+      if (src_list[i] != -1) {
+         (*list)[i] = src_list[i] + offset;
+      }
+   }
+}
+
+void zco_add_to_vtable(int **list, int *size, int type_id)
+{
+   /* if the type_id that we want to add is too high for the current size of the table, increase
+      the size of the table so that we are able to add this new type_id */
+   if (type_id >= *size) {
+      /* the key is 0-indexed so we need to add 1 for the new size */
+      int temp = type_id + 1;
+      *list = (int *) realloc(*list, sizeof(int) * temp);
+
+      /* fill the uninitialized elements (all new elements except for the last one, which we want
+         to fill with useful information) with -1 */
+      temp -= 2;
+      for (int i=*size; i<temp; ++i) {
+         (*list)[i] = -1;
+      }
+   }
+
+   /* the offset is automatically assumed to be 0 */
+   (*list)[i] = 0;
+}
+
+
+

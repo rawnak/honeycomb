@@ -41,6 +41,12 @@ char *current_class_name_underscore;
 /* ExampleClassName */
 char *current_class_name_pascal;
 
+
+int parent_class_count;
+char **parent_class_name_underscore;
+char **parent_class_name_pascal;
+
+
 enum access_mode_t
 {
    ACCESS_PRIVATE,
@@ -354,6 +360,19 @@ static char * pascal_to_lowercase(const char *s, char delimiter)
    return res;
 }
 
+static void add_parent(char *name_in_pascal)
+{
+   /* increase the size of the parent class list */
+   ++parent_class_count;
+
+   parent_class_name_pascal = (char **) realloc(parent_class_name_pascal, sizeof(char *) * parent_class_count);
+   parent_class_name_underscore = (char **) realloc(parent_class_name_underscore, sizeof(char *) * parent_class_count);
+
+   /* store the name of the parent class */
+   parent_class_name_pascal[parent_class_count-1] = name_in_pascal;
+   parent_class_name_underscore[parent_class_count-1] = pascal_to_lowercase(name_in_pascal, '_');
+}
+
 static void init_string(struct string_t *s)
 {
    s->length = 0;
@@ -390,8 +409,10 @@ static void add_data_member()
    }
 }
 
-static void class_init(char *class_name, const char *parent_name)
+static void class_init(char *class_name)
 {
+      int i;
+
       init_string(&private_data);
       init_string(&public_data);
       init_string(&global_data);
@@ -427,18 +448,21 @@ static void class_init(char *class_name, const char *parent_name)
       strcat_safe(&global_data, "Class {\n"
             "\tconst char *name;\n"
             "\tint id;\n"
-            "\tint *vtable_offsets;\n"
-            "\tint vtable_size;\n");
+            "\tint *vtable_off_list;\n"
+            "\tint vtable_off_size;\n");
 
       /* start the public data structure */
       strcat_safe(&public_data, "struct ");
       strcat_safe(&public_data, class_name);
       strcat_safe(&public_data, " {\n");
       
-      if (parent_name) {
+      for (i=0; i<parent_class_count; ++i)
+      {
          strcat_safe(&public_data, "\tstruct ");
-         strcat_safe(&public_data, parent_name);
-         strcat_safe(&public_data, " parent;\n");
+         strcat_safe(&public_data, parent_class_name_pascal[i]);
+         strcat_safe(&public_data, " parent_");
+         strcat_safe(&public_data, parent_class_name_underscore[i]);
+         strcat_safe(&public_data, ";\n");
       }
 
       /* declare the _class pointer in the public structure */
@@ -478,6 +502,8 @@ external_declaration
 	| source_block
 	| class_definition
    {
+      int i;
+
       /* head macros in header file */
       dump_string(&h_macros_head, header_file);
       fprintf(header_file, "\n");
@@ -495,6 +521,7 @@ external_declaration
       fprintf(header_file, "};\n");
 
       /* function prototypes in header file */
+      fprintf(header_file, "struct %sClass * get_type(struct zco_context_t *ctx);\n", current_class_name_pascal);
       dump_string(&function_prototypes_h, header_file);
       fprintf(header_file, "\n");
 
@@ -509,7 +536,6 @@ external_declaration
       dump_string(&c_macros, source_file);
       fprintf(source_file, "\n");
 
-// FIXME
       /* declare the global variables */
       fprintf(source_file, "static struct %sClass global;\n", current_class_name_pascal);
       fprintf(source_file, "static int type_id = -1;\n");
@@ -519,8 +545,8 @@ external_declaration
       dump_string(&function_prototypes_c, source_file);
       fprintf(source_file, "\n");
 
-      /* function definitions */
-      fprintf(source_file, "Self * __class_init(struct zco_context_t *ctx)\n"
+      /* define get_type */
+      fprintf(source_file, "struct %sClass * get_type(struct zco_context_t *ctx)\n"
             "{\n"
             "\tif (type_id == -1)\n"
             "\t\ttype_id = zco_allocate_type_id();\n\n"
@@ -530,12 +556,56 @@ external_declaration
             "\t\tstruct %sClass *class = (struct %sClass *) *class_ptr;\n"
             "\t\tclass->name = \"%s\";\n"
             "\t\tclass->id = type_id;\n"
-            "\t\tclass->vtable_offsets = NULL;\n"
-            "\t\tclass->vtable_size = 0;\n"
+            "\t\tclass->vtable_off_list = NULL;\n"
+            "\t\tclass->vtable_off_size = 0;\n"
+            "\t\t\n"
+            "\t\tstruct %s temp;\n"
+            "\t\t\n",
+            current_class_name_pascal,
+            current_class_name_pascal,
+            current_class_name_pascal,
+            current_class_name_pascal,
+            current_class_name_pascal,
+            current_class_name_pascal
+            );
+
+      /* inherit the vtable from the parent class */
+      for (i=0; i < parent_class_count; ++i) {
+         fprintf(source_file,
+               "\t\t{\n"
+               "\t\t\tstruct %sClass *p_class = %s_get_type();\n"
+               "\t\t\tzco_inherit_vtable(&class->vtable_off_list, &class->vtable_off_size, "
+               "p_class->vtable_off_list, p_class->vtable_off_size, "
+               "&temp, &temp.parent_%s);\n"
+               "\t\t}\n",
+               parent_class_name_pascal[i],
+               parent_class_name_underscore[i],
+               parent_class_name_underscore[i]);
+
+         free(parent_class_name_pascal[i]);
+         free(parent_class_name_underscore[i]);
+      }
+
+      if (parent_class_count > 0) {
+         free(parent_class_name_pascal);
+         free(parent_class_name_underscore);
+      }
+
+      fprintf(source_file,
+            "\t\tzco_add_to_vtable(&class->vtable_off_list, &class->vtable_off_size, type_id);"
+            "\t\t\n"
             "\t\t#ifdef SHOULD_CALL_CLASS_INIT\n"
             "\t\t\tclass_init((struct ZCObjectClass *) class);\n"
             "\t\t#endif\n"
-            "\t}\n\n"
+            "\t}\n"
+            "\treturn (struct %sClass *) *class_ptr;\n"
+            "}\n\n",
+            current_class_name_pascal);
+
+      /* define _init */
+      fprintf(source_file, "static Self * __init(struct zco_context_t *ctx)\n"
+            "{\n"
+            "\t%s_get_type();\n"
             "\tSelf *self = (Self *) malloc(sizeof(Self));\n"
             "\tself->_class = (struct %sClass *) *class_ptr;\n"
             "\t#ifdef SHOULD_CALL_INIT\n"
@@ -543,9 +613,6 @@ external_declaration
             "\t#endif\n"
             "\treturn self;\n"
             "}\n",
-            current_class_name_pascal,
-            current_class_name_pascal,
-            current_class_name_pascal,
             current_class_name_pascal,
             current_class_name_pascal);
 
@@ -694,19 +761,49 @@ ccodes
 	;
 
 subclass_declaration
-   : CLASS ignorables WORD   { $$=$3; free($2); }
+   : CLASS ignorables WORD 
+   {
+      parent_class_name_pascal = 0;
+      parent_class_name_underscore = 0;
+      parent_class_count = 0;
+
+      $$=$3;
+      free($2);
+   }
    ;
 
+/* $4 should not be freed because it will be pointed to by parent_class_name_pascal */
 parent_declaration
-   : ignorables FROM ignorables WORD { $$=$4; free($1); free($3); }
+   : WORD
+   { add_parent($1); }
+
+   | parent_declaration COMMA WORD
+   { add_parent($3); }
+
+   | parent_declaration COMMA ignorables WORD
+   { add_parent($4); free($3); }
+
+   | parent_declaration ignorables COMMA WORD
+   { add_parent($4); free($2); }
+
+   | parent_declaration ignorables COMMA ignorables WORD
+   { add_parent($5); free($2); free($4); }
    ;
+
 
 /* $1 should not be freed because it will be pointed to by current_class_name_pascal */
 full_class_declaration
-	: subclass_declaration                                { class_init($1,0); }
-	| subclass_declaration ignorables                     { class_init($1,0); free($2); }
-	| subclass_declaration parent_declaration             { class_init($1,$2); free($2); }
-	| subclass_declaration parent_declaration ignorables  { class_init($1,$2); free($2); free($3); }
+	: subclass_declaration
+   { class_init($1); }
+
+	| subclass_declaration ignorables
+   { class_init($1); free($2); }
+
+	| subclass_declaration ignorables FROM ignorables parent_declaration
+   { class_init($1); free($2); }
+
+	| subclass_declaration ignorables FROM ignorables parent_declaration ignorables
+   { class_init($1); free($2); free($4); free($6); }
    ;
 
 class_definition
