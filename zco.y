@@ -32,11 +32,11 @@ struct string_t
 };
 
 FILE *header_file, *source_file;
-char *type_name, *symbol_name;
+char *type_name, *symbol_name, *virtual_base_name;
 char *header_filename;
 
 /* example_class_name */
-char *current_class_name_underscore;
+char *current_class_name_lowercase;
 
 /* ExampleClassName */
 char *current_class_name_pascal;
@@ -50,12 +50,20 @@ char **parent_class_name_pascal;
 enum access_mode_t
 {
 	ACCESS_PRIVATE,
-	ACCESS_PROTECTED,
 	ACCESS_PUBLIC,
 	ACCESS_GLOBAL
 };
 
+enum modifier_mode_t
+{
+	MODIFIER_NONE,
+	MODIFIER_VIRTUAL,
+	MODIFIER_OVERRIDE
+};
+
 enum access_mode_t access_mode;
+
+enum modifier_mode_t modifier_mode;
 
 /* struct definition for global (static) data members */
 struct string_t global_data;
@@ -71,6 +79,9 @@ struct string_t function_prototypes_c;
 
 /* list of function definitions */
 struct string_t function_definitions;
+
+/* virtual function pointer initialization */
+struct string_t virtual_function_ptr_inits;
 
 struct string_t h_macros_head;
 struct string_t h_macros_tail;
@@ -227,14 +238,14 @@ static void special_member_function_decl(const char *symbol, const char *arglist
 	strcat_safe(&c_macros, "#define ");
 	strcat_safe(&c_macros, symbol);
 	strcat_safe(&c_macros, " ");
-	strcat_safe(&c_macros, current_class_name_underscore);
+	strcat_safe(&c_macros, current_class_name_lowercase);
 	strcat_safe(&c_macros, "_");
 	strcat_safe(&c_macros, symbol);
 	strcat_safe(&c_macros, "\n");
 
 	/* for function prototype */
 	strcat_safe(&function_prototypes_c, "static void ");
-	strcat_safe(&function_prototypes_c, current_class_name_underscore);
+	strcat_safe(&function_prototypes_c, current_class_name_lowercase);
 	strcat_safe(&function_prototypes_c, "_");
 	strcat_safe(&function_prototypes_c, symbol);
 	strcat_safe(&function_prototypes_c, arglist);
@@ -242,7 +253,7 @@ static void special_member_function_decl(const char *symbol, const char *arglist
 
 	/* for function definition */
 	strcat_safe(&function_definitions, "static void ");
-	strcat_safe(&function_definitions, current_class_name_underscore);
+	strcat_safe(&function_definitions, current_class_name_lowercase);
 	strcat_safe(&function_definitions, "_");
 	strcat_safe(&function_definitions, symbol);
 	strcat_safe(&function_definitions, arglist);
@@ -256,11 +267,10 @@ static void member_function_decl(const char *type, const char *symbol, const cha
 	strcat_safe(&c_macros, "#define ");
 	strcat_safe(&c_macros, symbol);
 	strcat_safe(&c_macros, " ");
-	strcat_safe(&c_macros, current_class_name_underscore);
+	strcat_safe(&c_macros, current_class_name_lowercase);
 	strcat_safe(&c_macros, "_");
 	strcat_safe(&c_macros, symbol);
 	strcat_safe(&c_macros, "\n");
-
 
 	switch (access_mode)
 	{
@@ -269,7 +279,7 @@ static void member_function_decl(const char *type, const char *symbol, const cha
 			strcat_safe(&function_prototypes_c, "static ");
 			strcat_safe(&function_prototypes_c, type);
 			strcat_safe(&function_prototypes_c, " ");
-			strcat_safe(&function_prototypes_c, current_class_name_underscore);
+			strcat_safe(&function_prototypes_c, current_class_name_lowercase);
 			strcat_safe(&function_prototypes_c, "_");
 			strcat_safe(&function_prototypes_c, symbol);
 			strcat_safe(&function_prototypes_c, arglist);
@@ -279,7 +289,7 @@ static void member_function_decl(const char *type, const char *symbol, const cha
 			strcat_safe(&function_definitions, "static ");
 			strcat_safe(&function_definitions, type);
 			strcat_safe(&function_definitions, " ");
-			strcat_safe(&function_definitions, current_class_name_underscore);
+			strcat_safe(&function_definitions, current_class_name_lowercase);
 			strcat_safe(&function_definitions, "_");
 			strcat_safe(&function_definitions, symbol);
 			strcat_safe(&function_definitions, arglist);
@@ -292,7 +302,7 @@ static void member_function_decl(const char *type, const char *symbol, const cha
 			/* for function prototype */
 			strcat_safe(&function_prototypes_h, type);
 			strcat_safe(&function_prototypes_h, " ");
-			strcat_safe(&function_prototypes_h, current_class_name_underscore);
+			strcat_safe(&function_prototypes_h, current_class_name_lowercase);
 			strcat_safe(&function_prototypes_h, "_");
 			strcat_safe(&function_prototypes_h, symbol);
 			strcat_safe(&function_prototypes_h, arglist);
@@ -301,7 +311,7 @@ static void member_function_decl(const char *type, const char *symbol, const cha
 			/* for function definition */
 			strcat_safe(&function_definitions, type);
 			strcat_safe(&function_definitions, " ");
-			strcat_safe(&function_definitions, current_class_name_underscore);
+			strcat_safe(&function_definitions, current_class_name_lowercase);
 			strcat_safe(&function_definitions, "_");
 			strcat_safe(&function_definitions, symbol);
 			strcat_safe(&function_definitions, arglist);
@@ -329,6 +339,39 @@ static void property_decl(char *get_or_set, char *code)
 		free(arglist);
 		free(symbol);
 	}
+}
+
+static char * pascal_to_uppercase(const char *s, char delimiter)
+{
+	int first = 1;
+	char *res = malloc(strlen(s) * 2 + 1);
+	char *p = res;
+
+	for (; *s; ++s)
+	{
+		if (*s >= 'A' && *s <= 'Z') {
+			if (!first) {
+				*p = delimiter;
+				++p;
+			}
+
+			*p = *s;
+			++p;
+		} else if (*s >= 'a' && *s <= 'z') {
+			*p = *s + ('A' - 'a');
+			++p;
+			
+		} else {
+			*p = *s;
+			++p;
+		}
+
+		first = 0;
+	}
+
+	*p = 0;
+
+	return res;
 }
 
 static char * pascal_to_lowercase(const char *s, char delimiter)
@@ -379,33 +422,162 @@ static void init_string(struct string_t *s)
 	s->data = 0;
 }
 
-static void add_data_member()
+static void add_data_member(const char *_type_name, const char *_symbol_name)
 {
 	switch (access_mode)
 	{
 		case ACCESS_PRIVATE:
 			strcat_safe(&private_data, "\t");
-			strcat_safe(&private_data, type_name);
+			strcat_safe(&private_data, _type_name);
 			strcat_safe(&private_data, " ");
-			strcat_safe(&private_data, symbol_name);
+			strcat_safe(&private_data, _symbol_name);
 			strcat_safe(&private_data, ";\n");
 			break;
 
 		case ACCESS_PUBLIC:
 			strcat_safe(&public_data, "\t");
-			strcat_safe(&public_data, type_name);
+			strcat_safe(&public_data, _type_name);
 			strcat_safe(&public_data, " ");
-			strcat_safe(&public_data, symbol_name);
+			strcat_safe(&public_data, _symbol_name);
 			strcat_safe(&public_data, ";\n");
 			break;
 
 		case ACCESS_GLOBAL:
 			strcat_safe(&global_data, "\t");
-			strcat_safe(&global_data, type_name);
+			strcat_safe(&global_data, _type_name);
 			strcat_safe(&global_data, " ");
-			strcat_safe(&global_data, symbol_name);
+			strcat_safe(&global_data, _symbol_name);
 			strcat_safe(&global_data, ";\n");
 			break;
+	}
+}
+
+static void add_function_pointer(const char *_type_name, const char *_symbol_name_prefix, const char *_symbol_name, const char *_arglist)
+{
+	switch (access_mode)
+	{
+		case ACCESS_PUBLIC:
+			strcat_safe(&public_data, "\t");
+			strcat_safe(&public_data, _type_name);
+			strcat_safe(&public_data, " (*");
+			strcat_safe(&public_data, _symbol_name_prefix);
+			strcat_safe(&public_data, _symbol_name);
+			strcat_safe(&public_data, ")");
+			strcat_safe(&public_data, _arglist);
+			strcat_safe(&public_data, ";\n");
+			break;
+
+		case ACCESS_GLOBAL:
+			strcat_safe(&global_data, "\t");
+			strcat_safe(&global_data, _type_name);
+			strcat_safe(&global_data, " (*");
+			strcat_safe(&global_data, _symbol_name_prefix);
+			strcat_safe(&global_data, _symbol_name);
+			strcat_safe(&global_data, ")");
+			strcat_safe(&global_data, _arglist);
+			strcat_safe(&global_data, ";\n");
+			break;
+	}
+}
+
+static void virtual_member_function_decl(const char *type, const char *symbol, const char *arglist, const char *code)
+{
+	if (access_mode == ACCESS_PRIVATE) {
+		yyerror("Cannot declare virtual function with private access specifier");
+	}
+
+	strcat_safe(&c_macros, "#define ");
+	strcat_safe(&c_macros, symbol);
+	strcat_safe(&c_macros, " ");
+	strcat_safe(&c_macros, current_class_name_lowercase);
+	strcat_safe(&c_macros, "_");
+	strcat_safe(&c_macros, symbol);
+	strcat_safe(&c_macros, "\n");
+
+	/* for function prototype */
+	strcat_safe(&function_prototypes_c, "static ");
+	strcat_safe(&function_prototypes_c, type);
+	strcat_safe(&function_prototypes_c, " ");
+	strcat_safe(&function_prototypes_c, current_class_name_lowercase);
+	strcat_safe(&function_prototypes_c, "_");
+	strcat_safe(&function_prototypes_c, symbol);
+	strcat_safe(&function_prototypes_c, arglist);
+	strcat_safe(&function_prototypes_c, ";\n");
+
+
+	if (virtual_base_name == 0) {
+		/* using 'virtual' modifier */
+
+		/* for function definition */
+		strcat_safe(&function_definitions, "static ");
+		strcat_safe(&function_definitions, type);
+		strcat_safe(&function_definitions, " ");
+		strcat_safe(&function_definitions, current_class_name_lowercase);
+		strcat_safe(&function_definitions, "_");
+		strcat_safe(&function_definitions, symbol);
+		strcat_safe(&function_definitions, arglist);
+		strcat_safe(&function_definitions, "\n");
+		strcat_safe(&function_definitions, code);
+		strcat_safe(&function_definitions, "\n");
+
+		/* add function pointer as a data member */
+		add_function_pointer(type, "__", symbol, arglist);
+
+		/* assign the address of the function into the function pointer data member */
+		strcat_safe(&virtual_function_ptr_inits, "\tself->__");
+		strcat_safe(&virtual_function_ptr_inits, symbol);
+		strcat_safe(&virtual_function_ptr_inits, " = ");
+		strcat_safe(&virtual_function_ptr_inits, current_class_name_lowercase);
+		strcat_safe(&virtual_function_ptr_inits, "_");
+		strcat_safe(&virtual_function_ptr_inits, symbol);
+		strcat_safe(&virtual_function_ptr_inits, ";\n");
+	} else {
+		/* using 'override' modifier */
+
+		/* for function definition */
+		strcat_safe(&function_definitions, "#define PARENT_HANDLER self->__parent_");
+		strcat_safe(&function_definitions, symbol);
+		strcat_safe(&function_definitions, "\nstatic ");
+		strcat_safe(&function_definitions, type);
+		strcat_safe(&function_definitions, " ");
+		strcat_safe(&function_definitions, current_class_name_lowercase);
+		strcat_safe(&function_definitions, "_");
+		strcat_safe(&function_definitions, symbol);
+		strcat_safe(&function_definitions, arglist);
+		strcat_safe(&function_definitions, "\n");
+		strcat_safe(&function_definitions, code);
+		strcat_safe(&function_definitions, "\n#undef PARENT_HANDLER\n");
+
+		/* add function pointer as a data member */
+		add_function_pointer(type, "__parent_", symbol, arglist);
+
+		char *base_name_uppercase = pascal_to_uppercase(virtual_base_name, '_');
+
+		/* up cast to parent class */
+		strcat_safe(&virtual_function_ptr_inits, "\t{\n\t\t");
+		strcat_safe(&virtual_function_ptr_inits, virtual_base_name);
+		strcat_safe(&virtual_function_ptr_inits, " *parent = ");
+		strcat_safe(&virtual_function_ptr_inits, base_name_uppercase);
+		strcat_safe(&virtual_function_ptr_inits, "(self);\n");
+
+		/* backup the existing virtual function pointer for the PARENT_HANDLER macro */
+		strcat_safe(&virtual_function_ptr_inits, "\t\tself->__parent_");
+		strcat_safe(&virtual_function_ptr_inits, symbol);
+		strcat_safe(&virtual_function_ptr_inits, " = parent->__");
+		strcat_safe(&virtual_function_ptr_inits, symbol);
+		strcat_safe(&virtual_function_ptr_inits, ";\n");
+
+		/* assign the address of the function into the function pointer data member */
+		strcat_safe(&virtual_function_ptr_inits, "\t\t");
+		strcat_safe(&virtual_function_ptr_inits, "parent->__");
+		strcat_safe(&virtual_function_ptr_inits, symbol);
+		strcat_safe(&virtual_function_ptr_inits, " = ");
+		strcat_safe(&virtual_function_ptr_inits, current_class_name_lowercase);
+		strcat_safe(&virtual_function_ptr_inits, "_");
+		strcat_safe(&virtual_function_ptr_inits, symbol);
+		strcat_safe(&virtual_function_ptr_inits, ";\n\t}\n");
+
+		free(base_name_uppercase);
 	}
 }
 
@@ -419,9 +591,14 @@ static void class_init(char *class_name)
 	init_string(&function_prototypes_c);
 	init_string(&function_prototypes_h);
 	init_string(&function_definitions);
+	init_string(&virtual_function_ptr_inits);
 	init_string(&h_macros_head);
 	init_string(&h_macros_tail);
 	init_string(&c_macros);
+
+	char * current_class_name_uppercase = pascal_to_uppercase(class_name, '_');
+	current_class_name_lowercase = pascal_to_lowercase(class_name, '_');
+	current_class_name_pascal = class_name;
 
 	/* start the private data structure */
 	strcat_safe(&private_data, "struct ");
@@ -431,8 +608,20 @@ static void class_init(char *class_name)
 	/* define the Self macro in the header file */
 	strcat_safe(&h_macros_head, "#define Self struct ");
 	strcat_safe(&h_macros_head, class_name);
-	strcat_safe(&h_macros_head, "\n\n");
+	strcat_safe(&h_macros_head, "\n");
 
+	/* define the macro to upcast a derived object */
+	strcat_safe(&h_macros_head, "#define ");
+	strcat_safe(&h_macros_head, current_class_name_uppercase);
+	strcat_safe(&h_macros_head, "(s) ((struct ");
+	strcat_safe(&h_macros_head, current_class_name_pascal);
+	strcat_safe(&h_macros_head, " *) ((char *) (s) + ");
+	strcat_safe(&h_macros_head, current_class_name_lowercase);
+	strcat_safe(&h_macros_head, "_type_id))\n\n");
+
+	free(current_class_name_uppercase);
+
+	/* define the tailing macros */
 	strcat_safe(&h_macros_tail, "#undef Self\n");
 
 	/* define the Self macro in the source file */
@@ -476,8 +665,12 @@ static void class_init(char *class_name)
 	strcat_safe(&public_data, "Private _priv;\n");
 
 	access_mode = ACCESS_PUBLIC;
-	current_class_name_underscore = pascal_to_lowercase(class_name, '_');
-	current_class_name_pascal = class_name;
+	modifier_mode = MODIFIER_NONE;
+
+
+	symbol_name = 0;
+	type_name = 0;
+	virtual_base_name = 0;
 }
 
 %}
@@ -504,6 +697,9 @@ external_declaration
 {
 	int i;
 
+	/* includes in header file */
+	fprintf(header_file, "#include <zco.h>\n");
+
 	/* head macros in header file */
 	dump_string(&h_macros_head, header_file);
 	fprintf(header_file, "\n");
@@ -519,6 +715,9 @@ external_declaration
 	/* public data members */
 	dump_string(&public_data, header_file);
 	fprintf(header_file, "};\n");
+
+	/* extern variables */
+	fprintf(header_file, "extern int %s_type_id;\n", current_class_name_lowercase);
 
 	/* function prototypes in header file */
 	fprintf(header_file, "struct %sClass * get_type(struct zco_context_t *ctx);\n", current_class_name_pascal);
@@ -538,7 +737,7 @@ external_declaration
 
 	/* declare the global variables */
 	fprintf(source_file, "static struct %sClass global;\n", current_class_name_pascal);
-	fprintf(source_file, "static int type_id = -1;\n");
+	fprintf(source_file, "int %s_type_id = -1;\n", current_class_name_lowercase);
 	fprintf(source_file, "\n");
 
 	/* function prototypes in source file */
@@ -548,35 +747,42 @@ external_declaration
 	/* define get_type */
 	fprintf(source_file, "struct %sClass * get_type(struct zco_context_t *ctx)\n"
 			"{\n"
-			"\tif (type_id == -1)\n"
-			"\t\ttype_id = zco_allocate_type_id();\n\n"
-			"\tvoid **class_ptr = zco_get_ctx_field(ctx, type_id);\n"
+			"\tif (%s_type_id == -1)\n"
+			"\t\t%s_type_id = zco_allocate_type_id();\n\n"
+			"\tvoid **class_ptr = zco_get_ctx_type(ctx, %s_type_id);\n"
 			"\tif (*class_ptr == 0) {\n"
 			"\t\t*class_ptr = malloc(sizeof(struct %sClass));\n"
 			"\t\tstruct %sClass *class = (struct %sClass *) *class_ptr;\n"
 			"\t\tclass->name = \"%s\";\n"
-			"\t\tclass->id = type_id;\n"
+			"\t\tclass->id = %s_type_id;\n"
 			"\t\tclass->vtable_off_list = NULL;\n"
 			"\t\tclass->vtable_off_size = 0;\n"
 			"\t\t\n"
 			"\t\tstruct %s temp;\n"
 			"\t\t\n",
 			current_class_name_pascal,
+			current_class_name_lowercase,
+			current_class_name_lowercase,
+			current_class_name_lowercase,
 			current_class_name_pascal,
 			current_class_name_pascal,
 			current_class_name_pascal,
 			current_class_name_pascal,
-			current_class_name_pascal
-				);
+			current_class_name_lowercase,
+			current_class_name_pascal);
 
 	/* inherit the vtable from the parent class */
 	for (i=0; i < parent_class_count; ++i) {
 		fprintf(source_file,
 				"\t\t{\n"
 				"\t\t\tstruct %sClass *p_class = %s_get_type();\n"
-				"\t\t\tzco_inherit_vtable(&class->vtable_off_list, &class->vtable_off_size, "
-				"p_class->vtable_off_list, p_class->vtable_off_size, "
-				"&temp, &temp.parent_%s);\n"
+				"\t\t\tzco_inherit_vtable(\n"
+				"\t\t\t\t&class->vtable_off_list,\n"
+				"\t\t\t\t&class->vtable_off_size,\n"
+				"\t\t\t\tp_class->vtable_off_list,\n"
+				"\t\t\t\tp_class->vtable_off_size,\n"
+				"\t\t\t\t&temp,\n"
+				"\t\t\t\t&temp.parent_%s);\n"
 				"\t\t}\n",
 				parent_class_name_pascal[i],
 				parent_class_name_underscore[i],
@@ -592,34 +798,38 @@ external_declaration
 	}
 
 	fprintf(source_file,
-			"\t\tzco_add_to_vtable(&class->vtable_off_list, &class->vtable_off_size, type_id);"
+			"\t\tzco_add_to_vtable(&class->vtable_off_list, &class->vtable_off_size, %s_type_id);"
 			"\t\t\n"
 			"\t\t#ifdef SHOULD_CALL_CLASS_INIT\n"
-			"\t\t\tclass_init((struct ZCObjectClass *) class);\n"
+			"\t\t\tclass_init((struct %sClass *) class);\n"
 			"\t\t#endif\n"
 			"\t}\n"
 			"\treturn (struct %sClass *) *class_ptr;\n"
 			"}\n\n",
+			current_class_name_lowercase,
+			current_class_name_pascal,
 			current_class_name_pascal);
 
-	/* define _init */
+	/* define __init */
 	fprintf(source_file, "static Self * __init(struct zco_context_t *ctx)\n"
 			"{\n"
-			"\t%s_get_type();\n"
 			"\tSelf *self = (Self *) malloc(sizeof(Self));\n"
-			"\tself->_class = (struct %sClass *) *class_ptr;\n"
-			"\t#ifdef SHOULD_CALL_INIT\n"
-			"\t\tinit((struct ZCObject *) self);\n"
+			"\tself->_class = %s_get_type();\n",
+			current_class_name_lowercase);
+
+	dump_string(&virtual_function_ptr_inits, source_file);
+			
+	fprintf(source_file, "\t#ifdef SHOULD_CALL_INIT\n"
+			"\t\tinit((struct %s *) self);\n"
 			"\t#endif\n"
 			"\treturn self;\n"
 			"}\n",
-			current_class_name_pascal,
 			current_class_name_pascal);
 
 	dump_string(&function_definitions, source_file);
 	fprintf(source_file, "\n");
 
-	free(current_class_name_underscore);
+	free(current_class_name_lowercase);
 }
 ;
 
@@ -861,10 +1071,66 @@ argument
 	{ $$=strdup7($1,$2,$3,$4,$5,$6,$7); free($1); free($2); free($3); free($4); free($6); free($7); }
 	;
 
+modifier_mode
+	: VIRTUAL
+	{
+		modifier_mode = MODIFIER_VIRTUAL;
+		if (virtual_base_name) { free(virtual_base_name); } virtual_base_name=0;
+	}
+
+	| OVERRIDE OPAREN WORD EPAREN
+	{
+		modifier_mode = MODIFIER_OVERRIDE;
+		if (virtual_base_name) { free(virtual_base_name); } virtual_base_name=$3; 
+	}
+
+	| OVERRIDE OPAREN WORD ignorables EPAREN
+	{
+		modifier_mode = MODIFIER_OVERRIDE;
+		if (virtual_base_name) { free(virtual_base_name); } virtual_base_name=$3; 
+	}
+
+	| OVERRIDE OPAREN ignorables WORD EPAREN
+	{
+		modifier_mode = MODIFIER_OVERRIDE;
+		if (virtual_base_name) { free(virtual_base_name); } virtual_base_name=$4; 
+	}
+
+	| OVERRIDE OPAREN ignorables WORD ignorables EPAREN
+	{
+		modifier_mode = MODIFIER_OVERRIDE;
+		if (virtual_base_name) { free(virtual_base_name); } virtual_base_name=$4; 
+	}
+
+	| OVERRIDE ignorables OPAREN WORD EPAREN
+	{
+		modifier_mode = MODIFIER_OVERRIDE;
+		if (virtual_base_name) { free(virtual_base_name); } virtual_base_name=$4; 
+	}
+
+	| OVERRIDE ignorables OPAREN WORD ignorables EPAREN
+	{
+		modifier_mode = MODIFIER_OVERRIDE;
+		if (virtual_base_name) { free(virtual_base_name); } virtual_base_name=$4; 
+	}
+
+	| OVERRIDE ignorables OPAREN ignorables WORD EPAREN
+	{
+		modifier_mode = MODIFIER_OVERRIDE;
+		if (virtual_base_name) { free(virtual_base_name); } virtual_base_name=$5; 
+	}
+
+	| OVERRIDE ignorables OPAREN ignorables WORD ignorables EPAREN
+	{
+		modifier_mode = MODIFIER_OVERRIDE;
+		if (virtual_base_name) { free(virtual_base_name); } virtual_base_name=$5; 
+	}
+	;
+
 access_specifier
-	: PRIVATE   { access_mode = ACCESS_PRIVATE; }
-	| PUBLIC    { access_mode = ACCESS_PUBLIC; }
-	| GLOBAL    { access_mode = ACCESS_GLOBAL; }
+	: PRIVATE	{ access_mode = ACCESS_PRIVATE;	}
+	| PUBLIC	{ access_mode = ACCESS_PUBLIC;	}
+	| GLOBAL	{ access_mode = ACCESS_GLOBAL;	}
 	;
 
 type_name
@@ -878,10 +1144,23 @@ symbol_name
 class_object
 	/* data members */
 	: access_specifier ignorables type_name ignorables symbol_name SEMICOLON
-	{ add_data_member(); free($2); free($4); }
+	{ add_data_member(type_name, symbol_name); free($2); free($4); }
 
 	| access_specifier ignorables type_name ignorables symbol_name ignorables SEMICOLON
-	{ add_data_member(); free($2); free($4); free($6); }
+	{ add_data_member(type_name, symbol_name); free($2); free($4); free($6); }
+
+	/* virtual member functions */
+	| access_specifier ignorables modifier_mode ignorables type_name ignorables symbol_name argument_list ccodes_block
+	{ virtual_member_function_decl($5, $7, $8, $9); free($2); free($4); free($6); free($8); free($9); }
+
+	| access_specifier ignorables modifier_mode ignorables type_name ignorables symbol_name ignorables argument_list ccodes_block
+	{ virtual_member_function_decl($5, $7, $9, $10); free($2); free($4); free($6); free($8); free($9); free($10); }
+
+	| access_specifier ignorables modifier_mode ignorables type_name ignorables symbol_name argument_list ignorables ccodes_block
+	{ virtual_member_function_decl($5, $7, $8, $10); free($2); free($4); free($6); free($8); free($9); free($10); }
+
+	| access_specifier ignorables modifier_mode ignorables type_name ignorables symbol_name ignorables argument_list ignorables ccodes_block
+	{ virtual_member_function_decl($5, $7, $9, $11); free($2); free($4); free($6); free($8); free($9); free($10); free($11); }
 
 	/* member functions */
 	| access_specifier ignorables type_name ignorables symbol_name argument_list ccodes_block
