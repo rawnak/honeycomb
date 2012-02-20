@@ -4,3 +4,4 @@ zco
 zco.tab.c
 zco.tab.h
 *.output
+*.o

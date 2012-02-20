@@ -429,7 +429,6 @@ static void add_data_member(const char *_type_name, const char *_symbol_name)
 		case ACCESS_PRIVATE:
 			strcat_safe(&private_data, "\t");
 			strcat_safe(&private_data, _type_name);
-			strcat_safe(&private_data, " ");
 			strcat_safe(&private_data, _symbol_name);
 			strcat_safe(&private_data, ";\n");
 			break;
@@ -437,7 +436,6 @@ static void add_data_member(const char *_type_name, const char *_symbol_name)
 		case ACCESS_PUBLIC:
 			strcat_safe(&public_data, "\t");
 			strcat_safe(&public_data, _type_name);
-			strcat_safe(&public_data, " ");
 			strcat_safe(&public_data, _symbol_name);
 			strcat_safe(&public_data, ";\n");
 			break;
@@ -445,7 +443,6 @@ static void add_data_member(const char *_type_name, const char *_symbol_name)
 		case ACCESS_GLOBAL:
 			strcat_safe(&global_data, "\t");
 			strcat_safe(&global_data, _type_name);
-			strcat_safe(&global_data, " ");
 			strcat_safe(&global_data, _symbol_name);
 			strcat_safe(&global_data, ";\n");
 			break;
@@ -629,7 +626,7 @@ static void class_init(char *class_name)
 	strcat_safe(&c_macros, class_name);
 	strcat_safe(&c_macros, "\n");
 	strcat_safe(&c_macros, "#define selfp (&self->_priv)\n");
-	strcat_safe(&c_macros, "#define GET_NEW(ctx) __class_init(ctx)\n");
+	strcat_safe(&c_macros, "#define GET_NEW(ctx) __init(ctx)\n");
 
 	/* start the global data structure */
 	strcat_safe(&global_data, "struct ");
@@ -675,7 +672,7 @@ static void class_init(char *class_name)
 
 %}
 
-%token HEADER_BLK_START SOURCE_BLK_START FILE_BLK_END CLASS COLON GLOBAL PUBLIC PRIVATE PROPERTY GET SET 
+%token HEADER_BLK_START SOURCE_BLK_START FILE_BLK_END CLASS STRUCT COLON GLOBAL PUBLIC PRIVATE PROPERTY GET SET 
 %token OVERRIDE VIRTUAL WORD CODE OBRACE EBRACE OPAREN EPAREN SEMICOLON SPACE ASTERISK COMMENT COMMA
 
 
@@ -720,7 +717,7 @@ external_declaration
 	fprintf(header_file, "extern int %s_type_id;\n", current_class_name_lowercase);
 
 	/* function prototypes in header file */
-	fprintf(header_file, "struct %sClass * get_type(struct zco_context_t *ctx);\n", current_class_name_pascal);
+	fprintf(header_file, "struct %sClass * %s_get_type(struct zco_context_t *ctx);\n", current_class_name_pascal, current_class_name_lowercase);
 	dump_string(&function_prototypes_h, header_file);
 	fprintf(header_file, "\n");
 
@@ -729,7 +726,11 @@ external_declaration
 	fprintf(header_file, "\n");
 
 	/* includes in source file */
-	fprintf(source_file, "#include <%s>\n#include <zco.h>\n", header_filename);
+	fprintf(source_file,
+			"#include <%s>\n"
+			"#include <zco.h>\n"
+			"#include <stdlib.h>\n",
+			header_filename);
 
 	/* macros in source file */
 	dump_string(&c_macros, source_file);
@@ -745,7 +746,7 @@ external_declaration
 	fprintf(source_file, "\n");
 
 	/* define get_type */
-	fprintf(source_file, "struct %sClass * get_type(struct zco_context_t *ctx)\n"
+	fprintf(source_file, "struct %sClass * %s_get_type(struct zco_context_t *ctx)\n"
 			"{\n"
 			"\tif (%s_type_id == -1)\n"
 			"\t\t%s_type_id = zco_allocate_type_id();\n\n"
@@ -764,6 +765,7 @@ external_declaration
 			current_class_name_lowercase,
 			current_class_name_lowercase,
 			current_class_name_lowercase,
+			current_class_name_lowercase,
 			current_class_name_pascal,
 			current_class_name_pascal,
 			current_class_name_pascal,
@@ -775,7 +777,7 @@ external_declaration
 	for (i=0; i < parent_class_count; ++i) {
 		fprintf(source_file,
 				"\t\t{\n"
-				"\t\t\tstruct %sClass *p_class = %s_get_type();\n"
+				"\t\t\tstruct %sClass *p_class = %s_get_type(ctx);\n"
 				"\t\t\tzco_inherit_vtable(\n"
 				"\t\t\t\t&class->vtable_off_list,\n"
 				"\t\t\t\t&class->vtable_off_size,\n"
@@ -814,7 +816,7 @@ external_declaration
 	fprintf(source_file, "static Self * __init(struct zco_context_t *ctx)\n"
 			"{\n"
 			"\tSelf *self = (Self *) malloc(sizeof(Self));\n"
-			"\tself->_class = %s_get_type();\n",
+			"\tself->_class = %s_get_type(ctx);\n",
 			current_class_name_lowercase);
 
 	dump_string(&virtual_function_ptr_inits, source_file);
@@ -875,6 +877,12 @@ ccodes
 	{ $$=strdup($1); }
 
 	| ccodes CLASS
+	{ $$=strdup2($1,$2); free($1); }
+
+	| STRUCT
+	{ $$=strdup($1); }
+
+	| ccodes STRUCT
 	{ $$=strdup2($1,$2); free($1); }
 
 	| COLON
@@ -1042,33 +1050,17 @@ arguments
 
 pointers
 	: ASTERISK
-	| pointers ASTERISK
+	| pointers ASTERISK	{ $$=strdup2($1,$2); free($1); free($2); }
+	| ignorable
+	| pointers ignorable	{ $$=strdup2($1,$2); free($1); free($2); }
 	;
 
 argument
-	: WORD ignorables WORD
+	: WORD pointers WORD
 	{ $$=strdup3($1,$2,$3); free($1); free($2); free($3); }
 
-	| WORD pointers ignorables WORD
-	{ $$=strdup4($1,$2,$3,$4); free($1); free($3); free($4); }
-
-	| WORD ignorables pointers WORD
-	{ $$=strdup4($1,$2,$3,$4); free($1); free($2); free($4); }
-
-	| WORD ignorables pointers ignorables WORD
-	{ $$=strdup5($1,$2,$3,$4,$5); free($1); free($2); free($4); free($5); }
-
-	| WORD ignorables WORD ignorables WORD
-	{ $$=strdup5($1,$2,$3,$4,$5); free($1); free($2); free($3); free($4); free($5); }
-
-	| WORD ignorables WORD pointers ignorables WORD
-	{ $$=strdup6($1,$2,$3,$4,$5,$6); free($1); free($2); free($3); free($5); free($6); }
-
-	| WORD ignorables WORD ignorables pointers WORD
-	{ $$=strdup6($1,$2,$3,$4,$5,$6); free($1); free($2); free($3); free($4); free($6); }
-
-	| WORD ignorables WORD ignorables pointers ignorables WORD
-	{ $$=strdup7($1,$2,$3,$4,$5,$6,$7); free($1); free($2); free($3); free($4); free($6); free($7); }
+	| STRUCT ignorables WORD pointers WORD
+	{ $$=strdup5($1,$2,$3,$4,$5); free($2); free($3); free($4); free($5); }
 	;
 
 modifier_mode
@@ -1134,7 +1126,11 @@ access_specifier
 	;
 
 type_name
-	: WORD { if (type_name) { free(type_name); } type_name=$1; }
+	: WORD pointers
+	{ if (type_name) { free(type_name); } type_name=strdup2($1,$2); free($1); free($2); }
+
+	| STRUCT ignorables WORD pointers
+	{ if (type_name) { free(type_name); } type_name=strdup4($1," ", $3,$4); free($2); free($3); free($4); }
 	;
 
 symbol_name
@@ -1143,37 +1139,37 @@ symbol_name
 
 class_object
 	/* data members */
-	: access_specifier ignorables type_name ignorables symbol_name SEMICOLON
-	{ add_data_member(type_name, symbol_name); free($2); free($4); }
+	: access_specifier ignorables type_name symbol_name SEMICOLON
+	{ add_data_member(type_name, symbol_name); free($2); }
 
-	| access_specifier ignorables type_name ignorables symbol_name ignorables SEMICOLON
-	{ add_data_member(type_name, symbol_name); free($2); free($4); free($6); }
+	| access_specifier ignorables type_name symbol_name ignorables SEMICOLON
+	{ add_data_member(type_name, symbol_name); free($2); free($6); }
 
 	/* virtual member functions */
-	| access_specifier ignorables modifier_mode ignorables type_name ignorables symbol_name argument_list ccodes_block
-	{ virtual_member_function_decl($5, $7, $8, $9); free($2); free($4); free($6); free($8); free($9); }
+	| access_specifier ignorables modifier_mode ignorables type_name symbol_name argument_list ccodes_block
+	{ virtual_member_function_decl(type_name, $6, $7, $8); free($2); free($4); free($7); free($8); }
 
-	| access_specifier ignorables modifier_mode ignorables type_name ignorables symbol_name ignorables argument_list ccodes_block
-	{ virtual_member_function_decl($5, $7, $9, $10); free($2); free($4); free($6); free($8); free($9); free($10); }
+	| access_specifier ignorables modifier_mode ignorables type_name symbol_name ignorables argument_list ccodes_block
+	{ virtual_member_function_decl(type_name, $6, $8, $9); free($2); free($4); free($7); free($8); free($9); }
 
-	| access_specifier ignorables modifier_mode ignorables type_name ignorables symbol_name argument_list ignorables ccodes_block
-	{ virtual_member_function_decl($5, $7, $8, $10); free($2); free($4); free($6); free($8); free($9); free($10); }
+	| access_specifier ignorables modifier_mode ignorables type_name symbol_name argument_list ignorables ccodes_block
+	{ virtual_member_function_decl(type_name, $6, $7, $9); free($2); free($4); free($7); free($8); free($9); }
 
-	| access_specifier ignorables modifier_mode ignorables type_name ignorables symbol_name ignorables argument_list ignorables ccodes_block
-	{ virtual_member_function_decl($5, $7, $9, $11); free($2); free($4); free($6); free($8); free($9); free($10); free($11); }
+	| access_specifier ignorables modifier_mode ignorables type_name symbol_name ignorables argument_list ignorables ccodes_block
+	{ virtual_member_function_decl(type_name, $6, $8, $10); free($2); free($4); free($7); free($8); free($9); free($10); }
 
 	/* member functions */
-	| access_specifier ignorables type_name ignorables symbol_name argument_list ccodes_block
-	{ member_function_decl($3, $5, $6, $7); free($2); free($4); free($6); free($7); }
+	| access_specifier ignorables type_name symbol_name argument_list ccodes_block
+	{ member_function_decl(type_name, $4, $5, $6); free($2); free($5); free($6); }
 
-	| access_specifier ignorables type_name ignorables symbol_name ignorables argument_list ccodes_block
-	{ member_function_decl($3, $5, $7, $8); free($2); free($4); free($6); free($7); free($8); }
+	| access_specifier ignorables type_name symbol_name ignorables argument_list ccodes_block
+	{ member_function_decl(type_name, $4, $6, $7); free($2); free($5); free($6); free($7); }
 
-	| access_specifier ignorables type_name ignorables symbol_name argument_list ignorables ccodes_block
-	{ member_function_decl($3, $5, $6, $8); free($2); free($4); free($6); free($7); free($8); }
+	| access_specifier ignorables type_name symbol_name argument_list ignorables ccodes_block
+	{ member_function_decl(type_name, $4, $5, $7); free($2); free($5); free($6); free($7); }
 
-	| access_specifier ignorables type_name ignorables symbol_name ignorables argument_list ignorables ccodes_block
-	{ member_function_decl($3, $5, $7, $9); free($2); free($4); free($6); free($7); free($8); free($9); }
+	| access_specifier ignorables type_name symbol_name ignorables argument_list ignorables ccodes_block
+	{ member_function_decl(type_name, $4, $6, $8); free($2); free($5); free($6); free($7); free($8); }
 
 	/* special member functions (ie. init() or class_init() */
 	| symbol_name argument_list ccodes_block
@@ -1189,11 +1185,11 @@ class_object
 	{ special_member_function_decl($1, $3, $5); free($2); free($3); free($4); free($5); }
 
 	/* properties */
-	| access_specifier ignorables type_name ignorables symbol_name OBRACE property_objects EBRACE
-	{ free($2); free($4); }
+	| access_specifier ignorables type_name symbol_name OBRACE property_objects EBRACE
+	{ free($2); }
 
-	| access_specifier ignorables type_name ignorables symbol_name ignorables OBRACE property_objects EBRACE
-	{ free($2); free($4); free($6); }
+	| access_specifier ignorables type_name symbol_name ignorables OBRACE property_objects EBRACE
+	{ free($2); }
 	;
 
 property_objects
@@ -1285,6 +1281,7 @@ int main(int argc, char **argv)
 {
 	char *filename;
 	int base_length;
+	int rc;
 
 	if (argc < 2)
 	{
@@ -1318,7 +1315,7 @@ int main(int argc, char **argv)
 	/* use input .zco file as standard input */
 	freopen(argv[1], "r", stdin);
 
-	yyparse();
+	rc = yyparse();
 
 	free(header_filename);
 
@@ -1327,6 +1324,8 @@ int main(int argc, char **argv)
 
 	fclose(header_file);
 	fclose(source_file);
+
+	return rc;
 }
 
 
