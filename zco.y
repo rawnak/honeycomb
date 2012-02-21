@@ -232,9 +232,6 @@ static void special_member_function_decl(const char *symbol, const char *arglist
 	if (!strcmp(symbol, "class_init"))
 		strcat_safe(&c_macros, "#define SHOULD_CALL_CLASS_INIT\n");
 
-	else if (!strcmp(symbol, "init"))
-		strcat_safe(&c_macros, "#define SHOULD_CALL_INIT\n");
-
 	strcat_safe(&c_macros, "#define ");
 	strcat_safe(&c_macros, symbol);
 	strcat_safe(&c_macros, " ");
@@ -477,6 +474,49 @@ static void add_function_pointer(const char *_type_name, const char *_symbol_nam
 	}
 }
 
+static char *strip_out_type(char *arg)
+{
+	int i, length = strlen(arg);
+
+	for (i=length-1; i>=0; --i) {
+		if (arg[i] == ' ' || arg[i] == '*')
+			return arg + (i+1);
+	}
+
+	return arg;
+}
+
+static char *strip_out_types(const char *arglist)
+{
+	char *arglist_no_paren = strdup(arglist+1);
+	struct string_t temp;
+	char *typeless_arglist;
+	char *p;
+	int is_first = 1;
+
+	arglist_no_paren[strlen(arglist_no_paren)-1] = 0;
+
+	init_string(&temp);
+
+	p = strtok(arglist_no_paren, ",");
+	while (p)
+	{
+		char *q = strip_out_type(p);
+		p = strtok(NULL, ",");
+
+		if (!is_first)
+			strcat_safe(&temp, ",");
+		else
+			is_first = 0;
+
+		strcat_safe(&temp, q);
+	}
+
+	free(arglist_no_paren);
+
+	return temp.data;
+}
+
 static void virtual_member_function_decl(const char *type, const char *symbol, const char *arglist, const char *code)
 {
 	if (access_mode == ACCESS_PRIVATE) {
@@ -491,12 +531,21 @@ static void virtual_member_function_decl(const char *type, const char *symbol, c
 	strcat_safe(&c_macros, symbol);
 	strcat_safe(&c_macros, "\n");
 
-	/* for function prototype */
+	/* virtual function caller prototype */
+	strcat_safe(&function_prototypes_h, type);
+	strcat_safe(&function_prototypes_h, " ");
+	strcat_safe(&function_prototypes_h, current_class_name_lowercase);
+	strcat_safe(&function_prototypes_h, "_");
+	strcat_safe(&function_prototypes_h, symbol);
+	strcat_safe(&function_prototypes_h, arglist);
+	strcat_safe(&function_prototypes_h, ";\n");
+
+	/* virtual function prototype */
 	strcat_safe(&function_prototypes_c, "static ");
 	strcat_safe(&function_prototypes_c, type);
 	strcat_safe(&function_prototypes_c, " ");
 	strcat_safe(&function_prototypes_c, current_class_name_lowercase);
-	strcat_safe(&function_prototypes_c, "_");
+	strcat_safe(&function_prototypes_c, "_virtual_");
 	strcat_safe(&function_prototypes_c, symbol);
 	strcat_safe(&function_prototypes_c, arglist);
 	strcat_safe(&function_prototypes_c, ";\n");
@@ -505,12 +554,29 @@ static void virtual_member_function_decl(const char *type, const char *symbol, c
 	if (virtual_base_name == 0) {
 		/* using 'virtual' modifier */
 
-		/* for function definition */
-		strcat_safe(&function_definitions, "static ");
+		/* virtual function caller */
+		char *typeless_arglist = strip_out_types(arglist);
+
 		strcat_safe(&function_definitions, type);
 		strcat_safe(&function_definitions, " ");
 		strcat_safe(&function_definitions, current_class_name_lowercase);
 		strcat_safe(&function_definitions, "_");
+		strcat_safe(&function_definitions, symbol);
+		strcat_safe(&function_definitions, arglist);
+		strcat_safe(&function_definitions, "\n{\n\tself->__");
+		strcat_safe(&function_definitions, symbol);
+		strcat_safe(&function_definitions, "(");
+		strcat_safe(&function_definitions, typeless_arglist);
+		strcat_safe(&function_definitions, ");\n}\n");
+
+		free(typeless_arglist);
+
+		/* virtual function definition */
+		strcat_safe(&function_definitions, "static ");
+		strcat_safe(&function_definitions, type);
+		strcat_safe(&function_definitions, " ");
+		strcat_safe(&function_definitions, current_class_name_lowercase);
+		strcat_safe(&function_definitions, "_virtual_");
 		strcat_safe(&function_definitions, symbol);
 		strcat_safe(&function_definitions, arglist);
 		strcat_safe(&function_definitions, "\n");
@@ -525,7 +591,7 @@ static void virtual_member_function_decl(const char *type, const char *symbol, c
 		strcat_safe(&virtual_function_ptr_inits, symbol);
 		strcat_safe(&virtual_function_ptr_inits, " = ");
 		strcat_safe(&virtual_function_ptr_inits, current_class_name_lowercase);
-		strcat_safe(&virtual_function_ptr_inits, "_");
+		strcat_safe(&virtual_function_ptr_inits, "_virtual_");
 		strcat_safe(&virtual_function_ptr_inits, symbol);
 		strcat_safe(&virtual_function_ptr_inits, ";\n");
 	} else {
@@ -821,9 +887,8 @@ external_declaration
 
 	dump_string(&virtual_function_ptr_inits, source_file);
 			
-	fprintf(source_file, "\t#ifdef SHOULD_CALL_INIT\n"
-			"\t\tinit((struct %s *) self);\n"
-			"\t#endif\n"
+	fprintf(source_file,
+			"\tz_object_init((struct %s *) self);\n"
 			"\treturn self;\n"
 			"}\n",
 			current_class_name_pascal);
