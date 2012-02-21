@@ -523,36 +523,35 @@ static void virtual_member_function_decl(const char *type, const char *symbol, c
 		yyerror("Cannot declare virtual function with private access specifier");
 	}
 
-	strcat_safe(&c_macros, "#define ");
-	strcat_safe(&c_macros, symbol);
-	strcat_safe(&c_macros, " ");
-	strcat_safe(&c_macros, current_class_name_lowercase);
-	strcat_safe(&c_macros, "_");
-	strcat_safe(&c_macros, symbol);
-	strcat_safe(&c_macros, "\n");
-
-	/* virtual function caller prototype */
-	strcat_safe(&function_prototypes_h, type);
-	strcat_safe(&function_prototypes_h, " ");
-	strcat_safe(&function_prototypes_h, current_class_name_lowercase);
-	strcat_safe(&function_prototypes_h, "_");
-	strcat_safe(&function_prototypes_h, symbol);
-	strcat_safe(&function_prototypes_h, arglist);
-	strcat_safe(&function_prototypes_h, ";\n");
-
-	/* virtual function prototype */
-	strcat_safe(&function_prototypes_c, "static ");
-	strcat_safe(&function_prototypes_c, type);
-	strcat_safe(&function_prototypes_c, " ");
-	strcat_safe(&function_prototypes_c, current_class_name_lowercase);
-	strcat_safe(&function_prototypes_c, "_virtual_");
-	strcat_safe(&function_prototypes_c, symbol);
-	strcat_safe(&function_prototypes_c, arglist);
-	strcat_safe(&function_prototypes_c, ";\n");
-
-
 	if (virtual_base_name == 0) {
 		/* using 'virtual' modifier */
+
+		/* virtual function prototype */
+		strcat_safe(&function_prototypes_c, "static ");
+		strcat_safe(&function_prototypes_c, type);
+		strcat_safe(&function_prototypes_c, " ");
+		strcat_safe(&function_prototypes_c, current_class_name_lowercase);
+		strcat_safe(&function_prototypes_c, "_virtual_");
+		strcat_safe(&function_prototypes_c, symbol);
+		strcat_safe(&function_prototypes_c, arglist);
+		strcat_safe(&function_prototypes_c, ";\n");
+
+		strcat_safe(&c_macros, "#define ");
+		strcat_safe(&c_macros, symbol);
+		strcat_safe(&c_macros, " ");
+		strcat_safe(&c_macros, current_class_name_lowercase);
+		strcat_safe(&c_macros, "_");
+		strcat_safe(&c_macros, symbol);
+		strcat_safe(&c_macros, "\n");
+
+		/* virtual function caller prototype */
+		strcat_safe(&function_prototypes_h, type);
+		strcat_safe(&function_prototypes_h, " ");
+		strcat_safe(&function_prototypes_h, current_class_name_lowercase);
+		strcat_safe(&function_prototypes_h, "_");
+		strcat_safe(&function_prototypes_h, symbol);
+		strcat_safe(&function_prototypes_h, arglist);
+		strcat_safe(&function_prototypes_h, ";\n");
 
 		/* virtual function caller */
 		char *typeless_arglist = strip_out_types(arglist);
@@ -597,6 +596,16 @@ static void virtual_member_function_decl(const char *type, const char *symbol, c
 	} else {
 		/* using 'override' modifier */
 
+		/* virtual function caller prototype */
+		strcat_safe(&function_prototypes_c, "static ");
+		strcat_safe(&function_prototypes_c, type);
+		strcat_safe(&function_prototypes_c, " ");
+		strcat_safe(&function_prototypes_c, current_class_name_lowercase);
+		strcat_safe(&function_prototypes_c, "_");
+		strcat_safe(&function_prototypes_c, symbol);
+		strcat_safe(&function_prototypes_c, arglist);
+		strcat_safe(&function_prototypes_c, ";\n");
+
 		/* for function definition */
 		strcat_safe(&function_definitions, "#define PARENT_HANDLER self->__parent_");
 		strcat_safe(&function_definitions, symbol);
@@ -617,7 +626,7 @@ static void virtual_member_function_decl(const char *type, const char *symbol, c
 		char *base_name_uppercase = pascal_to_uppercase(virtual_base_name, '_');
 
 		/* up cast to parent class */
-		strcat_safe(&virtual_function_ptr_inits, "\t{\n\t\t");
+		strcat_safe(&virtual_function_ptr_inits, "\t{\n\t\tstruct ");
 		strcat_safe(&virtual_function_ptr_inits, virtual_base_name);
 		strcat_safe(&virtual_function_ptr_inits, " *parent = ");
 		strcat_safe(&virtual_function_ptr_inits, base_name_uppercase);
@@ -888,10 +897,9 @@ external_declaration
 	dump_string(&virtual_function_ptr_inits, source_file);
 			
 	fprintf(source_file,
-			"\tz_object_init((struct %s *) self);\n"
+			"\tz_object_init((struct ZObject *) self);\n"
 			"\treturn self;\n"
-			"}\n",
-			current_class_name_pascal);
+			"}\n");
 
 	dump_string(&function_definitions, source_file);
 	fprintf(source_file, "\n");
