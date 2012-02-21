@@ -43,7 +43,8 @@ char *current_class_name_pascal;
 
 
 int parent_class_count;
-char **parent_class_name_underscore;
+char **parent_class_name_lowercase;
+char **parent_class_name_uppercase;
 char **parent_class_name_pascal;
 
 
@@ -232,6 +233,9 @@ static void special_member_function_decl(const char *symbol, const char *arglist
 	if (!strcmp(symbol, "class_init"))
 		strcat_safe(&c_macros, "#define SHOULD_CALL_CLASS_INIT\n");
 
+	else if (!strcmp(symbol, "init"))
+		strcat_safe(&c_macros, "#define SHOULD_CALL_INIT\n");
+
 	strcat_safe(&c_macros, "#define ");
 	strcat_safe(&c_macros, symbol);
 	strcat_safe(&c_macros, " ");
@@ -406,11 +410,13 @@ static void add_parent(char *name_in_pascal)
 	++parent_class_count;
 
 	parent_class_name_pascal = (char **) realloc(parent_class_name_pascal, sizeof(char *) * parent_class_count);
-	parent_class_name_underscore = (char **) realloc(parent_class_name_underscore, sizeof(char *) * parent_class_count);
+	parent_class_name_lowercase = (char **) realloc(parent_class_name_lowercase, sizeof(char *) * parent_class_count);
+	parent_class_name_uppercase = (char **) realloc(parent_class_name_uppercase, sizeof(char *) * parent_class_count);
 
 	/* store the name of the parent class */
 	parent_class_name_pascal[parent_class_count-1] = name_in_pascal;
-	parent_class_name_underscore[parent_class_count-1] = pascal_to_lowercase(name_in_pascal, '_');
+	parent_class_name_lowercase[parent_class_count-1] = pascal_to_lowercase(name_in_pascal, '_');
+	parent_class_name_uppercase[parent_class_count-1] = pascal_to_uppercase(name_in_pascal, '_');
 }
 
 static void init_string(struct string_t *s)
@@ -701,7 +707,11 @@ static void class_init(char *class_name)
 	strcat_safe(&c_macros, class_name);
 	strcat_safe(&c_macros, "\n");
 	strcat_safe(&c_macros, "#define selfp (&self->_priv)\n");
-	strcat_safe(&c_macros, "#define GET_NEW(ctx) __init(ctx)\n");
+
+	strcat_safe(&c_macros, "#define GET_NEW(ctx) __");
+	strcat_safe(&c_macros, current_class_name_lowercase);
+	strcat_safe(&c_macros, "_new(ctx)\n");
+
 
 	/* start the global data structure */
 	strcat_safe(&global_data, "struct ");
@@ -722,7 +732,7 @@ static void class_init(char *class_name)
 		strcat_safe(&public_data, "\tstruct ");
 		strcat_safe(&public_data, parent_class_name_pascal[i]);
 		strcat_safe(&public_data, " parent_");
-		strcat_safe(&public_data, parent_class_name_underscore[i]);
+		strcat_safe(&public_data, parent_class_name_lowercase[i]);
 		strcat_safe(&public_data, ";\n");
 	}
 
@@ -793,6 +803,7 @@ external_declaration
 
 	/* function prototypes in header file */
 	fprintf(header_file, "struct %sClass * %s_get_type(struct zco_context_t *ctx);\n", current_class_name_pascal, current_class_name_lowercase);
+	fprintf(header_file, "void __%s_init(struct zco_context_t *ctx, struct %s *self);\n", current_class_name_lowercase, current_class_name_pascal);
 	dump_string(&function_prototypes_h, header_file);
 	fprintf(header_file, "\n");
 
@@ -817,6 +828,17 @@ external_declaration
 	fprintf(source_file, "\n");
 
 	/* function prototypes in source file */
+
+	fprintf(source_file,
+			"static Self *__%s_new(struct zco_context_t *ctx)\n"
+			"{\n"
+			"\tSelf *self = (Self *) malloc(sizeof(Self));\n"
+			"\t__%s_init(ctx, self);\n"
+			"\treturn self;\n"
+			"}\n",
+			current_class_name_lowercase,
+			current_class_name_lowercase);
+
 	dump_string(&function_prototypes_c, source_file);
 	fprintf(source_file, "\n");
 
@@ -862,17 +884,11 @@ external_declaration
 				"\t\t\t\t&temp.parent_%s);\n"
 				"\t\t}\n",
 				parent_class_name_pascal[i],
-				parent_class_name_underscore[i],
-				parent_class_name_underscore[i]);
-
-		free(parent_class_name_pascal[i]);
-		free(parent_class_name_underscore[i]);
+				parent_class_name_lowercase[i],
+				parent_class_name_lowercase[i]);
 	}
 
-	if (parent_class_count > 0) {
-		free(parent_class_name_pascal);
-		free(parent_class_name_underscore);
-	}
+
 
 	fprintf(source_file,
 			"\t\tzco_add_to_vtable(&class->vtable_off_list, &class->vtable_off_size, %s_type_id);"
@@ -887,24 +903,49 @@ external_declaration
 			current_class_name_pascal,
 			current_class_name_pascal);
 
-	/* define __init */
-	fprintf(source_file, "static Self * __init(struct zco_context_t *ctx)\n"
+	/* define *_init */
+	fprintf(source_file, "void __%s_init(struct zco_context_t *ctx, Self *self)\n"
 			"{\n"
-			"\tSelf *self = (Self *) malloc(sizeof(Self));\n"
-			"\tself->_class = %s_get_type(ctx);\n",
+			"\tstruct %sClass *_class = %s_get_type(ctx);\n",
+			current_class_name_lowercase,
+			current_class_name_pascal,
 			current_class_name_lowercase);
+
+	for (i=0; i < parent_class_count; ++i) {
+		fprintf(source_file,
+				"\t__%s_init(ctx, %s(self));\n",
+				parent_class_name_lowercase[i],
+				parent_class_name_uppercase[i]);
+
+	}
+
+	fprintf(source_file, "\tself->_class = _class;\n");
 
 	dump_string(&virtual_function_ptr_inits, source_file);
 			
 	fprintf(source_file,
-			"\tz_object_init((struct ZObject *) self);\n"
-			"\treturn self;\n"
+			"\t#ifdef SHOULD_CALL_INIT\n"
+			"\t\tinit(self);\n"
+			"\t#endif\n"
 			"}\n");
 
 	dump_string(&function_definitions, source_file);
 	fprintf(source_file, "\n");
 
 	free(current_class_name_lowercase);
+
+	/* free parent class name lists */
+	for (i=0; i < parent_class_count; ++i) {
+		free(parent_class_name_pascal[i]);
+		free(parent_class_name_lowercase[i]);
+		free(parent_class_name_uppercase[i]);
+	}
+
+	if (parent_class_count > 0) {
+		free(parent_class_name_pascal);
+		free(parent_class_name_lowercase);
+		free(parent_class_name_uppercase);
+	}
 }
 ;
 
@@ -1055,7 +1096,8 @@ subclass_declaration
 	: CLASS ignorables WORD 
 	{
 		parent_class_name_pascal = 0;
-		parent_class_name_underscore = 0;
+		parent_class_name_lowercase = 0;
+		parent_class_name_uppercase = 0;
 		parent_class_count = 0;
 
 		$$=$3;
