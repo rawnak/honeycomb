@@ -619,7 +619,7 @@ static void virtual_member_function_decl(const char *type, const char *symbol, c
 		char *base_name_uppercase = pascal_to_uppercase(virtual_base_name, '_');
 
 		/* up cast to parent class */
-		strcat_safe(&virtual_function_ptr_inits, "\t{\n\t\tstruct ");
+		strcat_safe(&virtual_function_ptr_inits, "\t{\n\t\t");
 		strcat_safe(&virtual_function_ptr_inits, virtual_base_name);
 		strcat_safe(&virtual_function_ptr_inits, " *parent = ");
 		strcat_safe(&virtual_function_ptr_inits, base_name_uppercase);
@@ -671,14 +671,14 @@ static void class_init(char *class_name)
 	strcat_safe(&private_data, "Private {\n");
 
 	/* define the Self macro in the header file */
-	strcat_safe(&h_macros_head, "#define Self struct ");
+	strcat_safe(&h_macros_head, "#define Self ");
 	strcat_safe(&h_macros_head, class_name);
 	strcat_safe(&h_macros_head, "\n");
 
 	/* define the macro to upcast a derived object */
 	strcat_safe(&h_macros_head, "#define ");
 	strcat_safe(&h_macros_head, current_class_name_uppercase);
-	strcat_safe(&h_macros_head, "(s) ((struct ");
+	strcat_safe(&h_macros_head, "(s) ((");
 	strcat_safe(&h_macros_head, current_class_name_pascal);
 	strcat_safe(&h_macros_head, " *) ((char *) (s) + ");
 	strcat_safe(&h_macros_head, current_class_name_lowercase);
@@ -690,7 +690,7 @@ static void class_init(char *class_name)
 	strcat_safe(&h_macros_tail, "#undef Self\n");
 
 	/* define the Self macro in the source file */
-	strcat_safe(&c_macros, "#define Self struct ");
+	strcat_safe(&c_macros, "#define Self ");
 	strcat_safe(&c_macros, class_name);
 	strcat_safe(&c_macros, "\n");
 	strcat_safe(&c_macros, "#define selfp (&self->_priv)\n");
@@ -781,6 +781,14 @@ external_declaration
 			current_class_name_pascal,
 			current_class_name_pascal);
 
+	/* create typedefs */
+	fprintf(header_file,
+			"typedef struct %sPrivate %sPrivate;\n"
+			"typedef struct %sClass %sClass;\n"
+			"typedef struct %s %s;\n\n",
+			current_class_name_pascal, current_class_name_pascal,
+			current_class_name_pascal, current_class_name_pascal,
+			current_class_name_pascal, current_class_name_pascal);
 
 	/* private data members */
 	dump_string(&private_data, header_file);
@@ -798,8 +806,8 @@ external_declaration
 	fprintf(header_file, "extern int %s_type_id;\n", current_class_name_lowercase);
 
 	/* function prototypes in header file */
-	fprintf(header_file, "struct %sClass * %s_get_type(struct zco_context_t *ctx);\n", current_class_name_pascal, current_class_name_lowercase);
-	fprintf(header_file, "void __%s_init(struct zco_context_t *ctx, struct %s *self);\n", current_class_name_lowercase, current_class_name_pascal);
+	fprintf(header_file, "%sClass * %s_get_type(struct zco_context_t *ctx);\n", current_class_name_pascal, current_class_name_lowercase);
+	fprintf(header_file, "void __%s_init(struct zco_context_t *ctx, %s *self);\n", current_class_name_lowercase, current_class_name_pascal);
 	dump_string(&function_prototypes_h, header_file);
 	fprintf(header_file, "\n");
 
@@ -819,7 +827,7 @@ external_declaration
 	fprintf(source_file, "\n");
 
 	/* declare the global variables */
-	fprintf(source_file, "static struct %sClass global;\n", current_class_name_pascal);
+	fprintf(source_file, "static %sClass global;\n", current_class_name_pascal);
 	fprintf(source_file, "int %s_type_id = -1;\n", current_class_name_lowercase);
 	fprintf(source_file, "\n");
 
@@ -839,14 +847,14 @@ external_declaration
 	fprintf(source_file, "\n");
 
 	/* define get_type */
-	fprintf(source_file, "struct %sClass * %s_get_type(struct zco_context_t *ctx)\n"
+	fprintf(source_file, "%sClass * %s_get_type(struct zco_context_t *ctx)\n"
 			"{\n"
 			"\tif (%s_type_id == -1)\n"
 			"\t\t%s_type_id = zco_allocate_type_id();\n\n"
 			"\tvoid **class_ptr = zco_get_ctx_type(ctx, %s_type_id);\n"
 			"\tif (*class_ptr == 0) {\n"
-			"\t\t*class_ptr = malloc(sizeof(struct %sClass));\n"
-			"\t\tstruct %sClass *class = (struct %sClass *) *class_ptr;\n"
+			"\t\t*class_ptr = malloc(sizeof(%sClass));\n"
+			"\t\tstruct %sClass *class = (%sClass *) *class_ptr;\n"
 			"\t\tclass->name = \"%s\";\n"
 			"\t\tclass->id = %s_type_id;\n"
 			"\t\tclass->vtable_off_list = NULL;\n"
@@ -890,10 +898,10 @@ external_declaration
 			"\t\tzco_add_to_vtable(&class->vtable_off_list, &class->vtable_off_size, %s_type_id);"
 			"\t\t\n"
 			"\t\t#ifdef SHOULD_CALL_CLASS_INIT\n"
-			"\t\t\tclass_init((struct %sClass *) class);\n"
+			"\t\t\tclass_init((%sClass *) class);\n"
 			"\t\t#endif\n"
 			"\t}\n"
-			"\treturn (struct %sClass *) *class_ptr;\n"
+			"\treturn (%sClass *) *class_ptr;\n"
 			"}\n\n",
 			current_class_name_lowercase,
 			current_class_name_pascal,
