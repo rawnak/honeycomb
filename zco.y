@@ -454,30 +454,14 @@ static void add_data_member(const char *_type_name, const char *_symbol_name)
 
 static void add_function_pointer(const char *_type_name, const char *_symbol_name_prefix, const char *_symbol_name, const char *_arglist)
 {
-	switch (access_mode)
-	{
-		case ACCESS_PUBLIC:
-			strcat_safe(&public_data, "\t");
-			strcat_safe(&public_data, _type_name);
-			strcat_safe(&public_data, " (*");
-			strcat_safe(&public_data, _symbol_name_prefix);
-			strcat_safe(&public_data, _symbol_name);
-			strcat_safe(&public_data, ")");
-			strcat_safe(&public_data, _arglist);
-			strcat_safe(&public_data, ";\n");
-			break;
-
-		case ACCESS_GLOBAL:
-			strcat_safe(&global_data, "\t");
-			strcat_safe(&global_data, _type_name);
-			strcat_safe(&global_data, " (*");
-			strcat_safe(&global_data, _symbol_name_prefix);
-			strcat_safe(&global_data, _symbol_name);
-			strcat_safe(&global_data, ")");
-			strcat_safe(&global_data, _arglist);
-			strcat_safe(&global_data, ";\n");
-			break;
-	}
+	strcat_safe(&global_data, "\t");
+	strcat_safe(&global_data, _type_name);
+	strcat_safe(&global_data, " (*");
+	strcat_safe(&global_data, _symbol_name_prefix);
+	strcat_safe(&global_data, _symbol_name);
+	strcat_safe(&global_data, ")");
+	strcat_safe(&global_data, _arglist);
+	strcat_safe(&global_data, ";\n");
 }
 
 static char *strip_out_type(char *arg)
@@ -503,6 +487,9 @@ static char *strip_out_types(const char *arglist)
 	arglist_no_paren[strlen(arglist_no_paren)-1] = 0;
 
 	init_string(&temp);
+
+	/* make sure temp.data is not NULL */
+	strcat_safe(&temp, "");
 
 	p = strtok(arglist_no_paren, ",");
 	while (p)
@@ -568,7 +555,7 @@ static void virtual_member_function_decl(const char *type, const char *symbol, c
 		strcat_safe(&function_definitions, "_");
 		strcat_safe(&function_definitions, symbol);
 		strcat_safe(&function_definitions, arglist);
-		strcat_safe(&function_definitions, "\n{\n\tself->__");
+		strcat_safe(&function_definitions, "\n{\n\tself->_class->__");
 		strcat_safe(&function_definitions, symbol);
 		strcat_safe(&function_definitions, "(");
 		strcat_safe(&function_definitions, typeless_arglist);
@@ -592,7 +579,7 @@ static void virtual_member_function_decl(const char *type, const char *symbol, c
 		add_function_pointer(type, "__", symbol, arglist);
 
 		/* assign the address of the function into the function pointer data member */
-		strcat_safe(&virtual_function_ptr_inits, "\tself->__");
+		strcat_safe(&virtual_function_ptr_inits, "\tself->_class->__");
 		strcat_safe(&virtual_function_ptr_inits, symbol);
 		strcat_safe(&virtual_function_ptr_inits, " = ");
 		strcat_safe(&virtual_function_ptr_inits, current_class_name_lowercase);
@@ -613,7 +600,7 @@ static void virtual_member_function_decl(const char *type, const char *symbol, c
 		strcat_safe(&function_prototypes_c, ";\n");
 
 		/* for function definition */
-		strcat_safe(&function_definitions, "#define PARENT_HANDLER self->__parent_");
+		strcat_safe(&function_definitions, "#define PARENT_HANDLER self->_class->__parent_");
 		strcat_safe(&function_definitions, symbol);
 		strcat_safe(&function_definitions, "\nstatic ");
 		strcat_safe(&function_definitions, type);
@@ -639,15 +626,15 @@ static void virtual_member_function_decl(const char *type, const char *symbol, c
 		strcat_safe(&virtual_function_ptr_inits, "(self);\n");
 
 		/* backup the existing virtual function pointer for the PARENT_HANDLER macro */
-		strcat_safe(&virtual_function_ptr_inits, "\t\tself->__parent_");
+		strcat_safe(&virtual_function_ptr_inits, "\t\tself->_class->__parent_");
 		strcat_safe(&virtual_function_ptr_inits, symbol);
-		strcat_safe(&virtual_function_ptr_inits, " = parent->__");
+		strcat_safe(&virtual_function_ptr_inits, " = parent->_class->__");
 		strcat_safe(&virtual_function_ptr_inits, symbol);
 		strcat_safe(&virtual_function_ptr_inits, ";\n");
 
 		/* assign the address of the function into the function pointer data member */
 		strcat_safe(&virtual_function_ptr_inits, "\t\t");
-		strcat_safe(&virtual_function_ptr_inits, "parent->__");
+		strcat_safe(&virtual_function_ptr_inits, "parent->_class->__");
 		strcat_safe(&virtual_function_ptr_inits, symbol);
 		strcat_safe(&virtual_function_ptr_inits, " = ");
 		strcat_safe(&virtual_function_ptr_inits, current_class_name_lowercase);
@@ -711,7 +698,6 @@ static void class_init(char *class_name)
 	strcat_safe(&c_macros, "#define GET_NEW(ctx) __");
 	strcat_safe(&c_macros, current_class_name_lowercase);
 	strcat_safe(&c_macros, "_new(ctx)\n");
-
 
 	/* start the global data structure */
 	strcat_safe(&global_data, "struct ");
@@ -785,6 +771,16 @@ external_declaration
 	/* head macros in header file */
 	dump_string(&h_macros_head, header_file);
 	fprintf(header_file, "\n");
+
+	/* forward declarations of data structures */
+	fprintf(header_file,
+			"struct %sPrivate;\n"
+			"struct %sClass;\n"
+			"struct %s;\n\n",
+			current_class_name_pascal,
+			current_class_name_pascal,
+			current_class_name_pascal);
+
 
 	/* private data members */
 	dump_string(&private_data, header_file);
