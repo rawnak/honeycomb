@@ -34,6 +34,7 @@ struct string_t
 FILE *header_file, *source_file;
 char *type_name, *symbol_name, *virtual_base_name;
 char *header_filename;
+char *zco_filename;
 
 /* example_class_name */
 char *current_class_name_lowercase;
@@ -46,6 +47,9 @@ int parent_class_count;
 char **parent_class_name_lowercase;
 char **parent_class_name_uppercase;
 char **parent_class_name_pascal;
+
+extern int yylineno;
+int real_lineno;
 
 
 enum access_mode_t
@@ -228,6 +232,21 @@ static void dump_string(struct string_t *str, FILE *file)
 	str->length = 0;
 }
 
+static void record_line_number()
+{
+	real_lineno = yylineno;
+}
+
+static void print_line_number(struct string_t *str)
+{
+	char temp[32];
+	snprintf(temp, sizeof(temp), "#line %d \"", real_lineno);
+
+	strcat_safe(str, temp);
+	strcat_safe(str, zco_filename);
+	strcat_safe(str, "\"\n");
+}
+
 static void special_member_function_decl(const char *symbol, const char *arglist, const char *code)
 {
 	if (!strcmp(symbol, "class_init"))
@@ -236,6 +255,7 @@ static void special_member_function_decl(const char *symbol, const char *arglist
 	else if (!strcmp(symbol, "init"))
 		strcat_safe(&c_macros, "#define SHOULD_CALL_INIT\n");
 
+	print_line_number(&c_macros);
 	strcat_safe(&c_macros, "#define ");
 	strcat_safe(&c_macros, symbol);
 	strcat_safe(&c_macros, " ");
@@ -245,6 +265,7 @@ static void special_member_function_decl(const char *symbol, const char *arglist
 	strcat_safe(&c_macros, "\n");
 
 	/* for function prototype */
+	print_line_number(&function_prototypes_c);
 	strcat_safe(&function_prototypes_c, "static void ");
 	strcat_safe(&function_prototypes_c, current_class_name_lowercase);
 	strcat_safe(&function_prototypes_c, "_");
@@ -253,6 +274,7 @@ static void special_member_function_decl(const char *symbol, const char *arglist
 	strcat_safe(&function_prototypes_c, ";\n");
 
 	/* for function definition */
+	print_line_number(&function_definitions);
 	strcat_safe(&function_definitions, "static void ");
 	strcat_safe(&function_definitions, current_class_name_lowercase);
 	strcat_safe(&function_definitions, "_");
@@ -265,6 +287,7 @@ static void special_member_function_decl(const char *symbol, const char *arglist
 
 static void member_function_decl(const char *type, const char *symbol, const char *arglist, const char *code)
 {
+	print_line_number(&c_macros);
 	strcat_safe(&c_macros, "#define ");
 	strcat_safe(&c_macros, symbol);
 	strcat_safe(&c_macros, " ");
@@ -277,6 +300,7 @@ static void member_function_decl(const char *type, const char *symbol, const cha
 	{
 		case ACCESS_PRIVATE:
 			/* for function prototype */
+			print_line_number(&function_prototypes_c);
 			strcat_safe(&function_prototypes_c, "static ");
 			strcat_safe(&function_prototypes_c, type);
 			strcat_safe(&function_prototypes_c, " ");
@@ -287,6 +311,7 @@ static void member_function_decl(const char *type, const char *symbol, const cha
 			strcat_safe(&function_prototypes_c, ";\n");
 
 			/* for function definition */
+			print_line_number(&function_definitions);
 			strcat_safe(&function_definitions, "static ");
 			strcat_safe(&function_definitions, type);
 			strcat_safe(&function_definitions, " ");
@@ -301,6 +326,7 @@ static void member_function_decl(const char *type, const char *symbol, const cha
 
 		case ACCESS_PUBLIC:
 			/* for function prototype */
+			print_line_number(&function_prototypes_h);
 			strcat_safe(&function_prototypes_h, type);
 			strcat_safe(&function_prototypes_h, " ");
 			strcat_safe(&function_prototypes_h, current_class_name_lowercase);
@@ -310,6 +336,7 @@ static void member_function_decl(const char *type, const char *symbol, const cha
 			strcat_safe(&function_prototypes_h, ";\n");
 
 			/* for function definition */
+			print_line_number(&function_definitions);
 			strcat_safe(&function_definitions, type);
 			strcat_safe(&function_definitions, " ");
 			strcat_safe(&function_definitions, current_class_name_lowercase);
@@ -430,6 +457,7 @@ static void add_data_member(const char *_type_name, const char *_symbol_name)
 	switch (access_mode)
 	{
 		case ACCESS_PRIVATE:
+			print_line_number(&private_data);
 			strcat_safe(&private_data, "\t");
 			strcat_safe(&private_data, _type_name);
 			strcat_safe(&private_data, _symbol_name);
@@ -437,6 +465,7 @@ static void add_data_member(const char *_type_name, const char *_symbol_name)
 			break;
 
 		case ACCESS_PUBLIC:
+			print_line_number(&public_data);
 			strcat_safe(&public_data, "\t");
 			strcat_safe(&public_data, _type_name);
 			strcat_safe(&public_data, _symbol_name);
@@ -444,6 +473,7 @@ static void add_data_member(const char *_type_name, const char *_symbol_name)
 			break;
 
 		case ACCESS_GLOBAL:
+			print_line_number(&global_data);
 			strcat_safe(&global_data, "\t");
 			strcat_safe(&global_data, _type_name);
 			strcat_safe(&global_data, _symbol_name);
@@ -454,6 +484,7 @@ static void add_data_member(const char *_type_name, const char *_symbol_name)
 
 static void add_function_pointer(const char *_type_name, const char *_symbol_name_prefix, const char *_symbol_name, const char *_arglist)
 {
+	print_line_number(&global_data);
 	strcat_safe(&global_data, "\t");
 	strcat_safe(&global_data, _type_name);
 	strcat_safe(&global_data, " (*");
@@ -517,6 +548,7 @@ static void virtual_member_function_decl(const char *type, const char *symbol, c
 	}
 
 	/* virtual function prototype */
+	print_line_number(&function_prototypes_c);
 	strcat_safe(&function_prototypes_c, "static ");
 	strcat_safe(&function_prototypes_c, type);
 	strcat_safe(&function_prototypes_c, " ");
@@ -526,6 +558,7 @@ static void virtual_member_function_decl(const char *type, const char *symbol, c
 	strcat_safe(&function_prototypes_c, arglist);
 	strcat_safe(&function_prototypes_c, ";\n");
 
+	print_line_number(&c_macros);
 	strcat_safe(&c_macros, "#define ");
 	strcat_safe(&c_macros, symbol);
 	strcat_safe(&c_macros, " ");
@@ -551,6 +584,7 @@ static void virtual_member_function_decl(const char *type, const char *symbol, c
 	free(vcode.data);
 
 	/* virtual function definition */
+	print_line_number(&function_definitions);
 	strcat_safe(&function_definitions, "static ");
 	strcat_safe(&function_definitions, type);
 	strcat_safe(&function_definitions, " ");
@@ -566,6 +600,7 @@ static void virtual_member_function_decl(const char *type, const char *symbol, c
 	add_function_pointer(type, "__", symbol, arglist);
 
 	/* assign the address of the function into the function pointer data member */
+	print_line_number(&virtual_function_ptr_inits);
 	strcat_safe(&virtual_function_ptr_inits, "\tself->_class->__");
 	strcat_safe(&virtual_function_ptr_inits, symbol);
 	strcat_safe(&virtual_function_ptr_inits, " = ");
@@ -578,6 +613,7 @@ static void virtual_member_function_decl(const char *type, const char *symbol, c
 static void override_member_function_decl(const char *type, const char *symbol, const char *arglist, const char *code)
 {
 	/* virtual function caller prototype */
+	print_line_number(&function_prototypes_c);
 	strcat_safe(&function_prototypes_c, "static ");
 	strcat_safe(&function_prototypes_c, type);
 	strcat_safe(&function_prototypes_c, " ");
@@ -588,6 +624,7 @@ static void override_member_function_decl(const char *type, const char *symbol, 
 	strcat_safe(&function_prototypes_c, ";\n");
 
 	/* for function definition */
+	print_line_number(&function_definitions);
 	strcat_safe(&function_definitions, "#define PARENT_HANDLER self->_class->__parent_");
 	strcat_safe(&function_definitions, symbol);
 	strcat_safe(&function_definitions, "\nstatic ");
@@ -607,6 +644,7 @@ static void override_member_function_decl(const char *type, const char *symbol, 
 	char *base_name_uppercase = pascal_to_uppercase(virtual_base_name, '_');
 
 	/* up cast to parent class */
+	print_line_number(&virtual_function_ptr_inits);
 	strcat_safe(&virtual_function_ptr_inits, "\t{\n\t\t");
 	strcat_safe(&virtual_function_ptr_inits, virtual_base_name);
 	strcat_safe(&virtual_function_ptr_inits, " *parent = ");
@@ -1181,48 +1219,56 @@ override_mode
 	: OVERRIDE OPAREN WORD EPAREN
 	{
 		modifier_mode = MODIFIER_OVERRIDE;
+		record_line_number();
 		if (virtual_base_name) { free(virtual_base_name); } virtual_base_name=$3; 
 	}
 
 	| OVERRIDE OPAREN WORD ignorables EPAREN
 	{
 		modifier_mode = MODIFIER_OVERRIDE;
+		record_line_number();
 		if (virtual_base_name) { free(virtual_base_name); } virtual_base_name=$3; 
 	}
 
 	| OVERRIDE OPAREN ignorables WORD EPAREN
 	{
 		modifier_mode = MODIFIER_OVERRIDE;
+		record_line_number();
 		if (virtual_base_name) { free(virtual_base_name); } virtual_base_name=$4; 
 	}
 
 	| OVERRIDE OPAREN ignorables WORD ignorables EPAREN
 	{
 		modifier_mode = MODIFIER_OVERRIDE;
+		record_line_number();
 		if (virtual_base_name) { free(virtual_base_name); } virtual_base_name=$4; 
 	}
 
 	| OVERRIDE ignorables OPAREN WORD EPAREN
 	{
 		modifier_mode = MODIFIER_OVERRIDE;
+		record_line_number();
 		if (virtual_base_name) { free(virtual_base_name); } virtual_base_name=$4; 
 	}
 
 	| OVERRIDE ignorables OPAREN WORD ignorables EPAREN
 	{
 		modifier_mode = MODIFIER_OVERRIDE;
+		record_line_number();
 		if (virtual_base_name) { free(virtual_base_name); } virtual_base_name=$4; 
 	}
 
 	| OVERRIDE ignorables OPAREN ignorables WORD EPAREN
 	{
 		modifier_mode = MODIFIER_OVERRIDE;
+		record_line_number();
 		if (virtual_base_name) { free(virtual_base_name); } virtual_base_name=$5; 
 	}
 
 	| OVERRIDE ignorables OPAREN ignorables WORD ignorables EPAREN
 	{
 		modifier_mode = MODIFIER_OVERRIDE;
+		record_line_number();
 		if (virtual_base_name) { free(virtual_base_name); } virtual_base_name=$5; 
 	}
 	;
@@ -1242,7 +1288,14 @@ type_name
 	;
 
 symbol_name
-	: WORD { if (symbol_name) { free(symbol_name); } symbol_name=$1; }
+	: WORD
+	{
+		if (symbol_name)
+			free(symbol_name);
+		
+		symbol_name=$1;
+		record_line_number();
+	}
 	;
 
 class_object
@@ -1320,11 +1373,19 @@ property_objects
 	| property_objects ignorable           { free($2); }
 	;
 
+get_keyword
+	: GET { record_line_number(); }
+	;
+
+set_keyword
+	: SET { record_line_number(); }
+	;
+
 property_object
-	: GET ccodes_block               { property_decl($1,$2); }
-	| GET ignorables ccodes_block    { property_decl($1,$3); free($2); }
-	| SET ccodes_block               { property_decl($1,$2); }
-	| SET ignorables ccodes_block    { property_decl($1,$3); free($2); }
+	: get_keyword ccodes_block		{ property_decl($1,$2); }
+	| get_keyword ignorables ccodes_block	{ property_decl($1,$3); free($2); }
+	| set_keyword ccodes_block		{ property_decl($1,$2); }
+	| set_keyword ignorables ccodes_block	{ property_decl($1,$3); free($2); }
 	;
 
 ignorables
@@ -1410,12 +1471,15 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
+	zco_filename = argv[1];
 	filename = get_base_filename(argv[1], &base_length);
 	if (filename == NULL)
 	{
 		fprintf(stderr, "Input file must have a .zco extension\n");
 		return -1;
 	}
+
+	real_lineno = 0;
 
 	/* open the output header file for writing */
 	filename[base_length] = '.';
