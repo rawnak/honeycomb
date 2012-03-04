@@ -355,13 +355,13 @@ static void property_decl(char *get_or_set, char *code)
 	char *arglist, *symbol;
 
 	if (!strcmp(get_or_set, "get")) {
-		arglist = "()";
+		arglist = "(Self *self)";
 		symbol = strdup2("get_", symbol_name);
 		member_function_decl(type_name, symbol, arglist, code);
 		free(symbol);
 
 	} else if (!strcmp(get_or_set, "set")) {
-		arglist = strdup3("(", type_name, " value)");
+		arglist = strdup3("(Self *self, ", type_name, " value)");
 		symbol = strdup2("set_", symbol_name);
 		member_function_decl("void", symbol, arglist, code);
 		free(arglist);
@@ -705,10 +705,9 @@ static void class_init(char *class_name)
 	strcat_safe(&h_macros_head, current_class_name_uppercase);
 	strcat_safe(&h_macros_head, "(s) ((");
 	strcat_safe(&h_macros_head, current_class_name_pascal);
-	strcat_safe(&h_macros_head, " *) ((char *) (s) + ");
+	strcat_safe(&h_macros_head, " *) ((char *) (s) + ((int *) (s)->_class)[");
 	strcat_safe(&h_macros_head, current_class_name_lowercase);
-	strcat_safe(&h_macros_head, "_type_id))\n\n");
-
+	strcat_safe(&h_macros_head, "_type_id]))\n\n");
 	free(current_class_name_uppercase);
 
 	/* define the tailing macros */
@@ -724,14 +723,17 @@ static void class_init(char *class_name)
 	strcat_safe(&c_macros, current_class_name_lowercase);
 	strcat_safe(&c_macros, "_new(ctx)\n");
 
+	strcat_safe(&c_macros, "#define CTX self->_class->ctx\n");
+
 	/* start the global data structure */
 	strcat_safe(&global_data, "struct ");
 	strcat_safe(&global_data, class_name);
 	strcat_safe(&global_data, "Class {\n"
-			"\tconst char *name;\n"
-			"\tint id;\n"
 			"\tint *vtable_off_list;\n"
-			"\tint vtable_off_size;\n");
+			"\tint vtable_off_size;\n"
+			"\tstruct zco_context_t *ctx;\n"
+			"\tconst char *name;\n"
+			"\tint id;\n");
 
 	/* start the public data structure */
 	strcat_safe(&public_data, "struct ");
@@ -880,6 +882,7 @@ external_declaration
 			"\tif (*class_ptr == 0) {\n"
 			"\t\t*class_ptr = malloc(sizeof(%sClass));\n"
 			"\t\tstruct %sClass *class = (%sClass *) *class_ptr;\n"
+			"\t\tclass->ctx = ctx;\n"
 			"\t\tclass->name = \"%s\";\n"
 			"\t\tclass->id = %s_type_id;\n"
 			"\t\tclass->vtable_off_list = NULL;\n"
@@ -1187,9 +1190,14 @@ argument_list
 
 arguments
 	: argument
-	| arguments COMMA argument             { $$=strdup3($1,$2,$3); free($1); free($3);  }
-	| ignorables argument                  { $$=$2; free($1); }
-	| arguments COMMA ignorables argument  { $$=strdup3($1,$2,$4); free($1); free($3); free($4);  }
+	| arguments COMMA argument
+	{ $$=strdup3($1,$2,$3); free($1); free($3);  }
+
+	| arguments COMMA ignorables argument
+	{ $$=strdup3($1,$2,$4); free($1); free($3); free($4);  }
+
+	| arguments COMMA ignorables argument ignorables
+	{ $$=strdup3($1,$2,$4); free($1); free($3); free($4);  }
 	;
 
 pointers
