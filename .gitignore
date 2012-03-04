@@ -5,3 +5,7 @@ zco.tab.c
 zco.tab.h
 *.output
 *.o
+z-object.[ch]
+z-vector.[ch]
+z-vector-iter.[ch]
+

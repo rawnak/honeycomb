@@ -1,0 +1,54 @@
+/* ZCO - Cross-platform Application Framework
+ * Copyright (C) 2014  Syeda Sultana
+ *
+ * z-object.zco: Base class for all objects
+ * This file is part of ZCO.
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZCO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+%h{
+%}
+
+%{
+%}
+
+class ZObject 
+{
+	private int ref_count;
+
+	init(Self *self)
+	{
+		// init for object
+		selfp->ref_count = 1;
+	}
+
+	public virtual void dispose(Self *self)
+	{
+		free(self);
+	}
+
+	public void ref(Self *self)
+	{
+		++selfp->ref_count;
+	}
+
+	public void unref(Self *self)
+	{
+		if (--selfp->ref_count == 0)
+			dispose(self);
+	}
+
+}
+
