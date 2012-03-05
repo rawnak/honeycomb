@@ -44,6 +44,11 @@ class ZVector : ZObject
 
 	init(Self *self)
 	{
+		selfp->item_size = 0;
+		selfp->count = 0;
+		selfp->capacity = 0;
+		selfp->data = 0;
+		selfp->userdata = 0;
 		selfp->item_construct = 0;
 		selfp->item_destruct = 0;
 	}
@@ -113,7 +118,7 @@ class ZVector : ZObject
 			if (selfp->count < value) {
 				/* grow the vector */
 				if (selfp->capacity < value) {
-					z_vector_set_capacity(self, value);
+					set_capacity(self, value);
 				}
 
 				if (selfp->item_construct) {

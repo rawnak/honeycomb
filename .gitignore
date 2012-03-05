@@ -1,4 +1,5 @@
 *.sw?
+distcc.log
 lex.yy.c
 zco
 zco.tab.c
