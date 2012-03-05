@@ -645,13 +645,17 @@ static void override_member_function_decl(const char *type, const char *symbol, 
 
 	/* up cast to parent class */
 	print_line_number(&virtual_function_ptr_inits);
-	strcat_safe(&virtual_function_ptr_inits, "\t{\n\t\t");
+	strcat_safe(&virtual_function_ptr_inits, "\t{\n");
+	
+	print_line_number(&virtual_function_ptr_inits);
+	strcat_safe(&virtual_function_ptr_inits, "\t\t");
 	strcat_safe(&virtual_function_ptr_inits, virtual_base_name);
 	strcat_safe(&virtual_function_ptr_inits, " *parent = ");
 	strcat_safe(&virtual_function_ptr_inits, base_name_uppercase);
 	strcat_safe(&virtual_function_ptr_inits, "(self);\n");
 
 	/* backup the existing virtual function pointer for the PARENT_HANDLER macro */
+	print_line_number(&virtual_function_ptr_inits);
 	strcat_safe(&virtual_function_ptr_inits, "\t\tself->_class->__parent_");
 	strcat_safe(&virtual_function_ptr_inits, symbol);
 	strcat_safe(&virtual_function_ptr_inits, " = parent->_class->__");
@@ -659,6 +663,7 @@ static void override_member_function_decl(const char *type, const char *symbol, 
 	strcat_safe(&virtual_function_ptr_inits, ";\n");
 
 	/* assign the address of the function into the function pointer data member */
+	print_line_number(&virtual_function_ptr_inits);
 	strcat_safe(&virtual_function_ptr_inits, "\t\t");
 	strcat_safe(&virtual_function_ptr_inits, "parent->_class->__");
 	strcat_safe(&virtual_function_ptr_inits, symbol);
@@ -666,7 +671,10 @@ static void override_member_function_decl(const char *type, const char *symbol, 
 	strcat_safe(&virtual_function_ptr_inits, current_class_name_lowercase);
 	strcat_safe(&virtual_function_ptr_inits, "_");
 	strcat_safe(&virtual_function_ptr_inits, symbol);
-	strcat_safe(&virtual_function_ptr_inits, ";\n\t}\n");
+	strcat_safe(&virtual_function_ptr_inits, ";\n");
+
+	print_line_number(&virtual_function_ptr_inits);
+	strcat_safe(&virtual_function_ptr_inits, "\t}\n");
 
 	free(base_name_uppercase);
 }
@@ -793,7 +801,7 @@ external_declaration
 	int i;
 
 	/* includes in header file */
-	fprintf(header_file, "#include <zco.h>\n");
+	fprintf(header_file, "#include <zco-type.h>\n");
 
 	/* head macros in header file */
 	dump_string(&h_macros_head, header_file);
@@ -845,7 +853,7 @@ external_declaration
 	/* includes in source file */
 	fprintf(source_file,
 			"#include <%s>\n"
-			"#include <zco.h>\n"
+			"#include <zco-type.h>\n"
 			"#include <stdlib.h>\n",
 			header_filename);
 
@@ -943,6 +951,8 @@ external_declaration
 			current_class_name_pascal,
 			current_class_name_lowercase);
 
+	fprintf(source_file, "\tself->_class = _class;\n");
+
 	for (i=0; i < parent_class_count; ++i) {
 		fprintf(source_file,
 				"\t__%s_init(ctx, %s(self));\n",
@@ -950,8 +960,6 @@ external_declaration
 				parent_class_name_uppercase[i]);
 
 	}
-
-	fprintf(source_file, "\tself->_class = _class;\n");
 
 	dump_string(&virtual_function_ptr_inits, source_file);
 			

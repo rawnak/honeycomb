@@ -29,6 +29,7 @@ typedef void(*ZVectorItemCallback)(void *item, void *userdata);
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
+#include <assert.h>
 %}
 
 class ZVector : ZObject
@@ -51,9 +52,10 @@ class ZVector : ZObject
 	{
 	}
 
-	public Self *new(struct zco_context_t *ctx)
+	public Self *new(struct zco_context_t *ctx, int item_size)
 	{
 		Self *self = GET_NEW(ctx);
+		selfp->item_size = item_size;
 		return self;
 	}
 
@@ -95,7 +97,7 @@ class ZVector : ZObject
 		get
 		{
 			ZVectorIter *iter = z_vector_iter_new(CTX);
-			z_vector_iter_set_index(iter, get_size(self) - 1);
+			z_vector_iter_set_index(iter, get_size(self));
 			return iter;
 		}
 	}
@@ -240,7 +242,8 @@ class ZVector : ZObject
 		get
 		{
 			ZVectorIter *iter = get_end(self);
-			void *item = get_item(self, iter);;
+			z_vector_iter_decrement(iter);
+			void *item = get_item(self, iter);
 			z_object_unref(Z_OBJECT(iter));
 			return item;
 
@@ -248,6 +251,7 @@ class ZVector : ZObject
 		set 
 		{
 			ZVectorIter *iter = get_end(self);
+			z_vector_iter_decrement(iter);
 			set_item(self, iter, value);
 			z_object_unref(Z_OBJECT(iter));
 		}
@@ -298,20 +302,24 @@ class ZVector : ZObject
 		ZVectorIter *dest_it, *src_it;
 
 		/* make a copy of the iterators */
-		if (iter == NULL)
+		if (iter == NULL) {
 			dest_it = get_end(self);
-		else
+			z_vector_iter_decrement(iter);
+		} else {
 			dest_it = z_vector_iter_dup(iter);
+		}
 
 		if (src_iter_start == NULL)
 			it1 = get_begin(src);
 		else
 			it1 = z_vector_iter_dup(src_iter_start);
 
-		if (src_iter_end == NULL)
+		if (src_iter_end == NULL) {
 			it2 = get_end(src);
-		else
+			z_vector_iter_decrement(iter);
+		} else {
 			it2 = z_vector_iter_dup(src_iter_end);
+		}
 		
 		/* compute the item count */
 		int n = z_vector_iter_get_index(it2) - z_vector_iter_get_index(it1);
@@ -345,7 +353,7 @@ class ZVector : ZObject
 		ZVectorIter *it1;
 		ZVectorIter *it2;
 		
-		int n = z_vector_iter_get_index(end) - z_vector_get_index(start);
+		int n = z_vector_iter_get_index(end) - z_vector_iter_get_index(start);
 
 		if (n >= 0) {
 			it1 = z_vector_iter_dup(start);
@@ -398,7 +406,7 @@ class ZVector : ZObject
 
 			z_object_unref(Z_OBJECT(temp));
 			temp = get_begin(self);
-			z_vector_iter_set_index(iter, z_object_iter_get_index(temp));
+			z_vector_iter_set_index(iter, z_vector_iter_get_index(temp));
 
 		} else {
 			z_vector_iter_set_index(temp, z_vector_iter_get_index(iter));

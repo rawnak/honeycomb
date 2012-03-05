@@ -3,8 +3,11 @@ lex.yy.c
 zco
 zco.tab.c
 zco.tab.h
+zco.c
 *.output
 *.o
+*.so
+zco-test
 z-object.[ch]
 z-vector.[ch]
 z-vector-iter.[ch]
