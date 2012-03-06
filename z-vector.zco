@@ -53,8 +53,12 @@ class ZVector : ZObject
 		selfp->item_destruct = 0;
 	}
 
-	override(ZObject) void dispose(ZObject *self)
+	override(ZObject) void dispose(ZObject *object)
 	{
+		Self *self = (ZVector *) object;
+
+		clear(self);
+		set_capacity(self, 0);
 	}
 
 	public Self *new(struct zco_context_t *ctx, int item_size)
@@ -64,6 +68,9 @@ class ZVector : ZObject
 		return self;
 	}
 
+	/* A callback function that will be used to construct each element
+	   in the vector. By default, the value is NULL, indicating that
+	   the value will not be initalized by any function */
 	public ZVectorItemCallback item_construct
 	{
 		set
@@ -72,6 +79,10 @@ class ZVector : ZObject
 		}
 	}
 
+	/* A callback function that will be used to destruct each element
+	   in the vector. By default, the value is NULL, indicating that
+	   the value is assumed to be primitive and needn't be freed by
+	   any function */
 	public ZVectorItemCallback item_destruct
 	{
 		set
@@ -80,6 +91,8 @@ class ZVector : ZObject
 		}
 	}
 
+	/* A userdata that is passed as the second argument to the item
+	   constructor/destructor callbacks. Default value is NULL */
 	public void * userdata
 	{
 		set
@@ -88,6 +101,7 @@ class ZVector : ZObject
 		}
 	}
 
+	/* An iterator that points to the beginning of the vector */
 	public ZVectorIter * begin
 	{
 		get
@@ -97,6 +111,8 @@ class ZVector : ZObject
 		}
 	}
 
+	/* An iterator that points to the element one past the last
+	   element of the vector */
 	public ZVectorIter * end
 	{
 		get
@@ -107,6 +123,10 @@ class ZVector : ZObject
 		}
 	}
 
+	/* The current count of the number of elements in the vector.
+	   Decreasing the size of the vector does not free the unused memory.
+	   To decrease the storage space of the vector, use the capacity
+	   property */
 	public int size
 	{
 		get
@@ -146,6 +166,7 @@ class ZVector : ZObject
 		}
 	}
 
+	/* Indicates whether the vector is empty */
 	public int is_empty
 	{
 		get
@@ -154,6 +175,8 @@ class ZVector : ZObject
 		}
 	}
 
+	/* The current storage capacity of the vector. This value must be
+	   greater than or equal to the size of the vector. */
 	public int capacity
 	{
 		get
@@ -187,6 +210,8 @@ class ZVector : ZObject
 		}
 	}
 
+	/* Indicates if the specified iterator is within the bounds
+	   of the vector */
 	public int is_in_bound(Self *self, ZVectorIter *iter)
 	{
 		int index = z_vector_iter_get_index(iter);
@@ -198,6 +223,8 @@ class ZVector : ZObject
 			return 0;
 	}
 
+	/* Get the element value at the specified position as indicated
+	   by the iterator */
 	public void * get_item(Self *self, ZVectorIter *iter)
 	{
 		int index = z_vector_iter_get_index(iter);
@@ -212,6 +239,8 @@ class ZVector : ZObject
 		return NULL;
 	}
 
+	/* Set the element value at the specified position as indicated
+	   by the iterator */
 	public int set_item(Self *self, ZVectorIter *iter, void *item)
 	{
 		int index = z_vector_iter_get_index(iter);
@@ -225,6 +254,7 @@ class ZVector : ZObject
 		return ERANGE;
 	}
 
+	/* The value of the first element in the vector */
 	public void * front
 	{
 		get
@@ -242,6 +272,7 @@ class ZVector : ZObject
 		}
 	}
 
+	/* The value fo the last element in the vector */
 	public void * back
 	{
 		get
@@ -262,32 +293,47 @@ class ZVector : ZObject
 		}
 	}
 
+	/* Append a new element to the end of the vector, effectively
+	   increasing the size of the vector by 1 */
 	public void push_back(Self *self, void *item)
 	{
+		/*  increase the size of the vector by 1 */
 		int size = get_size(self);
 		set_size(self, size + 1);
 
+		/* set the last item of the vector */
 		set_back(self, item);
 	}
 
+	/* Pull out the last element of the vector and return it. This
+	   effectively reduces the size of the vector by 1 if the vector
+	   is not empty */
 	public void pop_back(Self *self, void *item)
 	{
 		if (item) {
+			/* get the last item of the vector */
 			void *d = get_back(self);
 			memcpy(item, d, selfp->item_size);
 		}
 
+		/* decrease the size of the vector by 1 */
 		int size = get_size(self);
 		set_size(self, size - 1);
 	}
 
+	/* Insert item before the element pointed to by the specified 
+	   iterator. The 'n' parameter specifies how many times the item
+	   should be inserted before the iterator */
 	public void insert(Self *self, ZVectorIter *iter, int n, void *item)
 	{
+		/* make a copy of the iterator */
 		ZVectorIter *it = z_vector_iter_dup(iter);
 
+		/* increase the size of the vector */
 		int size = get_size(self);
 		set_size(self, size + n);
 
+		/* shift all elements in [it,inf) forward */
 		memmove(selfp->data + (z_vector_iter_get_index(it) + n) * selfp->item_size,
 			selfp->data + z_vector_iter_get_index(it) * selfp->item_size,
 			(size - z_vector_iter_get_index(it)) * selfp->item_size);
@@ -301,36 +347,43 @@ class ZVector : ZObject
 		z_object_unref(Z_OBJECT(it));
 	}
 
-	public void insert_range(Self *self, ZVectorIter *iter, Self *src, ZVectorIter *src_iter_start, ZVectorIter *src_iter_end)
+	/* Copy a range of elements from another vector. The items are inserted 
+	   before the element pointed to by 'iter'. The range of elements that are
+	   copied from the src vector is [src_iter_start,src_iter_end)
+	 
+	   If 'iter' is NULL, the new elements will be added to the end of the
+	   target vector.
+	 
+	   If 'src_iter_start' is NULL, the assumed start iterator will be the
+	   beginning of the source vector.
+
+           If 'src_iter_end' is NULL, the assumed end iterator will be the end of
+	   the source vector */
+	public void insert_range(Self *self, ZVectorIter *iter, ZVector *src, ZVectorIter *src_iter_start, ZVectorIter *src_iter_end)
 	{
 		ZVectorIter *it1, *it2;
-		ZVectorIter *dest_it, *src_it;
+		ZVectorIter *dest_it;
 
 		/* make a copy of the iterators */
-		if (iter == NULL) {
+		if (iter == NULL)
 			dest_it = get_end(self);
-			z_vector_iter_decrement(iter);
-		} else {
+		else
 			dest_it = z_vector_iter_dup(iter);
-		}
 
 		if (src_iter_start == NULL)
 			it1 = get_begin(src);
 		else
 			it1 = z_vector_iter_dup(src_iter_start);
 
-		if (src_iter_end == NULL) {
+		if (src_iter_end == NULL)
 			it2 = get_end(src);
-			z_vector_iter_decrement(iter);
-		} else {
+		else
 			it2 = z_vector_iter_dup(src_iter_end);
-		}
 		
 		/* compute the item count */
 		int n = z_vector_iter_get_index(it2) - z_vector_iter_get_index(it1);
 
 		assert(n >= 0);
-		src_it = z_vector_iter_dup(it1);
 
 		/* increase the size of the vector */
 		int size = get_size(self);
@@ -345,19 +398,25 @@ class ZVector : ZObject
 		/* insert the new item(s) */
 		int i;
 		for (i=0; i<n; ++i) {
-			void *data = get_item(src, src_it);
+			void *data = get_item(src, it1);
 			set_item(self, dest_it, data);
 
 			z_vector_iter_increment(dest_it);
-			z_vector_iter_increment(src_it);
+			z_vector_iter_increment(it1);
 		}
+
+		z_object_unref(Z_OBJECT(it1));
+		z_object_unref(Z_OBJECT(it2));
+		z_object_unref(Z_OBJECT(dest_it));
 	}
 
-	public void erase(Self *self, void *start, void *end)
+	/* Erase the items in the range [start,end) */
+	public void erase(Self *self, ZVectorIter *start, ZVectorIter *end)
 	{
 		ZVectorIter *it1;
 		ZVectorIter *it2;
 		
+		/* compute the item count */
 		int n = z_vector_iter_get_index(end) - z_vector_iter_get_index(start);
 
 		if (n >= 0) {
@@ -369,6 +428,7 @@ class ZVector : ZObject
 			n = -n;
 		}
 
+		/* call the item destructor on the items that is being removed */
 		if (selfp->item_destruct) {
 			ZVectorIter *temp = z_vector_iter_dup(it1);
 
@@ -380,18 +440,21 @@ class ZVector : ZObject
 			z_object_unref(Z_OBJECT(temp));
 		}
 
+		/* shift all elements in [it1,inf) backward */
 		int size = get_size(self);
 
 		memmove(selfp->data + (z_vector_iter_get_index(it1)) * selfp->item_size,
 			selfp->data + (z_vector_iter_get_index(it1) + n) * selfp->item_size,
 			(size - z_vector_iter_get_index(it2)) * selfp->item_size);
 
+		/* decrease the size of the vector */
 		selfp->count = size - n;
 
 		z_object_unref(Z_OBJECT(it2));
 		z_object_unref(Z_OBJECT(it1));
 	}
 
+	/* Erase the item pointed to by the specified iterator */
 	public void erase1(Self *self, ZVectorIter *iter)
 	{
 		ZVectorIter *next = z_vector_iter_dup(iter);
@@ -402,11 +465,15 @@ class ZVector : ZObject
 		z_object_unref(Z_OBJECT(next));
 	}
 
+	/* Erase the item pointed to by the specified iterator and also move the iterator
+	   one step forward. This is useful for removing an item while iterating through
+	   the vector in a loop */
 	public void erase1_increment(Self *self, ZVectorIter *iter)
 	{
 		ZVectorIter *temp = z_vector_iter_new(CTX);
 
 		if (z_vector_iter_is_equal(iter, temp)) {
+			/* iterator is pointing to the first element of the vector */
 			erase1(self, iter);
 
 			z_object_unref(Z_OBJECT(temp));
@@ -423,6 +490,7 @@ class ZVector : ZObject
 		z_object_unref(Z_OBJECT(temp));
 	}
 
+	/* Clear the vector */
 	public void clear(Self *self)
 	{
 		set_size(self, 0);
