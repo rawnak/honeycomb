@@ -1,4 +1,50 @@
-The initial ANSI C grammar files were found from the following two web links:
-	http://www.quut.com/c/ANSI-C-grammar-l-1998.html
-	http://www.quut.com/c/ANSI-C-grammar-y-1998.html
+
+
+
+Brainstorming ideas for Project 1A:
+
+- C language has many bit level operators that is not supported by javascript. attempting to support these bit level operators will result in a performance degradation in the javascript code.
+
+struct xyz {
+int x:3;
+int y:5;
+}
+
+- C++ has a nice support for type system but we need a type system that can support inheritance in different languages. for example, if object A inherits from object B, we want sizeof(A) to be greater than sizeof(B) (which C++ does) and we also want the generated javascript code to copy the methods from object 'B' into object 'A' (which C++ doesn't support). Since we cannot rely on C++'s object oriented nature, we will stick to C.
+
+- We will use C++ for wrapping C code that gets a little annoying (such as add(), sub(), less_than(), greater_than() ...). basically do some operator overloading
+
+- Need a ZCO compiler that generates .c, .h files from the .zco file (just like GOB)
+
+
+
+
+===================================
+
+The zclib project has two parts: a meta-compiler with a type system in C AND an utility library built on top of the type system.
+
+The meta-compiler and type system
+--------------------------------------
+The zco meta-compiler has a syntax very similar to that of the Gtk's gob meta-compiler. The compiler reads a file written in zco language (which mostly embeds C) and generates C code. 
+
+One of the language features include the ability to inherit from other class. This requires a type system to be built (which will be a single inheritance type system with interface support). There are several reasons for not supporting multiple inheritance:
+
+- A feature of multiple inheritance is virtual inheritance. The reason virtual inheritance will not be supported is because it requires every class to know the internal structure layout of all of its parent classes.
+- All classes will be directly or indirectly inherited from ZObject. If we allow multiple inheritance (not virtual inheritance), it will most certainly cause a diamond problem every time multiple inheritance is used. Ideally we want ZObject to be a virtual parent of the object (so that it is not subject to the diamond problem) but that too is not feasible.
+- Downcasting a pointer will require offsetting, which is not necessary if the object was not composed of multiple inheritance. It is still possible to have support for downcasting a pointer but it requires dynamic casting, which has a much larger performance hit compared to a reinterpret cast (which would be sufficient if we didn't have support for multiple inheritance).
+
+We can still have multiple interfaces because we don't need to worry about private data members. Non-virtual methods for interface method definition does not make sense. For example, suppose object B inherits from object A and that both implement interface X. If you call X.hello(), there is no way for the type system to know if it should call the implementation in object A or object B. The very nature of interfaces require the functions to be implemented as virtual.
+
+
+Future enhancements:
+At the moment, the meta-compiler only generates C code. A future enhancement will be for it to generate code that generates JavaScript. The procedural logic of the generated JavaScript code will be provided by the writer of the .zco file but much of the glue code will be facilitated by the meta-compiler, to make the programmer's life easier and for the code to be more readable.
+
+The context that is specified to the new method of every class will contain a language field that determines what mode the class will run in. If the language is set to C, the generated code will not do anything special and will just run C code. If the language is set to JavaScript, the generated code will instead generate JavaScript code when the function method is "exposed" and call this JavaScript method when the C function of the class is called. This will allow the binary to run in different environments without requiring a recompilation and will also run at highest possible speed (native C compiled code speed when the executable is running without any language translation).
+
+Part of this enhancement will require to have support for embedding JavaScript. Most compatible C code can be translated to JavaScript code but things that involve the DOM in a web browser will require special attention.
+
+Another enhancement will be to have support for RPC. This will need to be implemented after the meta-compiler is able to generate code that generates JavaScript code. Once it's complete, the generated JavaScript will be able to raise a RPC signal that calls into native C code and then returns back to JavaScript (both possibly running on different machines).
+
+Another enhancement will be to change base container classes (such as ZVector) to support copy-on-write. This will allow range copy from and splicing to be very efficient operations.
+
 
