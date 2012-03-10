@@ -46,6 +46,7 @@
 
 \/\/.*$			{ yylval=strdup(yytext);               return COMMENT;		}
 "struct"		{ yylval="struct";                     return STRUCT;		}
+"const"			{ yylval="const";                      return CONST;		}
 "class"			{ yylval="class";                      return CLASS;		}
 ":"			{ yylval=":";                          return COLON;		}
 "{"			{ yylval="{";                          return OBRACE;		}
@@ -53,6 +54,7 @@
 "("			{ yylval="(";                          return OPAREN;		}
 ")"			{ yylval=")";                          return EPAREN;		}
 ";"			{ yylval=";";                          return SEMICOLON;	}
+"..."			{ yylval="...";                        return VAR_ARGS;		}
 "*"			{ yylval=strdup("*");                  return ASTERISK;		}
 "global"                { yylval="global";                     return GLOBAL;		}
 "public"		{ yylval="public";                     return PUBLIC;		}
