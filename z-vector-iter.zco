@@ -34,10 +34,6 @@ class ZVectorIter : ZObject
 		selfp->index = 0;
 	}
 
-	override(ZObject) void dispose(ZObject *self)
-	{
-	}
-
 	public Self *new(struct zco_context_t *ctx)
 	{
 		Self *self = GET_NEW(ctx);
@@ -81,7 +77,7 @@ class ZVectorIter : ZObject
 
 	public int is_equal(Self *self, Self *other)
 	{
-		return selfp->index == other->_priv.index;
+		return selfp->index == get_index(other);
 	}
 }
 
