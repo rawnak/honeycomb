@@ -47,6 +47,8 @@
 \/\/.*$			{ yylval=strdup(yytext);               return COMMENT;		}
 "struct"		{ yylval="struct";                     return STRUCT;		}
 "const"			{ yylval="const";                      return CONST;		}
+"unsigned"		{ yylval="unsigned";                   return UNSIGNED;         }
+"signed"		{ yylval="signed";                     return SIGNED;           }
 "class"			{ yylval="class";                      return CLASS;		}
 ":"			{ yylval=":";                          return COLON;		}
 "{"			{ yylval="{";                          return OBRACE;		}
