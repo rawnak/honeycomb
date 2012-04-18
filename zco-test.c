@@ -10,11 +10,13 @@
 
 enum TestSet {
 	TestSetVector = 1,
+	TestSetString,
 	TestSetEnd
 };
 
 void (*TestDriverSet[]) (int) = {
-	[TestSetVector] = z_vector_test
+	[TestSetVector] = z_vector_test,
+	[TestSetString] = z_string_test
 };
 
 

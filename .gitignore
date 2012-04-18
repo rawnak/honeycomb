@@ -8,8 +8,11 @@ zco.c
 *.output
 *.o
 *.so
+.directory
 zco-test
 z-object.[ch]
 z-vector.[ch]
 z-vector-iter.[ch]
+z-string.[ch]
+z-string-iter.[ch]
 

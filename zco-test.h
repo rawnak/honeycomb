@@ -9,5 +9,6 @@
 #define DEFINE_TEST(id_num,callback)  if(id==0 || id==id_num) { callback(); }
 
 void z_vector_test(int);
+void z_string_test(int);
 
 #endif

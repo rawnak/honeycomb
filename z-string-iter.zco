@@ -1,7 +1,7 @@
 /* ZCO - Cross-platform Application Framework
  * Copyright (C) 2014  Syeda Sultana
  *
- * z-vector-iter.zco: Vector iterator
+ * z-string-iter.zco: String iterator
  * This file is part of ZCO.
  *
  * This library is free software: you can redistribute it and/or modify
@@ -25,7 +25,7 @@
 %{
 %}
 
-class ZVectorIter : ZObject
+class ZStringIter : ZObject
 {
 	private int index;
 
@@ -40,10 +40,10 @@ class ZVectorIter : ZObject
 		return self;
 	}
 
-	public Self *dup(ZVectorIter *src)
+	public Self *dup(ZStringIter *src)
 	{
 		Self *self = GET_NEW(src->_class->ctx);
-
+		
 		set_index(self, get_index(src));
 		return self;
 	}
@@ -69,8 +69,8 @@ class ZVectorIter : ZObject
 	{
 		++selfp->index;
 	}
-	
-	public void decrement(Self *self)
+
+	public void decrement(Self  *self)
 	{
 		--selfp->index;
 	}
@@ -78,16 +78,6 @@ class ZVectorIter : ZObject
 	public int is_equal(Self *self, Self *other)
 	{
 		return selfp->index == get_index(other);
-	}
-
-	public int is_lte(Self *self, Self *other)
-	{
-		return selfp->index <= get_index(other);
-	}
-
-	public int is_gte(Self *self, Self *other)
-	{
-		return selfp->index >= get_index(other);
 	}
 }
 
