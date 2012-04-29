@@ -55,7 +55,7 @@ class ZVector : ZObject
 
 	override(ZObject) void dispose(ZObject *object)
 	{
-		Self *self = (ZVector *) object;
+		Self *self = (Self *) object;
 
 		clear(self);
 		set_capacity(self, 0);

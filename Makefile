@@ -37,12 +37,20 @@ z-string-iter.o: zco z-string-iter.zco
 	${ZCO} z-string-iter.zco
 	${ENV} ${CC} ${CFLAGS} -fPIC -I. -c z-string-iter.c -o z-string-iter.o
 
+z-map.o: zco z-map.zco
+	${ZCO} z-map.zco
+	${ENV} ${CC} ${CFLAGS} -fPIC -I. -c z-map.c -o z-map.o
+
+z-map-iter.o: zco z-map-iter.zco
+	${ZCO} z-map-iter.zco
+	${ENV} ${CC} ${CFLAGS} -fPIC -I. -c z-map-iter.c -o z-map-iter.o
+
 # TARGET: libzclib.so
 zco-type.o: zco-type.h zco-type.c
 	${ENV} ${CC} ${CFLAGS} -fPIC -I. -c zco-type.c -o zco-type.o
 
-libzclib.so: zco-type.o z-object.o z-vector-iter.o z-vector.o z-string-iter.o z-string.o 
-	${ENV} ${CC} -shared zco-type.o z-object.o z-vector-iter.o z-vector.o z-string-iter.o z-string.o -o libzclib.so
+libzclib.so: zco-type.o z-object.o z-vector-iter.o z-vector.o z-string-iter.o z-string.o z-map-iter.o z-map.o
+	${ENV} ${CC} -shared zco-type.o z-object.o z-vector-iter.o z-vector.o z-string-iter.o z-string.o z-map-iter.o z-map.o -o libzclib.so
 
 # test driver objects
 z-vector-test.o: z-vector-test.c zco-test.h
@@ -51,12 +59,14 @@ z-vector-test.o: z-vector-test.c zco-test.h
 z-string-test.o: z-string-test.c zco-test.h
 	${ENV} ${CC} ${CFLAGS} -I. -c z-string-test.c -o z-string-test.o
 
+z-map-test.o: z-map-test.c zco-test.h
+	${ENV} ${CC} ${CFLAGS} -I. -c z-map-test.c -o z-map-test.o
+
 # TARGET: zco-test
 zco-test.o: zco-test.c zco-test.h
 	${ENV} ${CC} -I. -c zco-test.c -o zco-test.o
 
-zco-test: libzclib.so zco-test.o z-vector-test.o z-string-test.o 
-	${ENV} ${CC} -L. -lzclib -lm zco-test.o z-vector-test.o z-string-test.o -o zco-test
-
+zco-test: libzclib.so zco-test.o z-vector-test.o z-string-test.o z-map-test.o 
+	${ENV} ${CC} -L. -lzclib -lm zco-test.o z-vector-test.o z-string-test.o z-map-test.o -o zco-test
 
 

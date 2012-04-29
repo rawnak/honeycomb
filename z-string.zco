@@ -61,7 +61,7 @@ class ZString : ZObject
 
 	override(ZObject) void dispose(ZObject *object)
 	{
-		Self *self = (ZString *) object;
+		Self *self = (Self *) object;
 
 		if (selfp->token_it)
 			z_object_unref(Z_OBJECT(selfp->token_it));
@@ -72,6 +72,13 @@ class ZString : ZObject
 	public Self *new(struct zco_context_t *ctx)
 	{
 		Self *self = GET_NEW(ctx);
+		return self;
+	}
+
+	public Self *dup(Self *src)
+	{
+		Self *self = GET_NEW(src->_global->ctx);
+		append(self, src, NULL, NULL);
 		return self;
 	}
 

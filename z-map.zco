@@ -1,0 +1,519 @@
+/* ZCO - Cross-platform Application Framework
+ * Copyright (C) 2014  Syeda Sultana
+ *
+ * z-map.zco: Map class
+ * This file is part of ZCO.
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZCO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+%h{
+#include <stdint.h>
+#include <z-object.h>
+#include <z-vector.h>
+#include <z-map-iter.h>
+
+struct ZMap;
+typedef int(*ZMapCompareFunc)(struct ZMap *, const void *, const void *);
+typedef void(*ZMapItemCallback)(void *item, void *userdata);
+
+%}
+
+%{
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
+#include <assert.h>
+#include <math.h>
+
+%}
+
+class ZMap : ZObject
+{
+	private ZVector *data;
+	private ZMapCompareFunc compare;
+	private ZMapItemCallback key_destruct;
+	private ZMapItemCallback value_destruct;
+	private void *userdata;
+
+	init(Self *self)
+	{
+		selfp->data = z_vector_new(CTX, 2 * sizeof(void *));
+		selfp->compare = NULL;
+		selfp->key_destruct = NULL;
+		selfp->value_destruct = NULL;
+		selfp->userdata = NULL;
+
+		z_vector_set_userdata(selfp->data, self);
+		z_vector_set_item_destruct(selfp->data, item_destroy);
+	}
+
+	override(ZObject) void dispose(ZObject *object)
+	{
+		Self *self = (Self *) object;
+		z_object_unref(Z_OBJECT(selfp->data));
+
+		PARENT_HANDLER(object);
+	}
+
+	public Self *new(struct zco_context_t *ctx)
+	{
+		Self *self = GET_NEW(ctx);
+		return self;
+	}
+
+	public void * userdata
+	{
+		set
+		{
+			selfp->userdata = value;
+		}
+	}
+
+	public ZMapItemCallback key_destruct
+	{
+		set
+		{
+			selfp->key_destruct = value;
+		}
+	}
+
+	public ZMapItemCallback value_destruct
+	{
+		set
+		{
+			selfp->value_destruct = value;
+		}
+	}
+
+	public ZMapIter *begin
+	{
+		get
+		{
+			ZVectorIter *ptr = z_vector_get_begin(selfp->data);
+			ZMapIter *it = z_map_iter_new(CTX);
+
+			z_map_iter_set_index(it, z_vector_iter_get_index(ptr));
+			z_object_unref(Z_OBJECT(ptr));
+
+			return it;
+		}
+	}
+
+	public ZMapIter *end
+	{
+		get
+		{
+			ZVectorIter *ptr = z_vector_get_end(selfp->data);
+			ZMapIter *it = z_map_iter_new(CTX);
+
+			z_map_iter_set_index(it, z_vector_iter_get_index(ptr));
+			z_object_unref(Z_OBJECT(ptr));
+
+			return it;
+		}
+	}
+
+	public int is_empty
+	{
+		get
+		{
+			return get_size(self) == 0;
+		}
+	}
+
+	public int size
+	{
+		get
+		{
+			return z_vector_get_size(selfp->data);
+		}
+	}
+
+	public void clear(Self *self)
+	{
+		z_vector_clear(selfp->data);
+	}
+
+	private void get_pivot(Self *self, ZVectorIter *first, ZVectorIter *last, ZVectorIter *pivot)
+	{
+		/* The pivot is the iterator that is exactly at the center of [first,last). 
+		   In some cases, it is possible that there are two cneter iterators in a
+		   range. It is important to always pick the higher of the two so that it
+		   will not equal the 'first' iterator unless the range only consists of
+		   one item. For example:
+
+		   case #1: if first = 0, last = 3, the possible value for pivot is 1
+		   case #2: if first = 0, last = 2, the possible values for pivot are 0,1
+		   case #3: if first = 0, last = 1, the possible value for pivot is 0
+
+		   If the lower of the two values were picked, the pivot value for cases 2
+		   and 3 would be identical. This will not allow the caller to compare pivot
+		   with another iterator to determine if any more iteration is possible.
+
+		   If the higher of the two values were picked, the pivot value for case 2
+		   and 3 would be different. This will allow the caller to compare the pivot
+		   with 'first' to determine if any more iteration is possible. If the pivot
+		   is equal to 'first' (which is no longer true for case 2), the range is
+		   only composed of one element and no further iterations are needed.
+		 */
+
+		int begin_idx = z_vector_iter_get_index(first);
+		int end_idx = z_vector_iter_get_index(last);
+		int offset = (end_idx - begin_idx) >> 1;
+
+		z_vector_iter_set_index(pivot, begin_idx + offset);
+	}
+
+	private void *find_item(Self *self, const void *key, int *bound, ZMapIter *pivot)
+	{
+		ZVectorIter *first, *last, *pivot_ptr;
+
+		first = z_vector_get_begin(selfp->data);
+		last = z_vector_get_end(selfp->data);
+		pivot_ptr = z_vector_iter_new(CTX);
+
+		while (1) {
+			void *pivot_key;
+			void *item;
+
+			get_pivot(self, first, last, pivot_ptr);
+			item = z_vector_get_item(selfp->data, pivot_ptr);
+			pivot_key = get_key_internal(item);
+			int rc = selfp->compare(self, key, pivot_key);
+
+			if (rc < 0) {
+				/* keep the lower half. pivot is higher than target */
+				if (z_vector_iter_is_equal(first, pivot_ptr)) {
+					if (bound)
+						*bound = 1;
+
+					z_map_iter_set_index(pivot, z_vector_iter_get_index(pivot_ptr));
+					z_object_unref(Z_OBJECT(pivot_ptr));
+					z_object_unref(Z_OBJECT(last));
+					z_object_unref(Z_OBJECT(first));
+					return 0;
+				}
+
+				z_vector_iter_set_index(last, z_vector_iter_get_index(pivot_ptr));
+
+			} else if (rc > 0) {
+				/* keep the upper half. pivot_ptr value is lower than target */
+				if (z_vector_iter_is_equal(first, pivot_ptr)) {
+					if (bound)
+						*bound = -1;
+
+					z_map_iter_set_index(pivot, z_vector_iter_get_index(pivot_ptr));
+					z_object_unref(Z_OBJECT(pivot_ptr));
+					z_object_unref(Z_OBJECT(last));
+					z_object_unref(Z_OBJECT(first));
+					return 0;
+				}
+
+				z_vector_iter_increment(pivot_ptr);
+
+				if (!z_vector_is_in_bound(selfp->data, pivot_ptr)) {
+					/* revert to previous index (which is the highest valid index) */
+					z_vector_iter_decrement(pivot_ptr);
+
+					if (bound)
+						*bound = -1;
+
+					z_map_iter_set_index(pivot, z_vector_iter_get_index(pivot_ptr));
+					z_object_unref(Z_OBJECT(pivot_ptr));
+					z_object_unref(Z_OBJECT(last));
+					z_object_unref(Z_OBJECT(first));
+					return 0;
+				}
+
+				z_vector_iter_set_index(first, z_vector_iter_get_index(pivot_ptr));
+
+			} else {
+				if (bound)
+					*bound = 0;
+
+				z_map_iter_set_index(pivot, z_vector_iter_get_index(pivot_ptr));
+				z_object_unref(Z_OBJECT(pivot_ptr));
+				z_object_unref(Z_OBJECT(last));
+				z_object_unref(Z_OBJECT(first));
+				return get_value_internal(item);
+			}
+		}
+
+		z_map_iter_set_index(pivot, z_vector_iter_get_index(pivot_ptr));
+		z_object_unref(Z_OBJECT(pivot_ptr));
+		z_object_unref(Z_OBJECT(last));
+		z_object_unref(Z_OBJECT(first));
+	}
+
+	public ZMapIter *find(Self *self, const void *key)
+	{
+		ZMapIter *it;
+		int bound;
+
+		if (get_is_empty(self)) {
+			return NULL;
+
+		} else {
+			it = z_map_iter_new(CTX);
+			find_item(self, key, &bound, it);
+
+			if (bound == 0) {
+				return it;
+			} else {
+				z_object_unref(Z_OBJECT(it));
+				return NULL;
+			}
+		}
+	}
+
+	private void *get_key_internal(void *item)
+	{
+		return (void *)((unsigned long *)item)[0];
+	}
+
+	private void *get_value_internal(void *item)
+	{
+		return (void *)((unsigned long *)item)[1];
+	}
+
+	private void set_key_internal(void *item, void *key)
+	{
+		((unsigned long *)item)[0] = (unsigned long)key;
+	}
+
+	private void set_value_internal(void *item, void *value)
+	{
+		((unsigned long *)item)[1] = (unsigned long)value;
+	}
+
+	public void *get_key(Self *self, ZMapIter *it)
+	{
+		ZVectorIter *ptr = z_vector_iter_new(CTX);
+
+		z_vector_iter_set_index(ptr, z_map_iter_get_index(it));
+		void *item = z_vector_get_item(selfp->data, ptr);
+		z_object_unref(Z_OBJECT(ptr));
+
+		return get_key_internal(item);
+	}
+
+	public void *get_value(Self *self, ZMapIter *it)
+	{
+		ZVectorIter *ptr = z_vector_iter_new(CTX);
+
+		z_vector_iter_set_index(ptr, z_map_iter_get_index(it));
+		void *item = z_vector_get_item(selfp->data, ptr);
+		z_object_unref(Z_OBJECT(ptr));
+
+		return get_value_internal(item);
+	}
+
+	private void item_destroy(void *item, void *userdata)
+	{
+		ZMap *self = (ZMap *) userdata;
+		void *key, *value;
+
+		key = get_key_internal(item);
+		value = get_value_internal(item);
+
+		if (selfp->key_destruct)
+			selfp->key_destruct(key, selfp->userdata);
+
+		if (selfp->value_destruct) 
+			selfp->value_destruct(value, selfp->userdata);
+	}
+
+	private int add_item(Self *self, void *key, void *value, int allow_replace)
+	{
+		ZMapIter *it, *prev;
+		unsigned long key_value[2];
+		void *item;
+
+		if (!get_is_empty(self) && (it = upper_bound(self, key))) {
+
+			prev = z_map_iter_dup(it);
+			z_map_iter_decrement(prev);
+
+			ZVectorIter *prev_ptr = z_vector_iter_new(CTX);
+			z_vector_iter_set_index(prev_ptr, z_map_iter_get_index(prev));
+
+			if (z_vector_is_in_bound(selfp->data, prev_ptr)) {
+				item = z_vector_get_item(selfp->data, prev_ptr);
+
+				if (selfp->compare(self, get_key_internal(item), key) == 0) {
+					/* key already exists */
+
+					if (allow_replace) {
+						/* destroy the current item */
+						item_destroy(item, self);
+
+						/* add the new item */
+						set_key_internal(item, key);
+						set_value_internal(item, value);
+					}
+
+					z_object_unref(Z_OBJECT(prev_ptr));
+					return -1;
+				}
+			}
+			z_object_unref(Z_OBJECT(prev_ptr));
+
+			key_value[0] = (unsigned long)key;
+			key_value[1] = (unsigned long)value;
+
+			ZVectorIter *it_ptr = z_vector_iter_new(CTX);
+			z_vector_iter_set_index(it_ptr, z_map_iter_get_index(it));
+			z_vector_insert(selfp->data, it_ptr, 1, key_value);
+			z_object_unref(Z_OBJECT(it_ptr));
+
+
+		} else {
+
+			key_value[0] = (unsigned long)key;
+			key_value[1] = (unsigned long)value;
+
+			z_vector_push_back(selfp->data, key_value);
+		}
+
+		return 0;
+	}
+
+	public int assign(Self *self, void *key, void *value)
+	{
+		return add_item(self, key, value, 1);
+	}
+
+	public int insert(Self *self, void *key, void *value)
+	{
+		return add_item(self, key, value, 0);
+	}
+
+	public void erase(Self *self, ZMapIter *first, ZMapIter *last)
+	{
+		ZVectorIter *p1, *p2;
+
+		if (first == NULL)
+			first = get_begin(self);
+
+		if (last == NULL)
+			last = get_end(self);
+
+
+		p1 = z_vector_iter_new(CTX);
+		p2 = z_vector_iter_new(CTX);
+
+		z_vector_iter_set_index(p1, z_map_iter_get_index(first));
+		z_vector_iter_set_index(p2, z_map_iter_get_index(last));
+
+		z_vector_erase(selfp->data, p1, p2);
+
+		z_object_unref(Z_OBJECT(p1));
+		z_object_unref(Z_OBJECT(p2));
+	}
+
+	public void erase1(Self *self, ZMapIter *it)
+	{
+		ZMapIter *end;
+
+		end = z_map_iter_dup(it);
+		z_map_iter_increment(end);
+		erase(self, it, end);
+		z_object_unref(Z_OBJECT(end));
+	}
+
+	public void erase1_inc(Self *self, ZMapIter **it)
+	{
+		ZMapIter *temp;
+
+		temp = get_begin(self);
+
+		if (z_map_iter_is_equal(*it, temp)) {
+			/* iterator is pointing to the first element in the map */
+			erase1(self, *it);
+			z_object_unref(Z_OBJECT(*it));
+			*it = get_begin(self);
+		} else {
+			z_object_unref(Z_OBJECT(temp));
+			temp = z_map_iter_dup(*it);
+			z_map_iter_decrement(*it);
+			erase1(self, temp);
+			z_map_iter_increment(*it);
+		}
+	}
+
+	public ZMapIter *lower_bound(Self *self, void *key)
+	{
+		ZMapIter *it;
+		int bound;
+
+		if (get_is_empty(self))
+			return NULL;
+
+		it = get_begin(self);
+		find_item(self, key, &bound, it);
+
+		if (bound > 0)
+			/* 'it' is the upper bound, move one step back */
+			z_map_iter_decrement(it);
+
+		return it;
+	}
+
+	public ZMapIter *upper_bound(Self *self, void *key)
+	{
+		ZMapIter *it;
+		int bound;
+
+		if (get_is_empty(self))
+			return NULL;
+
+		it = get_begin(self);
+		find_item(self, key, &bound, it);
+
+		/* Given that find_item() returns a bound value that is -1,0,+1 ,
+		   we can perform some calculation on this number to determine how
+		   many steps we need to move forward.
+
+		   If bound == +1, the iterator points to an element whose key is
+		   higher than the target key. Since the upper_bound is defined to
+		   be an element with the lowest key value that is strictly higher
+		   than the target, the iterator does not need to be changed.
+
+		   If bound == 0, the iterator points to an element whose key is
+		   same as the target key. We need to increment the iterator by 1 so
+		   that it points to an element whose key is higher.
+
+		   If bound == -1, the iterator points to an element whose key is
+		   less than the target key. Since find_item() would return the
+		   target element if it did exist, we can assume that the element after
+		   the one return is higher than the target key; We need to increment
+		   the iterator only by 1.  */
+
+		if (bound <= 0)
+			z_map_iter_increment(it);
+
+		return it;
+	}
+
+	public ZMapCompareFunc compare
+	{
+		set
+		{
+			selfp->compare = value;
+		}
+	}
+}
+

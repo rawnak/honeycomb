@@ -10,4 +10,6 @@ zco.c
 *.so
 .directory
 zco-test
+z-map.[ch]
+z-map-iter.[ch]
 

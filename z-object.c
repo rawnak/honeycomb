@@ -19,6 +19,7 @@
  */
 
 
+#include <assert.h>
 
 #include <string.h>
 #include <z-object.h>
@@ -29,13 +30,13 @@
 #define GET_NEW(ctx) __z_object_new(ctx)
 #define CTX self->_global->ctx
 #define INIT_EXISTS
-#line 13 "z-object.zco"
+#line 14 "z-object.zco"
 #define init z_object_init
-#line 18 "z-object.zco"
+#line 19 "z-object.zco"
 #define dispose z_object_dispose
-#line 23 "z-object.zco"
+#line 24 "z-object.zco"
 #define ref z_object_ref
-#line 28 "z-object.zco"
+#line 29 "z-object.zco"
 #define unref z_object_unref
 
 int z_object_type_id = -1;
@@ -46,9 +47,9 @@ static Self *__z_object_new(struct zco_context_t *ctx)
 	__z_object_init(ctx, self);
 	return self;
 }
-#line 13 "z-object.zco"
+#line 14 "z-object.zco"
 static void z_object_init(Self *self);
-#line 18 "z-object.zco"
+#line 19 "z-object.zco"
 static void  z_object_virtual_dispose(Self *self);
 
 ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
@@ -71,7 +72,7 @@ ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
 		struct ZObjectClass temp;
 
 		zco_add_to_vtable(&global->vtable_off_list, &global->vtable_off_size, z_object_type_id);		
-#line 18 "z-object.zco"
+#line 19 "z-object.zco"
 		global->_class->__dispose = z_object_virtual_dispose;
 		#ifdef CLASS_INIT_EXISTS
 			class_init((ZObjectGlobal *) global);
@@ -90,30 +91,31 @@ void __z_object_init(struct zco_context_t *ctx, Self *self)
 		init(self);
 	#endif
 }
-#line 13 "z-object.zco"
+#line 14 "z-object.zco"
 static void z_object_init(Self *self)
 {
  selfp->ref_count = 1;
  }
-#line 18 "z-object.zco"
+#line 19 "z-object.zco"
 void  z_object_dispose(Self *self)
 {
 	ZObject *obj = (ZObject *) self;
 	((ZObjectClass *) ((char *) obj->class_base + obj->vtable[z_object_type_id]))->__dispose(self);
 }
-#line 18 "z-object.zco"
+#line 19 "z-object.zco"
 static void  z_object_virtual_dispose(Self *self)
 {
  free(self);
  }
-#line 23 "z-object.zco"
+#line 24 "z-object.zco"
 void  z_object_ref(Self *self)
 {
  ++selfp->ref_count;
  }
-#line 28 "z-object.zco"
+#line 29 "z-object.zco"
 void  z_object_unref(Self *self)
 {
+ assert(selfp->ref_count > 0);
  if (--selfp->ref_count == 0)
  dispose(self);
  }

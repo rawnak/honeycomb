@@ -22,6 +22,7 @@
 %}
 
 %{
+#include <assert.h>
 %}
 
 class ZObject 
@@ -47,6 +48,7 @@ class ZObject
 
 	public void unref(Self *self)
 	{
+		assert(selfp->ref_count > 0);
 		if (--selfp->ref_count == 0)
 			dispose(self);
 	}

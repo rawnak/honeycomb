@@ -176,7 +176,7 @@ static void z_vector_init(Self *self)
 #define PARENT_HANDLER self->_global->__parent_dispose
 static void  z_vector_dispose(ZObject *object)
 {
- Self *self = (ZVector *) object;
+ Self *self = (Self *) object;
 
  clear(self);
  set_capacity(self, 0);

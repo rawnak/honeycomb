@@ -1,0 +1,93 @@
+/* ZCO - Cross-platform Application Framework
+ * Copyright (C) 2014  Syeda Sultana
+ *
+ * z-map-iter.zco: Map iterator
+ * This file is part of ZCO.
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZCO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+%h{
+#include <z-object.h>
+%}
+
+%{
+%}
+
+class ZMapIter : ZObject
+{
+	private int index;
+
+	init(Self *self)
+	{
+		selfp->index = 0;
+	}
+
+	public Self *new(struct zco_context_t *ctx)
+	{
+		Self *self = GET_NEW(ctx);
+		return self;
+	}
+
+	public Self *dup(ZMapIter *src)
+	{
+		Self *self = GET_NEW(src->_global->ctx);
+
+		set_index(self, get_index(src));
+		return self;
+	}
+
+	public int index
+	{
+		get
+		{
+			return selfp->index;
+		}
+		set
+		{
+			selfp->index = value;
+		}
+	}
+
+	public void advance(Self *self, int steps)
+	{
+		selfp->index += steps;
+	}
+
+	public void increment(Self *self)
+	{
+		++selfp->index;
+	}
+
+	public void decrement(Self *self)
+	{
+		--selfp->index;
+	}
+
+	public int is_equal(Self *self, Self *other)
+	{
+		return selfp->index == get_index(other);
+	}
+
+	public int is_lte(Self *self, Self *other)
+	{
+		return selfp->index <= get_index(other);
+	}
+
+	public int is_gte(Self *self, Self *other)
+	{
+		return selfp->index >= get_index(other);
+	}
+}
+
