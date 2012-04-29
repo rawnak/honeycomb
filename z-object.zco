@@ -26,11 +26,12 @@
 
 class ZObject 
 {
-	private int ref_count;
+	public void *class_base;
+	public int *vtable;
+	private unsigned int ref_count;
 
 	init(Self *self)
 	{
-		// init for object
 		selfp->ref_count = 1;
 	}
 

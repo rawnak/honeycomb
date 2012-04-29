@@ -42,7 +42,7 @@ class ZStringIter : ZObject
 
 	public Self *dup(ZStringIter *src)
 	{
-		Self *self = GET_NEW(src->_class->ctx);
+		Self *self = GET_NEW(src->_global->ctx);
 		
 		set_index(self, get_index(src));
 		return self;
@@ -78,6 +78,16 @@ class ZStringIter : ZObject
 	public int is_equal(Self *self, Self *other)
 	{
 		return selfp->index == get_index(other);
+	}
+
+	public int is_lte(Self *self, Self *other)
+	{
+		return selfp->index <= get_index(other);
+	}
+
+	public int is_gte(Self *self, Self *other)
+	{
+		return selfp->index >= get_index(other);
 	}
 }
 

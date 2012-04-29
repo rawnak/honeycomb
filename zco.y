@@ -22,14 +22,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <z-string.h>
 
 #define YYSTYPE char *
-
-struct string_t
-{
-   int length;
-   char *data;
-};
 
 FILE *header_file, *source_file;
 char *type_name, *symbol_name, *virtual_base_name;
@@ -55,6 +50,7 @@ int real_lineno;
 enum access_mode_t
 {
 	ACCESS_PRIVATE,
+	ACCESS_PROTECTED,
 	ACCESS_PUBLIC,
 	ACCESS_GLOBAL
 };
@@ -70,117 +66,74 @@ enum access_mode_t access_mode;
 
 enum modifier_mode_t modifier_mode;
 
-/* struct definition for global (static) data members */
-struct string_t global_data;
+ZString *global_data; /* struct definition for global (static) data members */
+ZString *class_data; /* struct definition that is specific to the class and it inheritance */
+ZString *private_data; /* struct definition for private data members */
+ZString *protected_data; /* struct definition for protected data members */
+ZString *public_data; /* struct definition for public data members */
+ZString *function_prototypes_c; /* list of function prototypes for private member function */
+ZString *function_definitions; /* list of function definitions */
+ZString *virtual_function_ptr_inits; /* virtual function pointer initialization */
+ZString *h_macros_head;
+ZString *h_macros_tail;
+ZString *c_macros;
+ZString *function_prototypes_h;
 
-/* struct definition for private data members */
-struct string_t private_data;
-
-/* struct definition for public data members */
-struct string_t public_data;;
-
-/* list of function prototypes for private member function */
-struct string_t function_prototypes_c;
-
-/* list of function definitions */
-struct string_t function_definitions;
-
-/* virtual function pointer initialization */
-struct string_t virtual_function_ptr_inits;
-
-struct string_t h_macros_head;
-struct string_t h_macros_tail;
-struct string_t c_macros;
-struct string_t function_prototypes_h;
+static struct zco_context_t context;
 
 void yyerror(const char *s);
 
 static char * strdup2(const char *s1, const char *s2)
 {
-	int l1 = strlen(s1);
-	int l2 = strlen(s2);
+	ZString *str = z_string_new(&context);
+	z_string_append_format(str, "%s%s", s1, s2);
 
-	char *res = malloc(l1 + l2 + 1);
-
-	memcpy(res, s1, l1);
-	memcpy(res+l1, s2, l2);
-	res[l1+l2] = 0;
+	char *res = z_string_get_cstring(str, Z_STRING_ENCODING_ASCII);
+	z_object_unref(Z_OBJECT(str));
 
 	return res;
 }
 
 static char * strdup3(const char *s1, const char *s2, const char *s3)
 {
-	int l1 = strlen(s1);
-	int l2 = strlen(s2);
-	int l3 = strlen(s3);
+	ZString *str = z_string_new(&context);
+	z_string_append_format(str, "%s%s%s", s1, s2, s3);
 
-	char *res = malloc(l1 + l2 + l3 + 1);
-
-	memcpy(res, s1, l1);
-	memcpy(res+l1, s2, l2);
-	memcpy(res+l1+l2, s3, l3);
-	res[l1+l2+l3] = 0;
+	char *res = z_string_get_cstring(str, Z_STRING_ENCODING_ASCII);
+	z_object_unref(Z_OBJECT(str));
 
 	return res;
 }
 
 static char * strdup4(const char *s1, const char *s2, const char *s3, const char *s4)
 {
-	int l1 = strlen(s1);
-	int l2 = strlen(s2);
-	int l3 = strlen(s3);
-	int l4 = strlen(s4);
+	ZString *str = z_string_new(&context);
+	z_string_append_format(str, "%s%s%s%s", s1, s2, s3, s4);
 
-	char *res = malloc(l1 + l2 + l3 + l4 + 1);
-
-	memcpy(res, s1, l1);
-	memcpy(res+l1, s2, l2);
-	memcpy(res+l1+l2, s3, l3);
-	memcpy(res+l1+l2+l3, s4, l4);
-	res[l1+l2+l3+l4] = 0;
+	char *res = z_string_get_cstring(str, Z_STRING_ENCODING_UTF8);
+	z_object_unref(Z_OBJECT(str));
 
 	return res;
 }
 
 static char * strdup5(const char *s1, const char *s2, const char *s3, const char *s4, const char *s5)
 {
-	int l1 = strlen(s1);
-	int l2 = strlen(s2);
-	int l3 = strlen(s3);
-	int l4 = strlen(s4);
-	int l5 = strlen(s5);
+	ZString *str = z_string_new(&context);
+	z_string_append_format(str, "%s%s%s%s%s", s1, s2, s3, s4, s5);
 
-	char *res = malloc(l1 + l2 + l3 + l4 + l5 + 1);
-
-	memcpy(res, s1, l1);
-	memcpy(res+l1, s2, l2);
-	memcpy(res+l1+l2, s3, l3);
-	memcpy(res+l1+l2+l3, s4, l4);
-	memcpy(res+l1+l2+l3+l4, s5, l5);
-	res[l1+l2+l3+l4+l5] = 0;
+	char *res = z_string_get_cstring(str, Z_STRING_ENCODING_UTF8);
+	z_object_unref(Z_OBJECT(str));
 
 	return res;
 }
 
 static char * strdup6(const char *s1, const char *s2, const char *s3, const char *s4, const char *s5, const char *s6)
 {
-	int l1 = strlen(s1);
-	int l2 = strlen(s2);
-	int l3 = strlen(s3);
-	int l4 = strlen(s4);
-	int l5 = strlen(s5);
-	int l6 = strlen(s6);
+	ZString *str = z_string_new(&context);
+	z_string_append_format(str, "%s%s%s%s%s%s", s1, s2, s3, s4, s5, s6);
 
-	char *res = malloc(l1 + l2 + l3 + l4 + l5 + l6 + 1);
-
-	memcpy(res, s1, l1);
-	memcpy(res+l1, s2, l2);
-	memcpy(res+l1+l2, s3, l3);
-	memcpy(res+l1+l2+l3, s4, l4);
-	memcpy(res+l1+l2+l3+l4, s5, l5);
-	memcpy(res+l1+l2+l3+l4+l5, s6, l6);
-	res[l1+l2+l3+l4+l5+l6] = 0;
+	char *res = z_string_get_cstring(str, Z_STRING_ENCODING_UTF8);
+	z_object_unref(Z_OBJECT(str));
 
 	return res;
 }
@@ -188,48 +141,22 @@ static char * strdup6(const char *s1, const char *s2, const char *s3, const char
 static char * strdup7(const char *s1, const char *s2, const char *s3, const char *s4, const char *s5, const char *s6,
 		const char *s7)
 {
-	int l1 = strlen(s1);
-	int l2 = strlen(s2);
-	int l3 = strlen(s3);
-	int l4 = strlen(s4);
-	int l5 = strlen(s5);
-	int l6 = strlen(s6);
-	int l7 = strlen(s7);
+	ZString *str = z_string_new(&context);
+	z_string_append_format(str, "%s%s%s%s%s%s%s", s1, s2, s3, s4, s5, s6, s7);
 
-	char *res = malloc(l1 + l2 + l3 + l4 + l5 + l6 + l7 + 1);
-
-	memcpy(res, s1, l1);
-	memcpy(res+l1, s2, l2);
-	memcpy(res+l1+l2, s3, l3);
-	memcpy(res+l1+l2+l3, s4, l4);
-	memcpy(res+l1+l2+l3+l4, s5, l5);
-	memcpy(res+l1+l2+l3+l4+l5, s6, l6);
-	memcpy(res+l1+l2+l3+l4+l5+l6, s7, l7);
-	res[l1+l2+l3+l4+l5+l6+l7] = 0;
+	char *res = z_string_get_cstring(str, Z_STRING_ENCODING_UTF8);
+	z_object_unref(Z_OBJECT(str));
 
 	return res;
 }
 
-static void strcat_safe(struct string_t *str, const char *new_str)
+static void dump_string(ZString *str, FILE *file)
 {
-	int l1 = str->length;
-	int l2 = strlen(new_str);
-
-	str->data = realloc(str->data, l1+l2+1);
-	memcpy(str->data+l1, new_str, l2);
-	str->length = l1+l2;
-	str->data[str->length] = 0;
-}
-
-static void dump_string(struct string_t *str, FILE *file)
-{
-	if (!str->length)
-		return;
-
-	fputs(str->data, file);
-	free(str->data);
-	str->data = 0;
-	str->length = 0;
+	z_string_validate(str);
+	char *s = z_string_get_cstring(str, Z_STRING_ENCODING_UTF8);
+	fputs(s, file);
+	free(s);
+	z_string_clear(str);
 }
 
 static void record_line_number()
@@ -237,115 +164,56 @@ static void record_line_number()
 	real_lineno = yylineno;
 }
 
-static void print_line_number(struct string_t *str)
+static void print_line_number(ZString *str)
 {
-	char temp[32];
-	snprintf(temp, sizeof(temp), "#line %d \"", real_lineno);
-
-	strcat_safe(str, temp);
-	strcat_safe(str, zco_filename);
-	strcat_safe(str, "\"\n");
+	z_string_append_format(str, "#line %d \"%s\"\n", real_lineno, zco_filename);
 }
 
 static void special_member_function_decl(const char *symbol, const char *arglist, const char *code)
 {
 	if (!strcmp(symbol, "class_init"))
-		strcat_safe(&c_macros, "#define SHOULD_CALL_CLASS_INIT\n");
+		z_string_append_cstring(c_macros, "#define CLASS_INIT_EXISTS\n", Z_STRING_ENCODING_UTF8);
 
 	else if (!strcmp(symbol, "init"))
-		strcat_safe(&c_macros, "#define SHOULD_CALL_INIT\n");
+		z_string_append_cstring(c_macros, "#define INIT_EXISTS\n", Z_STRING_ENCODING_UTF8);
 
-	print_line_number(&c_macros);
-	strcat_safe(&c_macros, "#define ");
-	strcat_safe(&c_macros, symbol);
-	strcat_safe(&c_macros, " ");
-	strcat_safe(&c_macros, current_class_name_lowercase);
-	strcat_safe(&c_macros, "_");
-	strcat_safe(&c_macros, symbol);
-	strcat_safe(&c_macros, "\n");
+	print_line_number(c_macros);
+	z_string_append_format(c_macros, "#define %s %s_%s\n", symbol, current_class_name_lowercase, symbol);
 
 	/* for function prototype */
-	print_line_number(&function_prototypes_c);
-	strcat_safe(&function_prototypes_c, "static void ");
-	strcat_safe(&function_prototypes_c, current_class_name_lowercase);
-	strcat_safe(&function_prototypes_c, "_");
-	strcat_safe(&function_prototypes_c, symbol);
-	strcat_safe(&function_prototypes_c, arglist);
-	strcat_safe(&function_prototypes_c, ";\n");
+	print_line_number(function_prototypes_c);
+	z_string_append_format(function_prototypes_c, "static void %s_%s%s;\n", current_class_name_lowercase, symbol, arglist);
 
 	/* for function definition */
-	print_line_number(&function_definitions);
-	strcat_safe(&function_definitions, "static void ");
-	strcat_safe(&function_definitions, current_class_name_lowercase);
-	strcat_safe(&function_definitions, "_");
-	strcat_safe(&function_definitions, symbol);
-	strcat_safe(&function_definitions, arglist);
-	strcat_safe(&function_definitions, "\n");
-	strcat_safe(&function_definitions, code);
-	strcat_safe(&function_definitions, "\n");
+	print_line_number(function_definitions);
+	z_string_append_format(function_definitions, "static void %s_%s%s\n%s\n", current_class_name_lowercase, symbol, arglist, code);
 }
 
 static void member_function_decl(const char *type, const char *symbol, const char *arglist, const char *code)
 {
-	print_line_number(&c_macros);
-	strcat_safe(&c_macros, "#define ");
-	strcat_safe(&c_macros, symbol);
-	strcat_safe(&c_macros, " ");
-	strcat_safe(&c_macros, current_class_name_lowercase);
-	strcat_safe(&c_macros, "_");
-	strcat_safe(&c_macros, symbol);
-	strcat_safe(&c_macros, "\n");
+	print_line_number(c_macros);
+	z_string_append_format(c_macros, "#define %s %s_%s\n", symbol, current_class_name_lowercase, symbol);
 
 	switch (access_mode)
 	{
 		case ACCESS_PRIVATE:
 			/* for function prototype */
-			print_line_number(&function_prototypes_c);
-			strcat_safe(&function_prototypes_c, "static ");
-			strcat_safe(&function_prototypes_c, type);
-			strcat_safe(&function_prototypes_c, " ");
-			strcat_safe(&function_prototypes_c, current_class_name_lowercase);
-			strcat_safe(&function_prototypes_c, "_");
-			strcat_safe(&function_prototypes_c, symbol);
-			strcat_safe(&function_prototypes_c, arglist);
-			strcat_safe(&function_prototypes_c, ";\n");
+			print_line_number(function_prototypes_c);
+			z_string_append_format(function_prototypes_c, "static %s %s_%s%s;\n", type, current_class_name_lowercase, symbol, arglist);
 
 			/* for function definition */
-			print_line_number(&function_definitions);
-			strcat_safe(&function_definitions, "static ");
-			strcat_safe(&function_definitions, type);
-			strcat_safe(&function_definitions, " ");
-			strcat_safe(&function_definitions, current_class_name_lowercase);
-			strcat_safe(&function_definitions, "_");
-			strcat_safe(&function_definitions, symbol);
-			strcat_safe(&function_definitions, arglist);
-			strcat_safe(&function_definitions, "\n");
-			strcat_safe(&function_definitions, code);
-			strcat_safe(&function_definitions, "\n");
+			print_line_number(function_definitions);
+			z_string_append_format(function_definitions, "static %s %s_%s%s\n%s\n", type, current_class_name_lowercase, symbol, arglist, code);
 			break;
 
 		case ACCESS_PUBLIC:
 			/* for function prototype */
-			print_line_number(&function_prototypes_h);
-			strcat_safe(&function_prototypes_h, type);
-			strcat_safe(&function_prototypes_h, " ");
-			strcat_safe(&function_prototypes_h, current_class_name_lowercase);
-			strcat_safe(&function_prototypes_h, "_");
-			strcat_safe(&function_prototypes_h, symbol);
-			strcat_safe(&function_prototypes_h, arglist);
-			strcat_safe(&function_prototypes_h, ";\n");
+			print_line_number(function_prototypes_h);
+			z_string_append_format(function_prototypes_h, "%s %s_%s%s;\n", type, current_class_name_lowercase, symbol, arglist);
 
 			/* for function definition */
-			print_line_number(&function_definitions);
-			strcat_safe(&function_definitions, type);
-			strcat_safe(&function_definitions, " ");
-			strcat_safe(&function_definitions, current_class_name_lowercase);
-			strcat_safe(&function_definitions, "_");
-			strcat_safe(&function_definitions, symbol);
-			strcat_safe(&function_definitions, arglist);
-			strcat_safe(&function_definitions, "\n");
-			strcat_safe(&function_definitions, code);
-			strcat_safe(&function_definitions, "\n");
+			print_line_number(function_definitions);
+			z_string_append_format(function_definitions, "%s %s_%s%s\n%s\n", type, current_class_name_lowercase, symbol, arglist, code);
 			break;
 	}
 }
@@ -446,53 +314,36 @@ static void add_parent(char *name_in_pascal)
 	parent_class_name_uppercase[parent_class_count-1] = pascal_to_uppercase(name_in_pascal, '_');
 }
 
-static void init_string(struct string_t *s)
-{
-	s->length = 0;
-	s->data = 0;
-}
-
 static void add_data_member(const char *_type_name, const char *_symbol_name)
 {
 	switch (access_mode)
 	{
 		case ACCESS_PRIVATE:
-			print_line_number(&private_data);
-			strcat_safe(&private_data, "\t");
-			strcat_safe(&private_data, _type_name);
-			strcat_safe(&private_data, _symbol_name);
-			strcat_safe(&private_data, ";\n");
+			print_line_number(private_data);
+			z_string_append_format(private_data, "\t%s%s;\n", _type_name, _symbol_name);
+			break;
+
+		case ACCESS_PROTECTED:
+			print_line_number(protected_data);
+			z_string_append_format(protected_data, "\t%s%s;\n", _type_name, _symbol_name);
 			break;
 
 		case ACCESS_PUBLIC:
-			print_line_number(&public_data);
-			strcat_safe(&public_data, "\t");
-			strcat_safe(&public_data, _type_name);
-			strcat_safe(&public_data, _symbol_name);
-			strcat_safe(&public_data, ";\n");
+			print_line_number(public_data);
+			z_string_append_format(public_data, "\t%s%s;\n", _type_name, _symbol_name);
 			break;
 
 		case ACCESS_GLOBAL:
-			print_line_number(&global_data);
-			strcat_safe(&global_data, "\t");
-			strcat_safe(&global_data, _type_name);
-			strcat_safe(&global_data, _symbol_name);
-			strcat_safe(&global_data, ";\n");
+			print_line_number(global_data);
+			z_string_append_format(global_data, "\t%s%s;\n", _type_name, _symbol_name);
 			break;
 	}
 }
 
-static void add_function_pointer(const char *_type_name, const char *_symbol_name_prefix, const char *_symbol_name, const char *_arglist)
+static void add_function_pointer(ZString *output, const char *_type_name, const char *_symbol_name_prefix, const char *_symbol_name, const char *_arglist)
 {
-	print_line_number(&global_data);
-	strcat_safe(&global_data, "\t");
-	strcat_safe(&global_data, _type_name);
-	strcat_safe(&global_data, " (*");
-	strcat_safe(&global_data, _symbol_name_prefix);
-	strcat_safe(&global_data, _symbol_name);
-	strcat_safe(&global_data, ")");
-	strcat_safe(&global_data, _arglist);
-	strcat_safe(&global_data, ";\n");
+	print_line_number(output);
+	z_string_append_format(output, "\t%s (*%s%s)%s;\n", _type_name, _symbol_name_prefix, _symbol_name, _arglist);
 }
 
 static char *strip_out_type(char *arg)
@@ -507,20 +358,13 @@ static char *strip_out_type(char *arg)
 	return arg;
 }
 
-static char *strip_out_types(const char *arglist)
+static void strip_out_types(ZString *str, const char *arglist)
 {
 	char *arglist_no_paren = strdup(arglist+1);
-	struct string_t temp;
-	char *typeless_arglist;
 	char *p;
 	int is_first = 1;
 
 	arglist_no_paren[strlen(arglist_no_paren)-1] = 0;
-
-	init_string(&temp);
-
-	/* make sure temp.data is not NULL */
-	strcat_safe(&temp, "");
 
 	p = strtok(arglist_no_paren, ",");
 	while (p)
@@ -529,16 +373,14 @@ static char *strip_out_types(const char *arglist)
 		p = strtok(NULL, ",");
 
 		if (!is_first)
-			strcat_safe(&temp, ",");
+			z_string_push_back(str, ',');
 		else
 			is_first = 0;
 
-		strcat_safe(&temp, q);
+		z_string_append_cstring(str, q, Z_STRING_ENCODING_UTF8);
 	}
 
 	free(arglist_no_paren);
-
-	return temp.data;
 }
 
 static void virtual_member_function_decl(const char *type, const char *symbol, const char *arglist, const char *code)
@@ -548,134 +390,81 @@ static void virtual_member_function_decl(const char *type, const char *symbol, c
 	}
 
 	/* virtual function prototype */
-	print_line_number(&function_prototypes_c);
-	strcat_safe(&function_prototypes_c, "static ");
-	strcat_safe(&function_prototypes_c, type);
-	strcat_safe(&function_prototypes_c, " ");
-	strcat_safe(&function_prototypes_c, current_class_name_lowercase);
-	strcat_safe(&function_prototypes_c, "_virtual_");
-	strcat_safe(&function_prototypes_c, symbol);
-	strcat_safe(&function_prototypes_c, arglist);
-	strcat_safe(&function_prototypes_c, ";\n");
-
-	print_line_number(&c_macros);
-	strcat_safe(&c_macros, "#define ");
-	strcat_safe(&c_macros, symbol);
-	strcat_safe(&c_macros, " ");
-	strcat_safe(&c_macros, current_class_name_lowercase);
-	strcat_safe(&c_macros, "_");
-	strcat_safe(&c_macros, symbol);
-	strcat_safe(&c_macros, "\n");
+	print_line_number(function_prototypes_c);
+	z_string_append_format(function_prototypes_c, "static %s %s_virtual_%s%s;\n", type, current_class_name_lowercase, symbol, arglist);
 
 	/* virtual function caller */
-	struct string_t vcode;
-	init_string(&vcode);
+	ZString *vcode = z_string_new(&context);
 
-	strcat_safe(&vcode, "{\n\tself->_class->__");
-	strcat_safe(&vcode, symbol);
-	strcat_safe(&vcode, "(");
+	z_string_append_format(vcode, 
+			"{\n"
+			"\tZObject *obj = (ZObject *) self;\n"
+			"\t((%sClass *) ((char *) obj->class_base + obj->vtable[%s_type_id]))->__%s(",
+			current_class_name_pascal, current_class_name_lowercase, symbol);
 
-	char *typeless_arglist = strip_out_types(arglist);
-	strcat_safe(&vcode, typeless_arglist);
-	free(typeless_arglist);
+	strip_out_types(vcode, arglist);
+	z_string_append_cstring(vcode, ");\n}", Z_STRING_ENCODING_UTF8);
 
-	strcat_safe(&vcode, ");\n}");
-	member_function_decl(type, symbol, arglist, vcode.data);
-	free(vcode.data);
+	char *temp = z_string_get_cstring(vcode, Z_STRING_ENCODING_UTF8);
+	member_function_decl(type, symbol, arglist, temp);
+
+	free(temp);
+	z_object_unref(Z_OBJECT(vcode));
 
 	/* virtual function definition */
-	print_line_number(&function_definitions);
-	strcat_safe(&function_definitions, "static ");
-	strcat_safe(&function_definitions, type);
-	strcat_safe(&function_definitions, " ");
-	strcat_safe(&function_definitions, current_class_name_lowercase);
-	strcat_safe(&function_definitions, "_virtual_");
-	strcat_safe(&function_definitions, symbol);
-	strcat_safe(&function_definitions, arglist);
-	strcat_safe(&function_definitions, "\n");
-	strcat_safe(&function_definitions, code);
-	strcat_safe(&function_definitions, "\n");
+	print_line_number(function_definitions);
+	z_string_append_format(function_definitions, "static %s %s_virtual_%s%s\n%s\n", type, current_class_name_lowercase, symbol, arglist, code);
 
 	/* add function pointer as a data member */
-	add_function_pointer(type, "__", symbol, arglist);
+	add_function_pointer(class_data, type, "__", symbol, arglist);
 
 	/* assign the address of the function into the function pointer data member */
-	print_line_number(&virtual_function_ptr_inits);
-	strcat_safe(&virtual_function_ptr_inits, "\tself->_class->__");
-	strcat_safe(&virtual_function_ptr_inits, symbol);
-	strcat_safe(&virtual_function_ptr_inits, " = ");
-	strcat_safe(&virtual_function_ptr_inits, current_class_name_lowercase);
-	strcat_safe(&virtual_function_ptr_inits, "_virtual_");
-	strcat_safe(&virtual_function_ptr_inits, symbol);
-	strcat_safe(&virtual_function_ptr_inits, ";\n");
+	print_line_number(virtual_function_ptr_inits);
+	z_string_append_format(virtual_function_ptr_inits, "\t\tglobal->_class->__%s = %s_virtual_%s;\n", symbol, current_class_name_lowercase, symbol);
 }
 
 static void override_member_function_decl(const char *type, const char *symbol, const char *arglist, const char *code)
 {
 	/* virtual function caller prototype */
-	print_line_number(&function_prototypes_c);
-	strcat_safe(&function_prototypes_c, "static ");
-	strcat_safe(&function_prototypes_c, type);
-	strcat_safe(&function_prototypes_c, " ");
-	strcat_safe(&function_prototypes_c, current_class_name_lowercase);
-	strcat_safe(&function_prototypes_c, "_");
-	strcat_safe(&function_prototypes_c, symbol);
-	strcat_safe(&function_prototypes_c, arglist);
-	strcat_safe(&function_prototypes_c, ";\n");
+	print_line_number(function_prototypes_c);
+	z_string_append_format(function_prototypes_c, "static %s %s_%s%s;\n", type, current_class_name_lowercase, symbol, arglist);
 
 	/* for function definition */
-	print_line_number(&function_definitions);
-	strcat_safe(&function_definitions, "#define PARENT_HANDLER self->_class->__parent_");
-	strcat_safe(&function_definitions, symbol);
-	strcat_safe(&function_definitions, "\nstatic ");
-	strcat_safe(&function_definitions, type);
-	strcat_safe(&function_definitions, " ");
-	strcat_safe(&function_definitions, current_class_name_lowercase);
-	strcat_safe(&function_definitions, "_");
-	strcat_safe(&function_definitions, symbol);
-	strcat_safe(&function_definitions, arglist);
-	strcat_safe(&function_definitions, "\n");
-	strcat_safe(&function_definitions, code);
-	strcat_safe(&function_definitions, "\n#undef PARENT_HANDLER\n");
+	print_line_number(function_definitions);
+	z_string_append_format(function_definitions,
+			"#define PARENT_HANDLER self->_global->__parent_%s\n"
+			"static %s %s_%s%s\n%s\n"
+			"#undef PARENT_HANDLER\n",
+			symbol,
+			type, current_class_name_lowercase, symbol, arglist, code);
 
 	/* add function pointer as a data member */
-	add_function_pointer(type, "__parent_", symbol, arglist);
+	add_function_pointer(global_data, type, "__parent_", symbol, arglist);
 
 	char *base_name_uppercase = pascal_to_uppercase(virtual_base_name, '_');
+	char *base_name_lowercase = pascal_to_lowercase(virtual_base_name, '_');
 
 	/* up cast to parent class */
-	print_line_number(&virtual_function_ptr_inits);
-	strcat_safe(&virtual_function_ptr_inits, "\t{\n");
-	
-	print_line_number(&virtual_function_ptr_inits);
-	strcat_safe(&virtual_function_ptr_inits, "\t\t");
-	strcat_safe(&virtual_function_ptr_inits, virtual_base_name);
-	strcat_safe(&virtual_function_ptr_inits, " *parent = ");
-	strcat_safe(&virtual_function_ptr_inits, base_name_uppercase);
-	strcat_safe(&virtual_function_ptr_inits, "(self);\n");
+	print_line_number(virtual_function_ptr_inits);
+	z_string_append_cstring(virtual_function_ptr_inits, "\t\t{\n", Z_STRING_ENCODING_UTF8);
 
+	/* create a pointer to the parent class's dispatch object */
+	print_line_number(virtual_function_ptr_inits);
+	z_string_append_format(virtual_function_ptr_inits, "\t\t\t%sClass *p_class = (%sClass *) ((char *) global->_class + global->vtable_off_list[%s_type_id]);\n",
+			virtual_base_name, virtual_base_name, base_name_lowercase);
+	
 	/* backup the existing virtual function pointer for the PARENT_HANDLER macro */
-	print_line_number(&virtual_function_ptr_inits);
-	strcat_safe(&virtual_function_ptr_inits, "\t\tself->_class->__parent_");
-	strcat_safe(&virtual_function_ptr_inits, symbol);
-	strcat_safe(&virtual_function_ptr_inits, " = parent->_class->__");
-	strcat_safe(&virtual_function_ptr_inits, symbol);
-	strcat_safe(&virtual_function_ptr_inits, ";\n");
+	print_line_number(virtual_function_ptr_inits);
+	z_string_append_format(virtual_function_ptr_inits, "\t\t\tglobal->__parent_%s = p_class->__%s;\n", symbol, symbol);
 
 	/* assign the address of the function into the function pointer data member */
-	print_line_number(&virtual_function_ptr_inits);
-	strcat_safe(&virtual_function_ptr_inits, "\t\t");
-	strcat_safe(&virtual_function_ptr_inits, "parent->_class->__");
-	strcat_safe(&virtual_function_ptr_inits, symbol);
-	strcat_safe(&virtual_function_ptr_inits, " = ");
-	strcat_safe(&virtual_function_ptr_inits, current_class_name_lowercase);
-	strcat_safe(&virtual_function_ptr_inits, "_");
-	strcat_safe(&virtual_function_ptr_inits, symbol);
-	strcat_safe(&virtual_function_ptr_inits, ";\n");
+	print_line_number(virtual_function_ptr_inits);
+	z_string_append_format(virtual_function_ptr_inits, "\t\t\tp_class->__%s = %s_%s;\n", symbol, current_class_name_lowercase, symbol);
 
-	print_line_number(&virtual_function_ptr_inits);
-	strcat_safe(&virtual_function_ptr_inits, "\t}\n");
+	print_line_number(virtual_function_ptr_inits);
+	z_string_append_cstring(virtual_function_ptr_inits, "\t\t}\n", Z_STRING_ENCODING_UTF8);
 
+	free(base_name_lowercase);
 	free(base_name_uppercase);
 }
 
@@ -683,89 +472,78 @@ static void class_init(char *class_name)
 {
 	int i;
 
-	init_string(&private_data);
-	init_string(&public_data);
-	init_string(&global_data);
-	init_string(&function_prototypes_c);
-	init_string(&function_prototypes_h);
-	init_string(&function_definitions);
-	init_string(&virtual_function_ptr_inits);
-	init_string(&h_macros_head);
-	init_string(&h_macros_tail);
-	init_string(&c_macros);
+	global_data = z_string_new(&context);
+	class_data = z_string_new(&context);
+	private_data = z_string_new(&context);
+	protected_data = z_string_new(&context);
+	public_data = z_string_new(&context);
+	function_prototypes_c = z_string_new(&context);
+	function_definitions = z_string_new(&context);
+	virtual_function_ptr_inits = z_string_new(&context);
+	h_macros_head = z_string_new(&context);
+	h_macros_tail = z_string_new(&context);
+	c_macros = z_string_new(&context);
+	function_prototypes_h = z_string_new(&context);
 
 	char * current_class_name_uppercase = pascal_to_uppercase(class_name, '_');
 	current_class_name_lowercase = pascal_to_lowercase(class_name, '_');
 	current_class_name_pascal = class_name;
 
 	/* start the private data structure */
-	strcat_safe(&private_data, "struct ");
-	strcat_safe(&private_data, class_name);
-	strcat_safe(&private_data, "Private {\n");
+	z_string_append_format(private_data, "struct %sPrivate {\n", class_name);
+
+	/* start the protected data structure */
+	z_string_append_format(protected_data, "struct %sProtected {\n", class_name);
 
 	/* define the Self macro in the header file */
-	strcat_safe(&h_macros_head, "#define Self ");
-	strcat_safe(&h_macros_head, class_name);
-	strcat_safe(&h_macros_head, "\n");
+	z_string_append_format(h_macros_head, "#define Self %s\n", class_name);
 
 	/* define the macro to upcast a derived object */
-	strcat_safe(&h_macros_head, "#define ");
-	strcat_safe(&h_macros_head, current_class_name_uppercase);
-	strcat_safe(&h_macros_head, "(s) ((");
-	strcat_safe(&h_macros_head, current_class_name_pascal);
-	strcat_safe(&h_macros_head, " *) ((char *) (s) + ((int *) (s)->_class)[");
-	strcat_safe(&h_macros_head, current_class_name_lowercase);
-	strcat_safe(&h_macros_head, "_type_id]))\n\n");
+	z_string_append_format(h_macros_head, "#define %s(s) ((%s *) (s))\n\n", current_class_name_uppercase, current_class_name_pascal);
 	free(current_class_name_uppercase);
 
 	/* define the tailing macros */
-	strcat_safe(&h_macros_tail, "#undef Self\n");
+	z_string_append_cstring(h_macros_tail, "#undef Self\n", Z_STRING_ENCODING_UTF8);
 
 	/* define the Self macro in the source file */
-	strcat_safe(&c_macros, "#define Self ");
-	strcat_safe(&c_macros, class_name);
-	strcat_safe(&c_macros, "\n");
-	strcat_safe(&c_macros, "#define selfp (&self->_priv)\n");
-
-	strcat_safe(&c_macros, "#define GET_NEW(ctx) __");
-	strcat_safe(&c_macros, current_class_name_lowercase);
-	strcat_safe(&c_macros, "_new(ctx)\n");
-
-	strcat_safe(&c_macros, "#define CTX self->_class->ctx\n");
+	z_string_append_format(c_macros,
+			"#define Self %s\n"
+			"#define selfp (&self->_priv)\n"
+			"#define GET_NEW(ctx) __%s_new(ctx)\n"
+			"#define CTX self->_global->ctx\n", class_name, current_class_name_lowercase);
 
 	/* start the global data structure */
-	strcat_safe(&global_data, "struct ");
-	strcat_safe(&global_data, class_name);
-	strcat_safe(&global_data, "Class {\n"
+	z_string_append_format(global_data,
+			"struct %sGlobal {\n"
 			"\tint *vtable_off_list;\n"
 			"\tint vtable_off_size;\n"
+			"\tstruct %sClass *_class;\n"
 			"\tstruct zco_context_t *ctx;\n"
 			"\tconst char *name;\n"
-			"\tint id;\n");
+			"\tint id;\n", class_name, class_name);
 
-	/* start the public data structure */
-	strcat_safe(&public_data, "struct ");
-	strcat_safe(&public_data, class_name);
-	strcat_safe(&public_data, " {\n");
-
+	/* start the klass data structure */
+	z_string_append_format(class_data, "struct %sClass {\n", class_name);
 	for (i=0; i<parent_class_count; ++i)
 	{
-		strcat_safe(&public_data, "\tstruct ");
-		strcat_safe(&public_data, parent_class_name_pascal[i]);
-		strcat_safe(&public_data, " parent_");
-		strcat_safe(&public_data, parent_class_name_lowercase[i]);
-		strcat_safe(&public_data, ";\n");
+		z_string_append_format(class_data, "\tstruct %sClass parent_%s;\n", parent_class_name_pascal[i], parent_class_name_lowercase[i]);
+	}
+
+	/* start the public data structure */
+	z_string_append_format(public_data, "struct %s {\n", class_name);
+	for (i=0; i<parent_class_count; ++i)
+	{
+		z_string_append_format(public_data, "\tstruct %s parent_%s;\n", parent_class_name_pascal[i], parent_class_name_lowercase[i]);
 	}
 
 	/* declare the _class pointer in the public structure */
-	strcat_safe(&public_data, "\tstruct ");
-	strcat_safe(&public_data, class_name);
-	strcat_safe(&public_data, "Class *_class;\n");
+	z_string_append_format(public_data, "\tstruct %sGlobal *_global;\n", class_name);
 
 	/* declare the _priv member in the public structure */
-	strcat_safe(&public_data, "\tstruct ");
-	strcat_safe(&public_data, class_name);
-	strcat_safe(&public_data, "Private _priv;\n");
+	z_string_append_format(public_data, "\tstruct %sPrivate _priv;\n", class_name);
+
+	/* declare the _prot member in the public structure */
+	z_string_append_format(public_data, "\tstruct %sProtected _prot;\n", class_name);
 
 	access_mode = ACCESS_PUBLIC;
 	modifier_mode = MODIFIER_NONE;
@@ -803,15 +581,22 @@ external_declaration
 	/* includes in header file */
 	fprintf(header_file, "#include <zco-type.h>\n");
 
+	/* includes in the source file */
+	fprintf(source_file, "#include <string.h>\n");
+
 	/* head macros in header file */
-	dump_string(&h_macros_head, header_file);
+	dump_string(h_macros_head, header_file);
 	fprintf(header_file, "\n");
 
 	/* forward declarations of data structures */
 	fprintf(header_file,
 			"struct %sPrivate;\n"
+			"struct %sProtected;\n"
+			"struct %sGlobal;\n"
 			"struct %sClass;\n"
 			"struct %s;\n\n",
+			current_class_name_pascal,
+			current_class_name_pascal,
 			current_class_name_pascal,
 			current_class_name_pascal,
 			current_class_name_pascal);
@@ -819,35 +604,47 @@ external_declaration
 	/* create typedefs */
 	fprintf(header_file,
 			"typedef struct %sPrivate %sPrivate;\n"
+			"typedef struct %sProtected %sProtected;\n"
+			"typedef struct %sGlobal %sGlobal;\n"
 			"typedef struct %sClass %sClass;\n"
 			"typedef struct %s %s;\n\n",
+			current_class_name_pascal, current_class_name_pascal,
+			current_class_name_pascal, current_class_name_pascal,
 			current_class_name_pascal, current_class_name_pascal,
 			current_class_name_pascal, current_class_name_pascal,
 			current_class_name_pascal, current_class_name_pascal);
 
 	/* private data members */
-	dump_string(&private_data, header_file);
+	dump_string(private_data, header_file);
+	fprintf(header_file, "};\n\n");
+
+	/* protected data members */
+	dump_string(protected_data, header_file);
 	fprintf(header_file, "};\n\n");
 
 	/* global data members */
-	dump_string(&global_data, header_file);
+	dump_string(global_data, header_file);
+	fprintf(header_file, "};\n\n");
+
+	/* klass data members */
+	dump_string(class_data, header_file);
 	fprintf(header_file, "};\n\n");
 
 	/* public data members */
-	dump_string(&public_data, header_file);
+	dump_string(public_data, header_file);
 	fprintf(header_file, "};\n");
 
 	/* extern variables */
 	fprintf(header_file, "extern int %s_type_id;\n", current_class_name_lowercase);
 
 	/* function prototypes in header file */
-	fprintf(header_file, "%sClass * %s_get_type(struct zco_context_t *ctx);\n", current_class_name_pascal, current_class_name_lowercase);
+	fprintf(header_file, "%sGlobal * %s_get_type(struct zco_context_t *ctx);\n", current_class_name_pascal, current_class_name_lowercase);
 	fprintf(header_file, "void __%s_init(struct zco_context_t *ctx, %s *self);\n", current_class_name_lowercase, current_class_name_pascal);
-	dump_string(&function_prototypes_h, header_file);
+	dump_string(function_prototypes_h, header_file);
 	fprintf(header_file, "\n");
 
 	/* tail macros in header file */
-	dump_string(&h_macros_tail, header_file);
+	dump_string(h_macros_tail, header_file);
 	fprintf(header_file, "\n");
 
 	/* includes in source file */
@@ -858,16 +655,14 @@ external_declaration
 			header_filename);
 
 	/* macros in source file */
-	dump_string(&c_macros, source_file);
+	dump_string(c_macros, source_file);
 	fprintf(source_file, "\n");
 
 	/* declare the global variables */
-	fprintf(source_file, "static %sClass global;\n", current_class_name_pascal);
 	fprintf(source_file, "int %s_type_id = -1;\n", current_class_name_lowercase);
 	fprintf(source_file, "\n");
 
 	/* function prototypes in source file */
-
 	fprintf(source_file,
 			"static Self *__%s_new(struct zco_context_t *ctx)\n"
 			"{\n"
@@ -878,31 +673,35 @@ external_declaration
 			current_class_name_lowercase,
 			current_class_name_lowercase);
 
-	dump_string(&function_prototypes_c, source_file);
+	dump_string(function_prototypes_c, source_file);
 	fprintf(source_file, "\n");
 
 	/* define get_type */
-	fprintf(source_file, "%sClass * %s_get_type(struct zco_context_t *ctx)\n"
+	fprintf(source_file, "%sGlobal * %s_get_type(struct zco_context_t *ctx)\n"
 			"{\n"
 			"\tif (%s_type_id == -1)\n"
 			"\t\t%s_type_id = zco_allocate_type_id();\n\n"
-			"\tvoid **class_ptr = zco_get_ctx_type(ctx, %s_type_id);\n"
-			"\tif (*class_ptr == 0) {\n"
-			"\t\t*class_ptr = malloc(sizeof(%sClass));\n"
-			"\t\tstruct %sClass *class = (%sClass *) *class_ptr;\n"
-			"\t\tclass->ctx = ctx;\n"
-			"\t\tclass->name = \"%s\";\n"
-			"\t\tclass->id = %s_type_id;\n"
-			"\t\tclass->vtable_off_list = NULL;\n"
-			"\t\tclass->vtable_off_size = 0;\n"
-			"\t\t\n"
-			"\t\tstruct %s temp;\n"
-			"\t\t\n",
+			"\tvoid **global_ptr = zco_get_ctx_type(ctx, %s_type_id);\n"
+			"\tif (*global_ptr == 0) {\n"
+			"\t\t*global_ptr = malloc(sizeof(struct %sGlobal));\n"
+			"\t\tstruct %sGlobal *global = (%sGlobal *) *global_ptr;\n"
+			"\t\tglobal->ctx = ctx;\n"
+			"\t\tglobal->_class = malloc(sizeof(struct %sClass));\n"
+			"\t\tmemset(global->_class, 0, sizeof(struct %sClass));\n"
+			"\t\tglobal->name = \"%s\";\n"
+			"\t\tglobal->id = %s_type_id;\n"
+			"\t\tglobal->vtable_off_list = NULL;\n"
+			"\t\tglobal->vtable_off_size = 0;\n"
+			"\n"
+			"\t\tstruct %sClass temp;\n"
+			"\n",
 			current_class_name_pascal,
 			current_class_name_lowercase,
 			current_class_name_lowercase,
 			current_class_name_lowercase,
 			current_class_name_lowercase,
+			current_class_name_pascal,
+			current_class_name_pascal,
 			current_class_name_pascal,
 			current_class_name_pascal,
 			current_class_name_pascal,
@@ -914,44 +713,56 @@ external_declaration
 	for (i=0; i < parent_class_count; ++i) {
 		fprintf(source_file,
 				"\t\t{\n"
-				"\t\t\tstruct %sClass *p_class = %s_get_type(ctx);\n"
+				"\t\t\tstruct %sGlobal *p_class = %s_get_type(ctx);\n"
 				"\t\t\tzco_inherit_vtable(\n"
-				"\t\t\t\t&class->vtable_off_list,\n"
-				"\t\t\t\t&class->vtable_off_size,\n"
+				"\t\t\t\t&global->vtable_off_list,\n"
+				"\t\t\t\t&global->vtable_off_size,\n"
 				"\t\t\t\tp_class->vtable_off_list,\n"
 				"\t\t\t\tp_class->vtable_off_size,\n"
 				"\t\t\t\t&temp,\n"
-				"\t\t\t\t&temp.parent_%s);\n"
-				"\t\t}\n",
+				"\t\t\t\t&temp.parent_%s);\n",
 				parent_class_name_pascal[i],
 				parent_class_name_lowercase[i],
 				parent_class_name_lowercase[i]);
+
+		fprintf(source_file,
+				"\t\t\tunsigned long offset = global->vtable_off_list[%s_type_id];\n"
+				"\t\t\tmemcpy((char *) global->_class + offset, p_class->_class, sizeof(struct %sClass));\n",
+				parent_class_name_lowercase[i],
+				parent_class_name_pascal[i]);
+
+		fprintf(source_file, "\t\t}\n");
 	}
 
+	fprintf(source_file,
+			"\t\tzco_add_to_vtable(&global->vtable_off_list, &global->vtable_off_size, %s_type_id);"
+			"\t\t\n",
+			current_class_name_lowercase);
 
+	/* assign the virtual function pointers */
+	dump_string(virtual_function_ptr_inits, source_file);
 
 	fprintf(source_file,
-			"\t\tzco_add_to_vtable(&class->vtable_off_list, &class->vtable_off_size, %s_type_id);"
-			"\t\t\n"
-			"\t\t#ifdef SHOULD_CALL_CLASS_INIT\n"
-			"\t\t\tclass_init((%sClass *) class);\n"
-			"\t\t#endif\n"
+			"\t\t#ifdef CLASS_INIT_EXISTS\n"
+			"\t\t\tclass_init((%sGlobal *) global);\n"
+			"\t\t#endif\n",
+			current_class_name_pascal);
+
+	fprintf(source_file,
 			"\t}\n"
-			"\treturn (%sClass *) *class_ptr;\n"
+			"\treturn (%sGlobal *) *global_ptr;\n"
 			"}\n\n",
-			current_class_name_lowercase,
-			current_class_name_pascal,
 			current_class_name_pascal);
 
 	/* define *_init */
-	fprintf(source_file, "void __%s_init(struct zco_context_t *ctx, Self *self)\n"
+	fprintf(source_file,
+			"void __%s_init(struct zco_context_t *ctx, Self *self)\n"
 			"{\n"
-			"\tstruct %sClass *_class = %s_get_type(ctx);\n",
+			"\tstruct %sGlobal *_global = %s_get_type(ctx);\n"
+			"\tself->_global = _global;\n",
 			current_class_name_lowercase,
 			current_class_name_pascal,
 			current_class_name_lowercase);
-
-	fprintf(source_file, "\tself->_class = _class;\n");
 
 	for (i=0; i < parent_class_count; ++i) {
 		fprintf(source_file,
@@ -961,15 +772,18 @@ external_declaration
 
 	}
 
-	dump_string(&virtual_function_ptr_inits, source_file);
-			
+
+	/* assign current class as the active class */
+	fprintf(source_file, "\t((ZObject *) self)->class_base = (void *) _global->_class;\n");
+	fprintf(source_file, "\t((ZObject *) self)->vtable = _global->vtable_off_list;\n");
+
 	fprintf(source_file,
-			"\t#ifdef SHOULD_CALL_INIT\n"
+			"\t#ifdef INIT_EXISTS\n"
 			"\t\tinit(self);\n"
 			"\t#endif\n"
 			"}\n");
 
-	dump_string(&function_definitions, source_file);
+	dump_string(function_definitions, source_file);
 	fprintf(source_file, "\n");
 
 	free(current_class_name_lowercase);
@@ -1545,6 +1359,7 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
+	zco_context_init(&context);
 	real_lineno = 0;
 
 	/* open the output header file for writing */

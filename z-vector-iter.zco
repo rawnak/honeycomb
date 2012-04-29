@@ -42,7 +42,7 @@ class ZVectorIter : ZObject
 
 	public Self *dup(ZVectorIter *src)
 	{
-		Self *self = GET_NEW(src->_class->ctx);
+		Self *self = GET_NEW(src->_global->ctx);
 
 		set_index(self, get_index(src));
 		return self;

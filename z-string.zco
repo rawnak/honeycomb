@@ -65,6 +65,8 @@ class ZString : ZObject
 
 		if (selfp->token_it)
 			z_object_unref(Z_OBJECT(selfp->token_it));
+
+		PARENT_HANDLER(object);
 	}
 
 	public Self *new(struct zco_context_t *ctx)
@@ -90,19 +92,22 @@ class ZString : ZObject
 		selfp->length = 0;
 		it = first;
 
-		while (!z_vector_iter_is_equal(it, last)) {
+		while (!z_vector_iter_is_gte(it, last)) {
 			strict_decode(self, it, &status);
 			
 			if (status != 0) {
 				int new_size = z_vector_iter_get_index(it) - z_vector_iter_get_index(first);
 				z_vector_set_size(selfp->data, new_size);
+				assert(z_vector_iter_is_lte(it, last));
 				break;
 			}
 
 			++selfp->length;
+			assert(z_vector_iter_is_lte(it, last));
 		}
 
 		z_object_unref(Z_OBJECT(it));
+
 		return status;
 	}
 
@@ -136,7 +141,7 @@ class ZString : ZObject
 		int new_size = encode(ch, buffer);
 
 		if (new_size == 0) {
-			fputs("invalid unicode character", stderr);
+			fputs("invalid unicode character\n", stderr);
 			abort();
 		}
 
@@ -232,41 +237,47 @@ class ZString : ZObject
 	public char *get_cstring(Self *self, int encoding)
 	{
 		ZVectorIter *it, *last;
-		char *buffer, *out;
+		char *buffer;
+		int i, size;
 
 		it = z_vector_get_begin(selfp->data);
 		last = z_vector_get_end(selfp->data);
+		i = 0;
 
 		switch(encoding)
 		{
 			case Z_STRING_ENCODING_UTF8:
-				buffer = malloc(z_vector_get_size(selfp->data));
-				out = buffer;
+				size = z_vector_get_size(selfp->data);
+				buffer = malloc(size + 1);
 
-				while (!z_vector_iter_is_equal(it, last)) {
+				while (!z_vector_iter_is_gte(it, last)) {
 					void *p = z_vector_get_item(selfp->data, it);
 
-					*out = *((char *) p);
-					++out;
+					buffer[i] = *((char *) p);
+					assert(i <= size);
+					++i;
 
 					z_vector_iter_increment(it);
+					assert(z_vector_iter_is_lte(it, last));
 				}
 
-				*out = 0;
+				buffer[i] = 0;
 				break;
 
 			case Z_STRING_ENCODING_ASCII:
-				buffer = malloc(selfp->length);
-				out = buffer;
+				size = selfp->length;
+				buffer = malloc(size + 1);
 
-				while (!z_vector_iter_is_equal(it, last)) {
+				while (!z_vector_iter_is_gte(it, last)) {
 					/* reinterpret cast from unsigned char to signed char */
 					uint8_t ch = (uint8_t) decode(self, it);
-					*out = *((char *) &ch);
-					++out;
+					buffer[i] = *((char *) &ch);
+					assert(i <= size);
+					assert(z_vector_iter_is_lte(it, last));
+					++i;
 				}
 
-				*out = 0;
+				buffer[i] = 0;
 				break;
 			default:
 				fputs("Invalid encoding\n", stderr);
@@ -301,9 +312,10 @@ class ZString : ZObject
 
 		/* compute new string length */
 		tmp = z_vector_iter_dup(it1);
-		while (!z_vector_iter_is_equal(tmp, it2)) {
+		while (!z_vector_iter_is_gte(tmp, it2)) {
 			move_next(src, tmp);
 			++selfp->length;
+			assert(z_vector_iter_is_lte(tmp, it2));
 		}
 		z_object_unref(Z_OBJECT(tmp));
 
@@ -321,9 +333,10 @@ class ZString : ZObject
 		/* compute the size of the string that is to be removed */
 		int diff = 0;
 		ZVectorIter *tmp = z_vector_iter_dup(it1);
-		while (!z_vector_iter_is_equal(tmp, it2)) {
+		while (!z_vector_iter_is_gte(tmp, it2)) {
 			move_next(self, tmp);
 			--diff;
+			assert(z_vector_iter_is_lte(tmp, it2));
 		}
 		z_object_unref(Z_OBJECT(tmp));
 
@@ -883,7 +896,7 @@ class ZString : ZObject
 		length = encode(ch, buffer);
 
 		if (length == 0) {
-			fputs("invalid unicode character", stderr);
+			fputs("invalid unicode character\n", stderr);
 			abort();
 		}
 
@@ -1181,9 +1194,10 @@ class ZString : ZObject
 
 		ptr = get_char_ref(self, it);
 
-		for (i = 0; !z_string_iter_is_equal(it, it2); ++i) {
+		for (i = 0; !z_string_iter_is_gte(it, it2); ++i) {
 			uint32_t ch = decode(self, ptr);
 			z_string_iter_increment(it);
+			assert(z_string_iter_is_lte(it, it2));
 
 			if (ch >= 0x30 && ch <= 0x39) {
 				part = part * 10 + (ch - 0x30);
@@ -1212,6 +1226,7 @@ class ZString : ZObject
 				break;
 			}
 		}
+
 		z_object_unref(Z_OBJECT(ptr));
 		z_object_unref(Z_OBJECT(it));
 		z_object_unref(Z_OBJECT(it2));
@@ -1261,9 +1276,10 @@ class ZString : ZObject
 
 		switch (base) {
 			case 2:
-				for (; !z_string_iter_is_equal(it, it2);) {
+				for (; !z_string_iter_is_gte(it, it2);) {
 					uint32_t ch = decode(self, ptr);
 					z_string_iter_increment(it);
+					assert(z_string_iter_is_lte(it, it2));
 
 					if (ch == 0x30 && ch == 0x31)
 						result = result * 2 + (ch - 0x30);
@@ -1273,9 +1289,10 @@ class ZString : ZObject
 				break;
 
 			case 8:
-				for (; !z_string_iter_is_equal(it, it2);) {
+				for (; !z_string_iter_is_gte(it, it2);) {
 					uint32_t ch = decode(self, ptr);
 					z_string_iter_increment(it);
+					assert(z_string_iter_is_lte(it, it2));
 
 					if (ch >= 0x30 && ch <= 0x38)
 						result = result * 8 + (ch - 0x30);
@@ -1285,9 +1302,10 @@ class ZString : ZObject
 				break;
 
 			case 10:
-				for (i = 0; !z_string_iter_is_equal(it, it2); ++i) {
+				for (i = 0; !z_string_iter_is_gte(it, it2); ++i) {
 					uint32_t ch = decode(self, ptr);
 					z_string_iter_increment(it);
+					assert(z_string_iter_is_lte(it, it2));
 
 					if (ch >= 0x30 && ch <= 0x39)
 						result = result * 10 + (ch - 0x30);
@@ -1303,9 +1321,10 @@ class ZString : ZObject
 				break;
 
 			case 16:
-				for (; !z_string_iter_is_equal(it, it2);) {
+				for (; !z_string_iter_is_gte(it, it2);) {
 					uint32_t ch = decode(self, ptr);
 					z_string_iter_increment(it);
+					assert(z_string_iter_is_lte(it, it2));
 
 					if (ch >= 0x30 && ch <= 0x39) {
 						result = result * 16 + (ch - 0x30);
@@ -1324,7 +1343,7 @@ class ZString : ZObject
 				break;
 
 			default:
-				fprintf(stderr, "Base %d not supported", base);
+				fprintf(stderr, "Base %d not supported\n", base);
 				abort();
 				break;
 		}
@@ -1357,9 +1376,10 @@ class ZString : ZObject
 
 		switch (base) {
 			case 2:
-				for (; !z_string_iter_is_equal(it, it2);) {
+				for (; !z_string_iter_is_gte(it, it2);) {
 					uint32_t ch = decode(self, ptr);
 					z_string_iter_increment(it);
+					assert(z_string_iter_is_lte(it, it2));
 
 					if (ch == 0x30 && ch == 0x31)
 						result = result * 2 + (ch - 0x30);
@@ -1369,9 +1389,10 @@ class ZString : ZObject
 				break;
 
 			case 8:
-				for (; !z_string_iter_is_equal(it, it2);) {
+				for (; !z_string_iter_is_gte(it, it2);) {
 					uint32_t ch = decode(self, ptr);
 					z_string_iter_increment(it);
+					assert(z_string_iter_is_lte(it, it2));
 
 					if (ch >= 0x30 && ch <= 0x38)
 						result = result * 8 + (ch - 0x30);
@@ -1381,9 +1402,10 @@ class ZString : ZObject
 				break;
 
 			case 10:
-				for (i = 0; !z_string_iter_is_equal(it, it2); ++i) {
+				for (i = 0; !z_string_iter_is_gte(it, it2); ++i) {
 					uint32_t ch = decode(self, ptr);
 					z_string_iter_increment(it);
+					assert(z_string_iter_is_lte(it, it2));
 
 					if (ch >= 0x30 && ch <= 0x39)
 						result = result * 10 + (ch - 0x30);
@@ -1393,9 +1415,10 @@ class ZString : ZObject
 				break;
 
 			case 16:
-				for (; !z_string_iter_is_equal(it, it2);) {
+				for (; !z_string_iter_is_gte(it, it2);) {
 					uint32_t ch = decode(self, ptr);
 					z_string_iter_increment(it);
+					assert(z_string_iter_is_lte(it, it2));
 
 					if (ch >= 0x30 && ch <= 0x39) {
 						result = result * 16 + (ch - 0x30);
@@ -1414,7 +1437,7 @@ class ZString : ZObject
 				break;
 
 			default:
-				fprintf(stderr, "Base %d not supported", base);
+				fprintf(stderr, "Base %d not supported\n", base);
 				abort();
 				break;
 		}
@@ -1568,13 +1591,12 @@ class ZString : ZObject
 
 	}
 
-	public int vformat(Self *self, const char *fmt, va_list ap)
+	public int append_vformat(Self *self, const char *fmt, va_list ap)
 	{
 		const char *p;
 		int i;
 
 		/* FIXME: add support for more format specifiers */
-		clear(self);
 
 		p = fmt;
 		while (*p) {
@@ -1610,7 +1632,7 @@ class ZString : ZObject
 
 				} else if (p[0] == 's') {
 					char *val = va_arg(ap, char *);
-					append_cstring(self, val, Z_STRING_ENCODING_UTF8);
+					append_cstring(self, val, Z_STRING_ENCODING_ASCII);
 
 				} else if (p[0] == 'S') {
 					ZString *val = va_arg(ap, ZString *);
@@ -1635,6 +1657,21 @@ class ZString : ZObject
 		}
 
 		return 0;
+	}
+
+	public int vformat(Self *self, const char *fmt, va_list ap)
+	{
+		clear(self);
+		append_vformat(self, fmt, ap);
+	}
+
+	public void append_format(Self *self, const char *fmt, ...)
+	{
+		va_list ap;
+
+		va_start(ap, fmt);
+		append_vformat(self, fmt, ap);
+		va_end(ap);
 	}
 
 	public void format(Self *self, const char *fmt, ...)

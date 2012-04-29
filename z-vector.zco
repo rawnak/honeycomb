@@ -59,6 +59,8 @@ class ZVector : ZObject
 
 		clear(self);
 		set_capacity(self, 0);
+
+		PARENT_HANDLER(object);
 	}
 
 	public Self *new(struct zco_context_t *ctx, int item_size)
