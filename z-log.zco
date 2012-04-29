@@ -1,0 +1,170 @@
+/* ZCO - Cross-platform Application Framework
+ * Copyright (C) 2014  Syeda Sultana
+ *
+ * z-log.zco: Logger class
+ * This file is part of ZCO.
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZCO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+%h{
+#include <z-object.h>
+#include <stdarg.h>
+#include <sys/cdefs.h>
+
+/* @brief prints a log message */
+#define z_message(...)  (z_log_trace(ZLogMessage, __FILE__, __LINE__, __func__, __VA_ARGS__))
+
+/* @brief prints a warning message. setting Z_DEBUG environment variable will
+          make warnings abort the process */
+#define z_warning(...)  (z_log_trace(ZLogWarning, __FILE__, __LINE__, __func__, __VA_ARGS__))
+
+/* @brief prints a critical warning message. setting Z_DEBUG environment
+          variable will make warnings abort the process */
+#define z_critical(...) (z_log_trace(ZLogCritical, __FILE__, __LINE__, __func__, __VA_ARGS__))
+
+/* @brief prints an error message. this will always abort the process */
+#define z_error(...)    (z_log_trace(ZLogError, __FILE__, __LINE__, __func__, __VA_ARGS__))
+
+/* @brief prints a debug message if Z_DEBUG environment variable is set */
+#define z_debug(...)    (z_log_trace(ZLogDebug, __FILE__, __LINE__, __func__, __VA_ARGS__))
+
+/* @brief prints an error message if the expression is FALSE. this will always abort the process */
+#define z_assert(expr)  ((likely(expr))? (void)(0) : z_error("Assertion '%s' failed", __STRING(expr)))
+
+enum ZLogType {
+	ZLogMessage,
+	ZLogWarning,
+	ZLogCritical,
+	ZLogError,
+	ZLogDebug
+};
+%}
+
+%{
+#include <stdio.h>
+#include <stdlib.h>
+#include <execinfo.h>
+#include <strings.h>
+
+static int is_initialized = 0;
+static int debug_mode = 0;
+static int backtrace_level = 1;
+
+%}
+
+class ZLog : ZObject
+{
+	private void show_backtrace()
+	{
+		void *buffer[100];
+		void **p;
+		int count;
+
+		/* get the backtrace */
+		count = backtrace(buffer, 100);
+
+		/* skip the first two functions since they are redundant */
+		p = buffer;
+		p = buffer + 2;
+		count -= 2;
+
+		/* print the back trace */
+		backtrace_symbols_fd(p, count, 2);
+		fprintf(stderr, "\n");
+	}
+
+	private void initialize()
+	{
+		if (is_initialized)
+			return;
+
+		/* check to see if Z_DEBUG environment variable is set */
+		char *val = getenv("Z_DEBUG");
+		if (val && (!strcmp(val, "1") || !strcasecmp(val, "on") || !strcasecmp(val, "true") || !strcasecmp(val, "yes")))
+			debug_mode = 1;
+		else
+			debug_mode = 0;
+
+		/* enable backtrace */
+		backtrace_level = 1;
+	}
+
+	public void trace(int level, const char *filename, int line_number, const char *caller_name, const char *fmt, ...)
+	{
+		va_list ap;
+		va_start(ap, fmt);
+
+		initialize();
+
+		switch (level) {
+		case ZLogMessage:
+			fprintf(stderr, "** message ** %s:%d: %s: ", filename, line_number, caller_name);
+			vfprintf(stderr, fmt, ap);
+			fprintf(stderr, "\n");
+			break;
+
+		case ZLogWarning:
+			fprintf(stderr, "** warning ** %s:%d: %s: ", filename, line_number, caller_name);
+			vfprintf(stderr, fmt, ap);
+			fprintf(stderr, "\n");
+
+			if (debug_mode) {
+				if (backtrace_level == 1)
+					show_backtrace();
+
+				abort();
+			}
+			break;
+
+		case ZLogCritical:
+			fprintf(stderr, "** critical warning ** %s:%d: %s: ", filename, line_number, caller_name);
+			vfprintf(stderr, fmt, ap);
+			fprintf(stderr, "\n");
+
+			if (backtrace_level == 1)
+				show_backtrace();
+
+			if (debug_mode)
+				abort();
+			break;
+
+		case ZLogError:
+			fprintf(stderr, "** fatal error ** %s:%d: %s: ", filename, line_number, caller_name);
+			vfprintf(stderr, fmt, ap);
+			fprintf(stderr, "\n");
+
+			if (backtrace_level == 1)
+				show_backtrace();
+
+			abort();
+			break;
+
+		case ZLogDebug:
+			if (debug_mode) {
+				fprintf(stderr, "** debug ** %s:%d: %s: ", filename, line_number, caller_name);
+				vfprintf(stderr, fmt, ap);
+				fprintf(stderr, "\n");
+
+				if (backtrace_level == 1)
+					show_backtrace();
+			}
+			break;
+		}
+
+		va_end(ap);
+	}
+}
+
+

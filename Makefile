@@ -45,12 +45,16 @@ z-map-iter.o: zco z-map-iter.zco
 	${ZCO} z-map-iter.zco
 	${ENV} ${CC} ${CFLAGS} -fPIC -I. -c z-map-iter.c -o z-map-iter.o
 
+z-log.o: zco z-log.zco
+	${ZCO} z-log.zco
+	${ENV} ${CC} ${CFLAGS} -fPIC -I. -c z-log.c -o z-log.o
+
 # TARGET: libzclib.so
 zco-type.o: zco-type.h zco-type.c
 	${ENV} ${CC} ${CFLAGS} -fPIC -I. -c zco-type.c -o zco-type.o
 
-libzclib.so: zco-type.o z-object.o z-vector-iter.o z-vector.o z-string-iter.o z-string.o z-map-iter.o z-map.o
-	${ENV} ${CC} -shared zco-type.o z-object.o z-vector-iter.o z-vector.o z-string-iter.o z-string.o z-map-iter.o z-map.o -o libzclib.so
+libzclib.so: zco-type.o z-object.o z-vector-iter.o z-vector.o z-string-iter.o z-string.o z-map-iter.o z-map.o z-log.o
+	${ENV} ${CC} -shared zco-type.o z-object.o z-vector-iter.o z-vector.o z-string-iter.o z-string.o z-map-iter.o z-map.o z-log.o -o libzclib.so
 
 # test driver objects
 z-vector-test.o: z-vector-test.c zco-test.h

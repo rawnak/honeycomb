@@ -21,6 +21,8 @@
 #ifndef _Z_OBJECT_H_
 #define _Z_OBJECT_H_
 
+#define likely(x) __builtin_expect((x),1)
+#define unlikely(x) __builtin_expect((x),0)
 
 #include <zco-type.h>
 #define Self ZObject
@@ -40,7 +42,7 @@ typedef struct ZObjectClass ZObjectClass;
 typedef struct ZObject ZObject;
 
 struct ZObjectPrivate {
-#line 12 "z-object.zco"
+#line 14 "z-object.zco"
 	unsigned int ref_count;
 };
 
@@ -57,7 +59,7 @@ struct ZObjectGlobal {
 };
 
 struct ZObjectClass {
-#line 19 "z-object.zco"
+#line 21 "z-object.zco"
 	void  (*__dispose)(Self *self);
 };
 
@@ -65,19 +67,19 @@ struct ZObject {
 	struct ZObjectGlobal *_global;
 	struct ZObjectPrivate _priv;
 	struct ZObjectProtected _prot;
-#line 10 "z-object.zco"
+#line 12 "z-object.zco"
 	void *class_base;
-#line 11 "z-object.zco"
+#line 13 "z-object.zco"
 	int *vtable;
 };
 extern int z_object_type_id;
 ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx);
 void __z_object_init(struct zco_context_t *ctx, ZObject *self);
-#line 19 "z-object.zco"
+#line 21 "z-object.zco"
 void  z_object_dispose(Self *self);
-#line 24 "z-object.zco"
+#line 26 "z-object.zco"
 void  z_object_ref(Self *self);
-#line 29 "z-object.zco"
+#line 31 "z-object.zco"
 void  z_object_unref(Self *self);
 
 #undef Self
