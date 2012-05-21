@@ -2,7 +2,7 @@ SHELL := /bin/bash
 CC := gcc
 CFLAGS := -pipe -g -fstack-protector-all
 ENV := DISTCC_LOG=distcc.log
-ZCO := ./zco
+ZCO := zco
 
 all: zco-test
 
@@ -72,5 +72,9 @@ zco-test.o: zco-test.c zco-test.h
 
 zco-test: libzclib.so zco-test.o z-vector-test.o z-string-test.o z-map-test.o 
 	${ENV} ${CC} -L. -lzclib -lm zco-test.o z-vector-test.o z-string-test.o z-map-test.o -o zco-test
+
+# TARGET: install
+install: zco
+	cp zco ~/bin/zco
 
 
