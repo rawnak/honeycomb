@@ -42,6 +42,7 @@ int parent_class_count;
 char **parent_class_name_lowercase;
 char **parent_class_name_uppercase;
 char **parent_class_name_pascal;
+int is_attached_property;
 
 extern int yylineno;
 int real_lineno;
@@ -218,22 +219,139 @@ static void member_function_decl(const char *type, const char *symbol, const cha
 	}
 }
 
+static void add_data_member(int mode, const char *_type_name, const char *_symbol_name)
+{
+	switch (mode)
+	{
+		case ACCESS_PRIVATE:
+			print_line_number(private_data);
+			z_string_append_format(private_data, "\t%s%s;\n", _type_name, _symbol_name);
+			break;
+
+		case ACCESS_PROTECTED:
+			print_line_number(protected_data);
+			z_string_append_format(protected_data, "\t%s%s;\n", _type_name, _symbol_name);
+			break;
+
+		case ACCESS_PUBLIC:
+			print_line_number(public_data);
+			z_string_append_format(public_data, "\t%s%s;\n", _type_name, _symbol_name);
+			break;
+
+		case ACCESS_GLOBAL:
+			print_line_number(global_data);
+			z_string_append_format(global_data, "\t%s%s;\n", _type_name, _symbol_name);
+			z_string_append_format(c_macros, "#define %s (%s_global->%s)\n", _symbol_name, current_class_name_lowercase, _symbol_name);
+			break;
+	}
+}
+
+static void define_attached_property_getter(char *symbol_name, char *app_code)
+{
+	ZString *code;
+	const char *arglist = "(ZObject *object)";
+	char *symbol, *temp;
+
+	/* define the helper macro to get the current value of the attached property */
+	print_line_number(function_definitions);
+	z_string_append_format(function_definitions,
+			"#define get_current_value() get_attached_%s(object)\n", symbol_name);
+
+	/* define the exposed getter of the attached property */
+	symbol = strdup2("get_", symbol_name);
+	member_function_decl(type_name, symbol, arglist, app_code);
+	free(symbol);
+
+	/* undefine the helper macro previously defined before the exposed getter */
+	print_line_number(function_definitions);
+	z_string_append_format(function_definitions, "#undef get_current_value\n");
+
+	/* define the method to get the value of the attached property */
+	code = z_string_new(&context);
+	z_string_format(code,
+		"{\n"
+		"\tZMap *map = (ZMap *) attached_%s;\n"
+		"\tZMapIter *it = z_map_find(map, object);\n"
+		"\tvoid *value = z_map_get_value(map, it);\n"
+		"\tz_object_unref(Z_OBJECT(it));\n"
+		"\treturn (%s) (unsigned long) value;\n"
+		"}", symbol_name, type_name);
+
+	symbol = strdup2("get_attached_", symbol_name);
+	temp = z_string_get_cstring(code, Z_STRING_ENCODING_UTF8);
+	member_function_decl(type_name, symbol, arglist, temp);
+	free(temp);
+	free(symbol);
+
+	z_object_unref(Z_OBJECT(code));
+}
+
+static void define_attached_property_setter(char *symbol_name, char *app_code)
+{
+	ZString *code;
+	char *arglist = strdup3("(ZObject *object, ", type_name, " value)");
+	char *symbol, *temp;
+
+	/* define the helper macro to get the current value of the attached property */
+	print_line_number(function_definitions);
+	z_string_append_format(function_definitions,
+			"#define set_current_value(val) set_attached_%s(object,value)\n", symbol_name);
+
+	/* define the exposed setter of the attached property */
+	symbol = strdup2("set_", symbol_name);
+	member_function_decl(type_name, symbol, arglist, app_code);
+	free(symbol);
+
+	/* undefine the helper macro previously defined before the exposed setter */
+	print_line_number(function_definitions);
+	z_string_append_format(function_definitions, "#undef set_current_value\n");
+
+	/* define the method to set the value of the attached property */
+	code = z_string_new(&context);
+	z_string_format(code,
+		"{\n"
+		"\tZMap *map = (ZMap *) attached_%s;\n"
+		"\tz_map_assign(map, object, (void *) (unsigned long) value);\n"
+		"}", symbol_name);
+
+	symbol = strdup2("set_attached_", symbol_name);
+	temp = z_string_get_cstring(code, Z_STRING_ENCODING_UTF8);
+	member_function_decl("void", symbol, arglist, temp);
+	free(temp);
+	free(symbol);
+	free(arglist);
+
+	z_object_unref(Z_OBJECT(code));
+}
+
 static void property_decl(char *get_or_set, char *code)
 {
 	char *arglist, *symbol;
 
-	if (!strcmp(get_or_set, "get")) {
-		arglist = "(Self *self)";
-		symbol = strdup2("get_", symbol_name);
-		member_function_decl(type_name, symbol, arglist, code);
-		free(symbol);
+	if (is_attached_property) {
+		/* attached property */
+		if (!strcmp(get_or_set, "get"))
+			define_attached_property_getter(symbol_name, code);
 
-	} else if (!strcmp(get_or_set, "set")) {
-		arglist = strdup3("(Self *self, ", type_name, " value)");
-		symbol = strdup2("set_", symbol_name);
-		member_function_decl("void", symbol, arglist, code);
-		free(arglist);
-		free(symbol);
+		else if (!strcmp(get_or_set, "set"))
+			define_attached_property_setter(symbol_name, code);
+
+	} else {
+		/* regular property */
+
+		if (!strcmp(get_or_set, "get")) {
+			arglist = "(Self *self)";
+			symbol = strdup2("get_", symbol_name);
+			member_function_decl(type_name, symbol, arglist, code);
+			free(symbol);
+
+		} else if (!strcmp(get_or_set, "set")) {
+			arglist = strdup3("(Self *self, ", type_name, " value)");
+			symbol = strdup2("set_", symbol_name);
+			member_function_decl("void", symbol, arglist, code);
+			free(arglist);
+			free(symbol);
+		}
 	}
 }
 
@@ -312,32 +430,6 @@ static void add_parent(char *name_in_pascal)
 	parent_class_name_pascal[parent_class_count-1] = name_in_pascal;
 	parent_class_name_lowercase[parent_class_count-1] = pascal_to_lowercase(name_in_pascal, '_');
 	parent_class_name_uppercase[parent_class_count-1] = pascal_to_uppercase(name_in_pascal, '_');
-}
-
-static void add_data_member(const char *_type_name, const char *_symbol_name)
-{
-	switch (access_mode)
-	{
-		case ACCESS_PRIVATE:
-			print_line_number(private_data);
-			z_string_append_format(private_data, "\t%s%s;\n", _type_name, _symbol_name);
-			break;
-
-		case ACCESS_PROTECTED:
-			print_line_number(protected_data);
-			z_string_append_format(protected_data, "\t%s%s;\n", _type_name, _symbol_name);
-			break;
-
-		case ACCESS_PUBLIC:
-			print_line_number(public_data);
-			z_string_append_format(public_data, "\t%s%s;\n", _type_name, _symbol_name);
-			break;
-
-		case ACCESS_GLOBAL:
-			print_line_number(global_data);
-			z_string_append_format(global_data, "\t%s%s;\n", _type_name, _symbol_name);
-			break;
-	}
 }
 
 static void add_function_pointer(ZString *output, const char *_type_name, const char *_symbol_name_prefix, const char *_symbol_name, const char *_arglist)
@@ -557,7 +649,7 @@ static void class_init(char *class_name)
 %}
 
 %token HEADER_BLK_START SOURCE_BLK_START FILE_BLK_END CLASS STRUCT CONST SIGNED UNSIGNED COLON GLOBAL PUBLIC PRIVATE PROPERTY GET SET 
-%token OVERRIDE VIRTUAL WORD CODE OBRACE EBRACE OPAREN EPAREN SEMICOLON VAR_ARGS SPACE ASTERISK COMMENT COMMA
+%token OVERRIDE VIRTUAL WORD CODE OBRACE EBRACE OPAREN EPAREN SEMICOLON VAR_ARGS SPACE ASTERISK COMMENT COMMA HASH
 
 
 %start translation_unit
@@ -660,6 +752,7 @@ external_declaration
 
 	/* declare the global variables */
 	fprintf(source_file, "int %s_type_id = -1;\n", current_class_name_lowercase);
+	fprintf(source_file, "static %sGlobal * %s_global;\n", current_class_name_pascal, current_class_name_lowercase);
 	fprintf(source_file, "\n");
 
 	/* function prototypes in source file */
@@ -685,6 +778,7 @@ external_declaration
 			"\tif (*global_ptr == 0) {\n"
 			"\t\t*global_ptr = malloc(sizeof(struct %sGlobal));\n"
 			"\t\tstruct %sGlobal *global = (%sGlobal *) *global_ptr;\n"
+			"\t\t%s_global = global;\n"
 			"\t\tglobal->ctx = ctx;\n"
 			"\t\tglobal->_class = malloc(sizeof(struct %sClass));\n"
 			"\t\tmemset(global->_class, 0, sizeof(struct %sClass));\n"
@@ -695,14 +789,13 @@ external_declaration
 			"\n"
 			"\t\tstruct %sClass temp;\n"
 			"\n",
-			current_class_name_pascal,
+			current_class_name_pascal, current_class_name_lowercase,
 			current_class_name_lowercase,
 			current_class_name_lowercase,
 			current_class_name_lowercase,
+			current_class_name_pascal,
+			current_class_name_pascal, current_class_name_pascal,
 			current_class_name_lowercase,
-			current_class_name_pascal,
-			current_class_name_pascal,
-			current_class_name_pascal,
 			current_class_name_pascal,
 			current_class_name_pascal,
 			current_class_name_pascal,
@@ -899,6 +992,12 @@ ccodes
 	{ $$=strdup($1); }
 
 	| ccodes ASTERISK
+	{ $$=strdup2($1,$2); free($1); }
+
+	| HASH
+	{ $$=strdup($1); }
+
+	| ccodes HASH
 	{ $$=strdup2($1,$2); free($1); }
 
 	| SEMICOLON
@@ -1170,16 +1269,19 @@ symbol_name
 		
 		symbol_name=$1;
 		record_line_number();
+
+		/* reset state */
+		is_attached_property = 0;
 	}
 	;
 
 class_object
 	/* data members */
 	: access_specifier ignorables type_name symbol_name SEMICOLON
-	{ add_data_member(type_name, symbol_name); free($2); }
+	{ add_data_member(access_mode, type_name, symbol_name); free($2); }
 
 	| access_specifier ignorables type_name symbol_name ignorables SEMICOLON
-	{ add_data_member(type_name, symbol_name); free($2); free($6); }
+	{ add_data_member(access_mode, type_name, symbol_name); free($2); free($6); }
 
 	/* virtual member functions */
 	| access_specifier ignorables virtual_mode ignorables type_name symbol_name argument_list ccodes_block
@@ -1235,10 +1337,53 @@ class_object
 
 	/* properties */
 	| access_specifier ignorables type_name symbol_name OBRACE property_objects EBRACE
-	{ free($2); }
+	{ 
+		if (is_attached_property) {
+			/* add the global map that will hold the attached property for different objects */
+			char *temp = strdup2("attached_", symbol_name);
+			add_data_member(ACCESS_GLOBAL, "void *", temp);
+			free(temp);
+		}
+		free($2);
+	}
 
 	| access_specifier ignorables type_name symbol_name ignorables OBRACE property_objects EBRACE
-	{ free($2); }
+	{ 
+		if (is_attached_property) {
+			/* add the global map that will hold the attached property for different objects */
+			char *temp = strdup2("attached_", symbol_name);
+			add_data_member(ACCESS_GLOBAL, "void *", temp);
+			free(temp);
+		}
+		free($2);
+	}
+
+	/* attached properties */
+	| access_specifier ignorables type_name symbol_name hash OBRACE property_objects EBRACE
+	{ 
+		if (is_attached_property) {
+			/* add the global map that will hold the attached property for different objects */
+			char *temp = strdup2("attached_", symbol_name);
+			add_data_member(ACCESS_GLOBAL, "void *", temp);
+			free(temp);
+		}
+		free($2);
+	}
+
+	| access_specifier ignorables type_name symbol_name hash ignorables OBRACE property_objects EBRACE
+	{ 
+		if (is_attached_property) {
+			/* add the global map that will hold the attached property for different objects */
+			char *temp = strdup2("attached_", symbol_name);
+			add_data_member(ACCESS_GLOBAL, "void *", temp);
+			free(temp);
+		}
+		free($2);
+	}
+	;
+
+hash
+	: HASH { is_attached_property = 1; }
 	;
 
 property_objects

@@ -9,7 +9,7 @@ all: zco-test
 zco: zco.l zco.y
 	flex zco.l
 	bison --debug -v --verbose -d zco.y
-	${ENV} ${CC} ${CFLAGS} -I. -lm lex.yy.c zco.tab.c z-string.c z-string-iter.c z-vector.c z-vector-iter.c z-object.c zco-type.c -o zco
+	${ENV} ${CC} ${CFLAGS} -I. -lm lex.yy.c zco.tab.c z-map.c z-map-iter.c z-string.c z-string-iter.c z-vector.c z-vector-iter.c z-object.c zco-type.c -o zco
 
 clean:
 	rm -f lex.yy.c zco.output zco.tab.c zco.tab.h

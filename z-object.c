@@ -20,6 +20,7 @@
 
 
 #include <assert.h>
+#include <z-map.h>
 
 #include <string.h>
 #include <z-object.h>
@@ -30,16 +31,17 @@
 #define GET_NEW(ctx) __z_object_new(ctx)
 #define CTX self->_global->ctx
 #define INIT_EXISTS
-#line 16 "z-object.zco"
+#line 17 "z-object.zco"
 #define init z_object_init
-#line 21 "z-object.zco"
+#line 22 "z-object.zco"
 #define dispose z_object_dispose
-#line 26 "z-object.zco"
+#line 27 "z-object.zco"
 #define ref z_object_ref
-#line 31 "z-object.zco"
+#line 32 "z-object.zco"
 #define unref z_object_unref
 
 int z_object_type_id = -1;
+static ZObjectGlobal * z_object_global;
 
 static Self *__z_object_new(struct zco_context_t *ctx)
 {
@@ -47,9 +49,9 @@ static Self *__z_object_new(struct zco_context_t *ctx)
 	__z_object_init(ctx, self);
 	return self;
 }
-#line 16 "z-object.zco"
+#line 17 "z-object.zco"
 static void z_object_init(Self *self);
-#line 21 "z-object.zco"
+#line 22 "z-object.zco"
 static void  z_object_virtual_dispose(Self *self);
 
 ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
@@ -61,6 +63,7 @@ ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
 	if (*global_ptr == 0) {
 		*global_ptr = malloc(sizeof(struct ZObjectGlobal));
 		struct ZObjectGlobal *global = (ZObjectGlobal *) *global_ptr;
+		z_object_global = global;
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZObjectClass));
 		memset(global->_class, 0, sizeof(struct ZObjectClass));
@@ -72,7 +75,7 @@ ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
 		struct ZObjectClass temp;
 
 		zco_add_to_vtable(&global->vtable_off_list, &global->vtable_off_size, z_object_type_id);		
-#line 21 "z-object.zco"
+#line 22 "z-object.zco"
 		global->_class->__dispose = z_object_virtual_dispose;
 		#ifdef CLASS_INIT_EXISTS
 			class_init((ZObjectGlobal *) global);
@@ -91,28 +94,28 @@ void __z_object_init(struct zco_context_t *ctx, Self *self)
 		init(self);
 	#endif
 }
-#line 16 "z-object.zco"
+#line 17 "z-object.zco"
 static void z_object_init(Self *self)
 {
  selfp->ref_count = 1;
  }
-#line 21 "z-object.zco"
+#line 22 "z-object.zco"
 void  z_object_dispose(Self *self)
 {
 	ZObject *obj = (ZObject *) self;
 	((ZObjectClass *) ((char *) obj->class_base + obj->vtable[z_object_type_id]))->__dispose(self);
 }
-#line 21 "z-object.zco"
+#line 22 "z-object.zco"
 static void  z_object_virtual_dispose(Self *self)
 {
  free(self);
  }
-#line 26 "z-object.zco"
+#line 27 "z-object.zco"
 void  z_object_ref(Self *self)
 {
  ++selfp->ref_count;
  }
-#line 31 "z-object.zco"
+#line 32 "z-object.zco"
 void  z_object_unref(Self *self)
 {
  assert(selfp->ref_count > 0);

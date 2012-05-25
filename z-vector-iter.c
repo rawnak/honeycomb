@@ -53,6 +53,7 @@
 #define is_gte z_vector_iter_is_gte
 
 int z_vector_iter_type_id = -1;
+static ZVectorIterGlobal * z_vector_iter_global;
 
 static Self *__z_vector_iter_new(struct zco_context_t *ctx)
 {
@@ -72,6 +73,7 @@ ZVectorIterGlobal * z_vector_iter_get_type(struct zco_context_t *ctx)
 	if (*global_ptr == 0) {
 		*global_ptr = malloc(sizeof(struct ZVectorIterGlobal));
 		struct ZVectorIterGlobal *global = (ZVectorIterGlobal *) *global_ptr;
+		z_vector_iter_global = global;
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZVectorIterClass));
 		memset(global->_class, 0, sizeof(struct ZVectorIterClass));

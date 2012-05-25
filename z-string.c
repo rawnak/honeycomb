@@ -130,6 +130,7 @@
 #define token_next z_string_token_next
 
 int z_string_type_id = -1;
+static ZStringGlobal * z_string_global;
 
 static Self *__z_string_new(struct zco_context_t *ctx)
 {
@@ -173,6 +174,7 @@ ZStringGlobal * z_string_get_type(struct zco_context_t *ctx)
 	if (*global_ptr == 0) {
 		*global_ptr = malloc(sizeof(struct ZStringGlobal));
 		struct ZStringGlobal *global = (ZStringGlobal *) *global_ptr;
+		z_string_global = global;
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZStringClass));
 		memset(global->_class, 0, sizeof(struct ZStringClass));

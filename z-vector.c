@@ -89,6 +89,7 @@
 #define clear z_vector_clear
 
 int z_vector_type_id = -1;
+static ZVectorGlobal * z_vector_global;
 
 static Self *__z_vector_new(struct zco_context_t *ctx)
 {
@@ -110,6 +111,7 @@ ZVectorGlobal * z_vector_get_type(struct zco_context_t *ctx)
 	if (*global_ptr == 0) {
 		*global_ptr = malloc(sizeof(struct ZVectorGlobal));
 		struct ZVectorGlobal *global = (ZVectorGlobal *) *global_ptr;
+		z_vector_global = global;
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZVectorClass));
 		memset(global->_class, 0, sizeof(struct ZVectorClass));

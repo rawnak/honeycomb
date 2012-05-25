@@ -45,6 +45,7 @@ static int backtrace_level = 1;
 #define trace z_log_trace
 
 int z_log_type_id = -1;
+static ZLogGlobal * z_log_global;
 
 static Self *__z_log_new(struct zco_context_t *ctx)
 {
@@ -66,6 +67,7 @@ ZLogGlobal * z_log_get_type(struct zco_context_t *ctx)
 	if (*global_ptr == 0) {
 		*global_ptr = malloc(sizeof(struct ZLogGlobal));
 		struct ZLogGlobal *global = (ZLogGlobal *) *global_ptr;
+		z_log_global = global;
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZLogClass));
 		memset(global->_class, 0, sizeof(struct ZLogClass));

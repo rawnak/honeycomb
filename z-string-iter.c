@@ -53,6 +53,7 @@
 #define is_gte z_string_iter_is_gte
 
 int z_string_iter_type_id = -1;
+static ZStringIterGlobal * z_string_iter_global;
 
 static Self *__z_string_iter_new(struct zco_context_t *ctx)
 {
@@ -72,6 +73,7 @@ ZStringIterGlobal * z_string_iter_get_type(struct zco_context_t *ctx)
 	if (*global_ptr == 0) {
 		*global_ptr = malloc(sizeof(struct ZStringIterGlobal));
 		struct ZStringIterGlobal *global = (ZStringIterGlobal *) *global_ptr;
+		z_string_iter_global = global;
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZStringIterClass));
 		memset(global->_class, 0, sizeof(struct ZStringIterClass));
