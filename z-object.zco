@@ -26,6 +26,8 @@
 %{
 #include <assert.h>
 #include <z-map.h>
+#include <z-vector.h>
+#include <z-vector-iter.h>
 %}
 
 class ZObject 
@@ -33,15 +35,44 @@ class ZObject
 	public void *class_base;
 	public int *vtable;
 	private unsigned int ref_count;
+	private void *attached_properties;
 
 	init(Self *self)
 	{
 		selfp->ref_count = 1;
+		selfp->attached_properties = 0;
 	}
 
 	public virtual void dispose(Self *self)
 	{
 		free(self);
+
+		ZVector *vec = selfp->attached_properties;
+
+		if (vec) {
+			ZVectorIter *it, *end;
+
+			/* iterate through all attached properties */
+			it = z_vector_get_begin(vec);
+			end = z_vector_get_end(vec);
+
+			for (; !z_vector_iter_is_equal(it, end); z_vector_iter_increment(it)) {
+				/* the vector contains a list of maps that has a pointer to 'self'.
+				   our goal is to remove 'self' from the map */
+				ZMap *map = (ZMap *) z_vector_get_item(vec, it);
+
+				/* remove the pointer */
+				ZMapIter *x = z_map_find(map, self);
+				z_map_erase1(map, x);
+				z_object_unref(Z_OBJECT(x));
+			}
+
+			z_object_unref(Z_OBJECT(end));
+			z_object_unref(Z_OBJECT(it));
+			z_object_unref(Z_OBJECT(vec));
+
+			selfp->attached_properties = NULL;
+		}
 	}
 
 	public void ref(Self *self)
@@ -54,6 +85,15 @@ class ZObject
 		assert(selfp->ref_count > 0);
 		if (--selfp->ref_count == 0)
 			dispose(self);
+	}
+
+	public void add_attached_property(Self *self, void *map)
+	{
+		if (selfp->attached_properties == 0)
+			selfp->attached_properties = z_vector_new(CTX, sizeof(void *));
+
+		/* keep note of the maps that has a pointer to 'self' */
+		z_vector_push_back((ZVector *) selfp->attached_properties, map);
 	}
 
 }

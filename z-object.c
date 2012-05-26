@@ -21,6 +21,8 @@
 
 #include <assert.h>
 #include <z-map.h>
+#include <z-vector.h>
+#include <z-vector-iter.h>
 
 #include <string.h>
 #include <z-object.h>
@@ -31,14 +33,16 @@
 #define GET_NEW(ctx) __z_object_new(ctx)
 #define CTX self->_global->ctx
 #define INIT_EXISTS
-#line 17 "z-object.zco"
+#line 20 "z-object.zco"
 #define init z_object_init
-#line 22 "z-object.zco"
+#line 26 "z-object.zco"
 #define dispose z_object_dispose
-#line 27 "z-object.zco"
+#line 58 "z-object.zco"
 #define ref z_object_ref
-#line 32 "z-object.zco"
+#line 63 "z-object.zco"
 #define unref z_object_unref
+#line 70 "z-object.zco"
+#define add_attached_property z_object_add_attached_property
 
 int z_object_type_id = -1;
 static ZObjectGlobal * z_object_global;
@@ -49,9 +53,9 @@ static Self *__z_object_new(struct zco_context_t *ctx)
 	__z_object_init(ctx, self);
 	return self;
 }
-#line 17 "z-object.zco"
+#line 20 "z-object.zco"
 static void z_object_init(Self *self);
-#line 22 "z-object.zco"
+#line 26 "z-object.zco"
 static void  z_object_virtual_dispose(Self *self);
 
 ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
@@ -75,7 +79,7 @@ ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
 		struct ZObjectClass temp;
 
 		zco_add_to_vtable(&global->vtable_off_list, &global->vtable_off_size, z_object_type_id);		
-#line 22 "z-object.zco"
+#line 26 "z-object.zco"
 		global->_class->__dispose = z_object_virtual_dispose;
 		#ifdef CLASS_INIT_EXISTS
 			class_init((ZObjectGlobal *) global);
@@ -94,33 +98,70 @@ void __z_object_init(struct zco_context_t *ctx, Self *self)
 		init(self);
 	#endif
 }
-#line 17 "z-object.zco"
+#line 20 "z-object.zco"
 static void z_object_init(Self *self)
 {
  selfp->ref_count = 1;
+ selfp->attached_properties = 0;
  }
-#line 22 "z-object.zco"
+#line 26 "z-object.zco"
 void  z_object_dispose(Self *self)
 {
 	ZObject *obj = (ZObject *) self;
 	((ZObjectClass *) ((char *) obj->class_base + obj->vtable[z_object_type_id]))->__dispose(self);
 }
-#line 22 "z-object.zco"
+#line 26 "z-object.zco"
 static void  z_object_virtual_dispose(Self *self)
 {
  free(self);
+
+ ZVector *vec = selfp->attached_properties;
+
+ if (vec) {
+ ZVectorIter *it, *end;
+
+ /* iterate through all attached properties */
+ it = z_vector_get_begin(vec);
+ end = z_vector_get_end(vec);
+
+ for (; !z_vector_iter_is_equal(it, end); z_vector_iter_increment(it)) {
+ /* the vector contains a list of maps that has a pointer to 'self'.
+				   our goal is to remove 'self' from the map */
+ ZMap *map = (ZMap *) z_vector_get_item(vec, it);
+
+ /* remove the pointer */
+ ZMapIter *x = z_map_find(map, self);
+ z_map_erase1(map, x);
+ z_object_unref(Z_OBJECT(x));
  }
-#line 27 "z-object.zco"
+
+ z_object_unref(Z_OBJECT(end));
+ z_object_unref(Z_OBJECT(it));
+ z_object_unref(Z_OBJECT(vec));
+
+ selfp->attached_properties = NULL;
+ }
+ }
+#line 58 "z-object.zco"
 void  z_object_ref(Self *self)
 {
  ++selfp->ref_count;
  }
-#line 32 "z-object.zco"
+#line 63 "z-object.zco"
 void  z_object_unref(Self *self)
 {
  assert(selfp->ref_count > 0);
  if (--selfp->ref_count == 0)
  dispose(self);
+ }
+#line 70 "z-object.zco"
+void  z_object_add_attached_property(Self *self,void *map)
+{
+ if (selfp->attached_properties == 0)
+ selfp->attached_properties = z_vector_new(CTX, sizeof(void *));
+
+ /* keep note of the maps that has a pointer to 'self' */
+ z_vector_push_back((ZVector *) selfp->attached_properties, map);
  }
 
 

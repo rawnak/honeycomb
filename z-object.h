@@ -42,8 +42,10 @@ typedef struct ZObjectClass ZObjectClass;
 typedef struct ZObject ZObject;
 
 struct ZObjectPrivate {
-#line 15 "z-object.zco"
+#line 17 "z-object.zco"
 	unsigned int ref_count;
+#line 18 "z-object.zco"
+	void *attached_properties;
 };
 
 struct ZObjectProtected {
@@ -59,7 +61,7 @@ struct ZObjectGlobal {
 };
 
 struct ZObjectClass {
-#line 22 "z-object.zco"
+#line 26 "z-object.zco"
 	void  (*__dispose)(Self *self);
 };
 
@@ -67,20 +69,22 @@ struct ZObject {
 	struct ZObjectGlobal *_global;
 	struct ZObjectPrivate _priv;
 	struct ZObjectProtected _prot;
-#line 13 "z-object.zco"
+#line 15 "z-object.zco"
 	void *class_base;
-#line 14 "z-object.zco"
+#line 16 "z-object.zco"
 	int *vtable;
 };
 extern int z_object_type_id;
 ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx);
 void __z_object_init(struct zco_context_t *ctx, ZObject *self);
-#line 22 "z-object.zco"
+#line 26 "z-object.zco"
 void  z_object_dispose(Self *self);
-#line 27 "z-object.zco"
+#line 58 "z-object.zco"
 void  z_object_ref(Self *self);
-#line 32 "z-object.zco"
+#line 63 "z-object.zco"
 void  z_object_unref(Self *self);
+#line 70 "z-object.zco"
+void  z_object_add_attached_property(Self *self,void *map);
 
 #undef Self
 
