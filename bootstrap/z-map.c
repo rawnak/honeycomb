@@ -96,6 +96,7 @@
 #define set_compare z_map_set_compare
 
 int z_map_type_id = -1;
+static ZMapGlobal * z_map_global;
 
 static Self *__z_map_new(struct zco_context_t *ctx)
 {
@@ -133,6 +134,7 @@ ZMapGlobal * z_map_get_type(struct zco_context_t *ctx)
 	if (*global_ptr == 0) {
 		*global_ptr = malloc(sizeof(struct ZMapGlobal));
 		struct ZMapGlobal *global = (ZMapGlobal *) *global_ptr;
+		z_map_global = global;
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZMapClass));
 		memset(global->_class, 0, sizeof(struct ZMapClass));

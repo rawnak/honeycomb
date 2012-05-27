@@ -1,0 +1,12 @@
+#!/bin/bash
+
+classes=( z-map-iter z-map z-object z-string-iter z-string z-vector-iter z-vector )
+
+for class_name in ${classes[@]}; do
+   cp build/$class_name.[ch] bootstrap/
+done
+
+#for file in build/*.zco; do
+#   cp ${file%.zco}.[ch] bootstrap/
+#done
+

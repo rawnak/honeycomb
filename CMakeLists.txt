@@ -1,23 +1,46 @@
 cmake_minimum_required(VERSION 2.8)
 set(CMAKE_VERBOSE_MAKEFILE OFF)
+project(zco)
 find_package(BISON)
 find_package(FLEX)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(
+      ${CMAKE_CURRENT_SOURCE_DIR}            # core header files
+      ${CMAKE_CURRENT_BINARY_DIR}            # generated header files
+      ${CMAKE_CURRENT_SOURCE_DIR}/bootstrap  # pre-generated header files for bootstrapping
+      )
 
 # zco compiler
-project(zco)
 add_definitions(-pipe -g -fstack-protector-all)
 
 bison_target(ZCO_PARSER zco.y ${CMAKE_CURRENT_BINARY_DIR}/zco.tab.c)
 flex_target(ZCO_SCANNER zco.l ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.c)
 add_flex_bison_dependency(ZCO_SCANNER ZCO_PARSER)
 
+# bootstrapped zco compiler
+add_executable(
+      static-zco
+      EXCLUDE_FROM_ALL
+      ${BISON_ZCO_PARSER_OUTPUTS}
+      ${FLEX_ZCO_SCANNER_OUTPUTS}
+      zco-type.c
+      bootstrap/z-map.c
+      bootstrap/z-map-iter.c
+      bootstrap/z-string.c
+      bootstrap/z-string-iter.c
+      bootstrap/z-vector.c
+      bootstrap/z-vector-iter.c
+      bootstrap/z-object.c
+)
+
+target_link_libraries(static-zco m)
+set_target_properties(static-zco
+      PROPERTIES OUTPUT_NAME zco)
+
 # zco compiler
 add_executable(
       zco
       ${BISON_ZCO_PARSER_OUTPUTS}
       ${FLEX_ZCO_SCANNER_OUTPUTS}
-      zco-type.c
 )
 
 target_link_libraries(zco m zclib)
@@ -34,7 +57,60 @@ add_executable(
 target_link_libraries(zco-test zclib)
 
 # zclib
-add_definitions(-pipe -g -fstack-protector-all)
+add_custom_command(
+      OUTPUT z-object.c
+      COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/z-object.zco ${CMAKE_CURRENT_BINARY_DIR}/
+      COMMAND ./zco z-object.zco
+      DEPENDS z-object.zco
+      )
+
+add_custom_command(
+      OUTPUT z-vector-iter.c
+      COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/z-vector-iter.zco ${CMAKE_CURRENT_BINARY_DIR}/
+      COMMAND ./zco z-vector-iter.zco
+      DEPENDS z-vector-iter.zco
+      )
+
+add_custom_command(
+      OUTPUT z-vector.c
+      COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/z-vector.zco ${CMAKE_CURRENT_BINARY_DIR}/
+      COMMAND ./zco z-vector.zco
+      DEPENDS z-vector.zco
+      )
+add_custom_command(
+      OUTPUT z-string-iter.c
+      COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/z-string-iter.zco ${CMAKE_CURRENT_BINARY_DIR}/
+      COMMAND ./zco z-string-iter.zco
+      DEPENDS z-string-iter.zco
+      )
+
+add_custom_command(
+      OUTPUT z-string.c
+      COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/z-string.zco ${CMAKE_CURRENT_BINARY_DIR}/
+      COMMAND ./zco z-string.zco
+      DEPENDS z-string.zco
+      )
+
+add_custom_command(
+      OUTPUT z-map-iter.c
+      COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/z-map-iter.zco ${CMAKE_CURRENT_BINARY_DIR}/
+      COMMAND ./zco z-map-iter.zco
+      DEPENDS z-map-iter.zco
+      )
+
+add_custom_command(
+      OUTPUT z-map.c
+      COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/z-map.zco ${CMAKE_CURRENT_BINARY_DIR}/
+      COMMAND ./zco z-map.zco
+      DEPENDS z-map.zco
+      )
+
+add_custom_command(
+      OUTPUT z-log.c
+      COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/z-log.zco ${CMAKE_CURRENT_BINARY_DIR}/
+      COMMAND ./zco z-log.zco
+      DEPENDS z-log.zco
+      )
 
 add_library(zclib SHARED
       zco-type.c

@@ -53,6 +53,7 @@
 #define is_gte z_map_iter_is_gte
 
 int z_map_iter_type_id = -1;
+static ZMapIterGlobal * z_map_iter_global;
 
 static Self *__z_map_iter_new(struct zco_context_t *ctx)
 {
@@ -72,6 +73,7 @@ ZMapIterGlobal * z_map_iter_get_type(struct zco_context_t *ctx)
 	if (*global_ptr == 0) {
 		*global_ptr = malloc(sizeof(struct ZMapIterGlobal));
 		struct ZMapIterGlobal *global = (ZMapIterGlobal *) *global_ptr;
+		z_map_iter_global = global;
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZMapIterClass));
 		memset(global->_class, 0, sizeof(struct ZMapIterClass));
