@@ -54,7 +54,7 @@ add_executable(
    z-map-test.c
    )
 
-target_link_libraries(zco-test zclib)
+target_link_libraries(zco-test zclib m)
 
 # zclib
 add_custom_command(

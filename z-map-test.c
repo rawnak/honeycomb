@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <stdlib.h>
 #include <z-map.h>
 #include <z-map-iter.h>
 #include <z-string.h>

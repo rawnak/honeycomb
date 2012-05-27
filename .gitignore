@@ -1,14 +1,7 @@
 *.sw?
 distcc.log
-lex.yy.c
-zco
-zco.tab.c
-zco.tab.h
 zco.c
 *.output
-*.o
-*.so
-*.dylib
 .directory
 zco-test
 build
