@@ -146,17 +146,17 @@ double  z_string_get_real64(Self *self,ZStringIter *first,ZStringIter *last);
 int64_t  z_string_get_int64(Self *self,ZStringIter *first,ZStringIter *last,int base);
 #line 1345 "z-string.zco"
 uint64_t  z_string_get_uint64(Self *self,ZStringIter *first,ZStringIter *last,int base);
-#line 1581 "z-string.zco"
+#line 1582 "z-string.zco"
 int  z_string_append_vformat(Self *self,const char *fmt,va_list ap);
-#line 1649 "z-string.zco"
+#line 1650 "z-string.zco"
 int  z_string_vformat(Self *self,const char *fmt,va_list ap);
-#line 1655 "z-string.zco"
+#line 1656 "z-string.zco"
 void  z_string_append_format(Self *self,const char *fmt,...);
-#line 1664 "z-string.zco"
+#line 1665 "z-string.zco"
 void  z_string_format(Self *self,const char *fmt,...);
-#line 1673 "z-string.zco"
+#line 1674 "z-string.zco"
 void  z_string_token_start(Self *self);
-#line 1681 "z-string.zco"
+#line 1682 "z-string.zco"
 int  z_string_token_next(Self *self,ZString *separator,ZStringIter *first,ZStringIter *last);
 
 #undef Self

@@ -8,8 +8,8 @@ zco.c
 *.output
 *.o
 *.so
+*.dylib
 .directory
 zco-test
-z-map.[ch]
-z-map-iter.[ch]
+build
 

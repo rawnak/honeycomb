@@ -213,7 +213,7 @@ class ZString : ZObject
 		switch(encoding)
 		{
 			case Z_STRING_ENCODING_UTF8:
-				ch = s;
+				ch = (uint8_t *) s;
 
 				while (*ch) {
 					int i, char_size = get_char_size(*ch);
@@ -232,7 +232,7 @@ class ZString : ZObject
 				break;
 
 			case Z_STRING_ENCODING_ASCII:
-				for (ch=s; *ch; ++ch) {
+				for (ch = (uint8_t *) s; *ch; ++ch) {
 					push_back(self, *ch);
 				}
 				break;
@@ -1548,10 +1548,11 @@ class ZString : ZObject
 		/* reinterpret cast the pointer into a 'long' type */
 		input = *((long *) &val);
 
-		if (sizeof(void*) == 8)
+#if __WORDSIZE == 64
 			temp = 0x1000000000000000L; /* 64-bit pointer */
-		else
+#else
 			temp = 0x10000000L; /* 32-bit pointer */
+#endif
 
 		if (uppercase) {
 			while (temp > 0) {

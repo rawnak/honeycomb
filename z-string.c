@@ -116,17 +116,17 @@
 #define append_hex z_string_append_hex
 #line 1520 "z-string.zco"
 #define append_ptr z_string_append_ptr
-#line 1581 "z-string.zco"
+#line 1582 "z-string.zco"
 #define append_vformat z_string_append_vformat
-#line 1649 "z-string.zco"
+#line 1650 "z-string.zco"
 #define vformat z_string_vformat
-#line 1655 "z-string.zco"
+#line 1656 "z-string.zco"
 #define append_format z_string_append_format
-#line 1664 "z-string.zco"
+#line 1665 "z-string.zco"
 #define format z_string_format
-#line 1673 "z-string.zco"
+#line 1674 "z-string.zco"
 #define token_start z_string_token_start
-#line 1681 "z-string.zco"
+#line 1682 "z-string.zco"
 #define token_next z_string_token_next
 
 int z_string_type_id = -1;
@@ -390,7 +390,7 @@ void  z_string_set_cstring(Self *self,const char *s,int encoding)
  switch(encoding)
  {
  case Z_STRING_ENCODING_UTF8:
- ch = s;
+ ch = (uint8_t *) s;
 
  while (*ch) {
  int i, char_size = get_char_size(*ch);
@@ -409,7 +409,7 @@ void  z_string_set_cstring(Self *self,const char *s,int encoding)
  break;
 
  case Z_STRING_ENCODING_ASCII:
- for (ch=s; *ch; ++ch) {
+ for (ch = (uint8_t *) s; *ch; ++ch) {
  push_back(self, *ch);
  }
  break;
@@ -1712,10 +1712,11 @@ static void  z_string_append_ptr(Self *self,void *val,int uppercase)
  /* reinterpret cast the pointer into a 'long' type */
  input = *((long *) &val);
 
- if (sizeof(void*) == 8)
+#if __WORDSIZE == 64
  temp = 0x1000000000000000L; /* 64-bit pointer */
- else
+#else
  temp = 0x10000000L; /* 32-bit pointer */
+#endif
 
  if (uppercase) {
  while (temp > 0) {
@@ -1761,7 +1762,7 @@ static void  z_string_append_ptr(Self *self,void *val,int uppercase)
  push_back(self, '0');
 
  }
-#line 1581 "z-string.zco"
+#line 1582 "z-string.zco"
 int  z_string_append_vformat(Self *self,const char *fmt,va_list ap)
 {
  const char *p;
@@ -1829,13 +1830,13 @@ int  z_string_append_vformat(Self *self,const char *fmt,va_list ap)
 
  return 0;
  }
-#line 1649 "z-string.zco"
+#line 1650 "z-string.zco"
 int  z_string_vformat(Self *self,const char *fmt,va_list ap)
 {
  clear(self);
  append_vformat(self, fmt, ap);
  }
-#line 1655 "z-string.zco"
+#line 1656 "z-string.zco"
 void  z_string_append_format(Self *self,const char *fmt,...)
 {
  va_list ap;
@@ -1844,7 +1845,7 @@ void  z_string_append_format(Self *self,const char *fmt,...)
  append_vformat(self, fmt, ap);
  va_end(ap);
  }
-#line 1664 "z-string.zco"
+#line 1665 "z-string.zco"
 void  z_string_format(Self *self,const char *fmt,...)
 {
  va_list ap;
@@ -1853,7 +1854,7 @@ void  z_string_format(Self *self,const char *fmt,...)
  vformat(self, fmt, ap);
  va_end(ap);
  }
-#line 1673 "z-string.zco"
+#line 1674 "z-string.zco"
 void  z_string_token_start(Self *self)
 {
  if (selfp->token_it)
@@ -1861,7 +1862,7 @@ void  z_string_token_start(Self *self)
 
  selfp->token_it = get_begin(self);
  }
-#line 1681 "z-string.zco"
+#line 1682 "z-string.zco"
 int  z_string_token_next(Self *self,ZString *separator,ZStringIter *first,ZStringIter *last)
 {
  z_string_iter_set_index(first, z_string_iter_get_index(selfp->token_it));
