@@ -59,55 +59,55 @@ target_link_libraries(zco-test zclib)
 # zclib
 add_custom_command(
       OUTPUT z-object.c
-      COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/z-object.zco ${CMAKE_CURRENT_BINARY_DIR}/
+      COMMAND ln -sf ${CMAKE_CURRENT_SOURCE_DIR}/z-object.zco ${CMAKE_CURRENT_BINARY_DIR}/
       COMMAND ./zco z-object.zco
       DEPENDS z-object.zco
       )
 
 add_custom_command(
       OUTPUT z-vector-iter.c
-      COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/z-vector-iter.zco ${CMAKE_CURRENT_BINARY_DIR}/
+      COMMAND ln -sf ${CMAKE_CURRENT_SOURCE_DIR}/z-vector-iter.zco ${CMAKE_CURRENT_BINARY_DIR}/
       COMMAND ./zco z-vector-iter.zco
       DEPENDS z-vector-iter.zco
       )
 
 add_custom_command(
       OUTPUT z-vector.c
-      COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/z-vector.zco ${CMAKE_CURRENT_BINARY_DIR}/
+      COMMAND ln -sf ${CMAKE_CURRENT_SOURCE_DIR}/z-vector.zco ${CMAKE_CURRENT_BINARY_DIR}/
       COMMAND ./zco z-vector.zco
       DEPENDS z-vector.zco
       )
 add_custom_command(
       OUTPUT z-string-iter.c
-      COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/z-string-iter.zco ${CMAKE_CURRENT_BINARY_DIR}/
+      COMMAND ln -sf ${CMAKE_CURRENT_SOURCE_DIR}/z-string-iter.zco ${CMAKE_CURRENT_BINARY_DIR}/
       COMMAND ./zco z-string-iter.zco
       DEPENDS z-string-iter.zco
       )
 
 add_custom_command(
       OUTPUT z-string.c
-      COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/z-string.zco ${CMAKE_CURRENT_BINARY_DIR}/
+      COMMAND ln -sf ${CMAKE_CURRENT_SOURCE_DIR}/z-string.zco ${CMAKE_CURRENT_BINARY_DIR}/
       COMMAND ./zco z-string.zco
       DEPENDS z-string.zco
       )
 
 add_custom_command(
       OUTPUT z-map-iter.c
-      COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/z-map-iter.zco ${CMAKE_CURRENT_BINARY_DIR}/
+      COMMAND ln -sf ${CMAKE_CURRENT_SOURCE_DIR}/z-map-iter.zco ${CMAKE_CURRENT_BINARY_DIR}/
       COMMAND ./zco z-map-iter.zco
       DEPENDS z-map-iter.zco
       )
 
 add_custom_command(
       OUTPUT z-map.c
-      COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/z-map.zco ${CMAKE_CURRENT_BINARY_DIR}/
+      COMMAND ln -sf ${CMAKE_CURRENT_SOURCE_DIR}/z-map.zco ${CMAKE_CURRENT_BINARY_DIR}/
       COMMAND ./zco z-map.zco
       DEPENDS z-map.zco
       )
 
 add_custom_command(
       OUTPUT z-log.c
-      COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/z-log.zco ${CMAKE_CURRENT_BINARY_DIR}/
+      COMMAND ln -sf ${CMAKE_CURRENT_SOURCE_DIR}/z-log.zco ${CMAKE_CURRENT_BINARY_DIR}/
       COMMAND ./zco z-log.zco
       DEPENDS z-log.zco
       )

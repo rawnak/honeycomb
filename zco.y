@@ -312,7 +312,7 @@ static void define_attached_property_setter(char *symbol_name, char *app_code)
 		"{\n"
 		"\tZMap *map = (ZMap *) attached_%s;\n"
 		"\tif (z_map_assign(map, object, (void *) (unsigned long) value) == 0)\n"
-		"\t\tz_object_add_attached_property(object, map);\n"
+		"\t\tz_object_add_attached_property_map(object, map);\n"
 		"}", symbol_name);
 
 	symbol = strdup2("set_attached_", symbol_name);

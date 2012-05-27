@@ -87,7 +87,7 @@ class ZObject
 			dispose(self);
 	}
 
-	public void add_attached_property(Self *self, void *map)
+	public void add_attached_property_map(Self *self, void *map)
 	{
 		if (selfp->attached_properties == 0)
 			selfp->attached_properties = z_vector_new(CTX, sizeof(void *));

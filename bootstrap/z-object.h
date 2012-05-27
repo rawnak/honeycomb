@@ -84,7 +84,7 @@ void  z_object_ref(Self *self);
 #line 63 "z-object.zco"
 void  z_object_unref(Self *self);
 #line 70 "z-object.zco"
-void  z_object_add_attached_property(Self *self,void *map);
+void  z_object_add_attached_property_map(Self *self,void *map);
 
 #undef Self
 

@@ -42,7 +42,7 @@
 #line 63 "z-object.zco"
 #define unref z_object_unref
 #line 70 "z-object.zco"
-#define add_attached_property z_object_add_attached_property
+#define add_attached_property_map z_object_add_attached_property_map
 
 int z_object_type_id = -1;
 static ZObjectGlobal * z_object_global;
@@ -155,7 +155,7 @@ void  z_object_unref(Self *self)
  dispose(self);
  }
 #line 70 "z-object.zco"
-void  z_object_add_attached_property(Self *self,void *map)
+void  z_object_add_attached_property_map(Self *self,void *map)
 {
  if (selfp->attached_properties == 0)
  selfp->attached_properties = z_vector_new(CTX, sizeof(void *));
