@@ -43,18 +43,12 @@ class ZObject
 	private unsigned int ref_count;
 	private void *attached_properties;
 	private void *signal_map;
-	public virtual void *method_map;
 
 	init(Self *self)
 	{
 		selfp->ref_count = 1;
 		selfp->attached_properties = 0;
 		selfp->signal_map = 0;
-	}
-
-	class_init(struct zco_context_t *ctx, ZObjectClass *_class)
-	{
-		_class->method_map = NULL;
 	}
 
 	public virtual void dispose(Self *self)
@@ -157,17 +151,6 @@ class ZObject
 				z_vector_iter_increment(it);
 			}
 		}
-	}
-
-	public void register_method(struct zco_context_t *ctx, ZObjectClass *_class, char *name, ZObjectSignalHandler method)
-	{
-		if (!_class->method_map) {
-			_class->method_map = z_map_new(ctx);
-			z_map_set_compare(_class->method_map, map_compare);
-			z_map_set_key_destruct(_class->method_map, (ZMapItemCallback) free);
-		}
-
-		z_map_insert((ZMap *) _class->method_map, strdup(name), method);
 	}
 
 	public void register_signal(Self *self, char *name)

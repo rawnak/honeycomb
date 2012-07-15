@@ -432,7 +432,12 @@ static void member_function_decl(const char *type, const char *symbol, const cha
 				/* register method in look up table */
 				print_line_number(function_registrations);
 				// FIXME: _class cannot be casted to ZObjectClass* if it's originally an interface, like ZClosureMarshalClass
-				z_string_append_format(function_registrations, "\tz_object_register_method(ctx, (ZObjectClass *) _class, \"%s\", (ZObjectSignalHandler) %s);\n", symbol, symbol);
+				//z_string_append_format(function_registrations,
+             //     "\tz_object_register_method(ctx, (ZObjectClass *) _class, \"%s\", (ZObjectSignalHandler) %s);\n", symbol, symbol);
+
+            z_string_append_format(function_registrations,
+                  "\t\tz_map_insert((ZMap *) global->method_map, strdup(\"%s\"), (ZObjectSignalHandler) %s);\n",
+                  symbol, symbol);
 			}
 
 			/* for function prototype */
@@ -842,7 +847,7 @@ static void class_init(char *class_name)
 	z_string_append_format(h_macros_head, "#define Self %s\n", class_name);
 
 	/* define the macro to upcast a derived object */
-	z_string_append_format(h_macros_head, "#define %s(s) ((%s *) ((char *) (s) + ((int *) (s)->_global)[%s_type_id]))\n\n",
+	z_string_append_format(h_macros_head, "#define %s(s) ((%s *) ((char *) (s) + (s)->_global->vtable_off_list[%s_type_id]))\n\n",
 			current_class_name_uppercase,
 			current_class_name_pascal,
 			current_class_name_lowercase);
@@ -867,7 +872,8 @@ static void class_init(char *class_name)
 			"\tstruct %sClass *_class;\n"
 			"\tstruct zco_context_t *ctx;\n"
 			"\tconst char *name;\n"
-			"\tint id;\n", class_name, class_name);
+			"\tint id;\n"
+         "\tvoid *method_map;\n", class_name, class_name);
 
 	/* start the klass data structure */
 	z_string_append_format(class_data, "struct %sClass {\n", class_name);
@@ -933,7 +939,9 @@ external_declaration
 	fprintf(header_file, "#include <zco-type.h>\n");
 
 	/* includes in the source file */
-	fprintf(source_file, "#include <string.h>\n");
+	fprintf(source_file,
+         "#include <z-map.h>\n"
+         "#include <string.h>\n");
 
 	/* head macros in header file */
 	dump_string(h_macros_head, header_file);
@@ -1036,7 +1044,12 @@ external_declaration
 			"\tSelf *self = (Self *) malloc(sizeof(Self));\n"
 			"\t__%s_init(ctx, self);\n"
 			"\treturn self;\n"
-			"}\n",
+			"}\n"
+         "\n"
+         "static int __map_compare(ZMap *map, const void *a, const void *b)\n"
+         "{\n"
+         "\treturn strcmp(a, b);\n"
+         "}\n",
 			current_class_name_lowercase,
 			current_class_name_lowercase);
 
@@ -1068,6 +1081,8 @@ external_declaration
 			"\t\tglobal->id = %s_type_id;\n"
 			"\t\tglobal->vtable_off_list = NULL;\n"
 			"\t\tglobal->vtable_off_size = 0;\n"
+         "\n"
+         "\t\tstruct %s temp;\n"
 			"\n",
 			current_class_name_pascal, current_class_name_lowercase,
 			current_class_name_lowercase,
@@ -1078,7 +1093,8 @@ external_declaration
 			current_class_name_pascal,
 			current_class_name_pascal,
 			current_class_name_pascal,
-			current_class_name_lowercase);
+			current_class_name_lowercase,
+			current_class_name_pascal);
 
 	/* inherit the vtable from the parent class */
 	for (i=0; i < parent_class_count; ++i) {
@@ -1090,8 +1106,8 @@ external_declaration
 				"\t\t\t\t&global->vtable_off_size,\n"
 				"\t\t\t\tp_class->vtable_off_list,\n"
 				"\t\t\t\tp_class->vtable_off_size,\n"
-				"\t\t\t\tglobal->_class,\n"
-				"\t\t\t\t&global->_class->parent_%s);\n",
+				"\t\t\t\t&temp,\n"
+				"\t\t\t\t&temp.parent_%s);\n",
 				parent_class_name_pascal[i],
 				parent_class_name_lowercase[i],
 				parent_class_name_lowercase[i]);
@@ -1117,6 +1133,16 @@ external_declaration
 			"\t\t__%s_class_init(ctx, (%sClass *) global->_class);\n",
 			current_class_name_lowercase,
 			current_class_name_pascal);
+
+
+	/* register methods */
+   fprintf(source_file,
+         "\t\tglobal->method_map = z_map_new(ctx);\n"
+         "\t\tz_map_set_compare(global->method_map, __map_compare);\n"
+         "\t\tz_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);\n");
+
+	dump_string(function_registrations, source_file);
+
 
 	fprintf(source_file,
 			"\t\t#ifdef GLOBAL_INIT_EXISTS\n"
@@ -1154,9 +1180,6 @@ external_declaration
 			"\t\tclass_init(ctx, _class);\n"
 			"\t#endif\n");
 
-	/* register methods */
-	dump_string(function_registrations, source_file);
-
 	fprintf(source_file,
 			"}\n");
 
@@ -1170,14 +1193,29 @@ external_declaration
 			current_class_name_pascal,
 			current_class_name_lowercase);
 
-	for (i=0; i < parent_class_count; ++i) {
+	/* to break a circular dependency between
+	   vector -> object -> map -> vector,
+
+	   we have to ensure that we don't attempt to use the vtable_off_list
+	   in the particular case. since we only support single inheritance with
+	   multiple interfaces, it's safe to perform a reinterpret cast when
+	   the current class has only one parent.
+	 */
+	if (parent_class_count == 1) {
 		fprintf(source_file,
-				"\t__%s_init(ctx, %s(self));\n",
-				parent_class_name_lowercase[i],
-				parent_class_name_uppercase[i]);
+				"\t__%s_init(ctx, (%s *) (self));\n",
+				parent_class_name_lowercase[0],
+				parent_class_name_pascal[0]);
 
+	} else {
+		for (i=0; i < parent_class_count; ++i) {
+			fprintf(source_file,
+					"\t__%s_init(ctx, %s(self));\n",
+					parent_class_name_lowercase[i],
+					parent_class_name_uppercase[i]);
+
+		}
 	}
-
 
 	/* assign current class as the active class */
 	fprintf(source_file, "\t((ZObject *) self)->class_base = (void *) _global->_class;\n");
