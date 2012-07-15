@@ -165,16 +165,5 @@ class ZLog : ZObject
 
 		va_end(ap);
 	}
-
-	public void clicked!(Self *self, int button);
-
-	public void do_talkback(Self *self)
-	{
-		//z_signal_connect(self, "clicked", callback);
-		//z_signal_connect(self, "clicked", window, "show");
-
-		clicked(self, 1);
-	}
 }
-
 

@@ -65,301 +65,351 @@ enum ZValueType {
    
 class ZValue : ZObject
 {
-   private union ZValueDataType data;
-   private int tag;
+	private union ZValueDataType data;
+	private int tag;
 
-   init(Self *self)
-   {
-	   selfp->tag = None;
-   }
+	init(Self *self)
+	{
+		selfp->tag = None;
+	}
 
-   public Self *new(struct zco_context_t *ctx)
-   {
-	   Self *self = GET_NEW(ctx);
-	   return self;
-   }
+	public Self *new(struct zco_context_t *ctx)
+	{
+		Self *self = GET_NEW(ctx);
+		return self;
+	}
 
-   public Self *dup(ZValue *src)
-   {
-	   Self *self = GET_NEW(src->_global->ctx);
+	public Self *dup(ZValue *src)
+	{
+		Self *self = GET_NEW(src->_global->ctx);
 
-	   selfp->data = src->_priv.data;
-	   selfp->tag = src->_priv.tag;
+		selfp->data = src->_priv.data;
+		selfp->tag = src->_priv.tag;
 
-	   if (selfp->tag == Object)
-		   z_object_ref(Z_OBJECT(selfp->data._object));
+		if (selfp->tag == Object)
+			z_object_ref(Z_OBJECT(selfp->data._object));
 
-	   return self;
-   }
+		return self;
+	}
 
-   /* ZObject getter / setter */
-   public int is_object
-   {
-	   get
-	   {
-		   return selfp->tag == Object;
-	   }
-   }
+	override(ZObject) void dispose(ZObject *object)
+	{
+		Self *self = (Self *) object;
 
-   public ZObject * as_object
-   {
-	   get
-	   {
-		   assert(selfp->tag == Object);
-		   return selfp->data._object;
-	   }
-	   set
-	   {
-		   selfp->tag = Object;
-		   selfp->data._object = value;
-	   }
-   }
+		if (selfp->tag == Object)
+			z_object_unref(selfp->data._object);
 
-   /* boolean getter / setter */
-   public int is_boolean
-   {
-	   get
-	   {
-		   return selfp->tag == Boolean;
-	   }
-   }
+		PARENT_HANDLER(object);
+	}
 
-   public int as_boolean
-   {
-	   get
-	   {
-		   assert(selfp->tag == Boolean);
-		   return selfp->data._boolean;
-	   }
-	   set
-	   {
-		   selfp->tag = Boolean;
-		   selfp->data._boolean = value;
-	   }
-   }
 
-   /* signed integer getters / setters */
-   public int is_int8
-   {
-	   get
-	   {
-		   return selfp->tag == Int8;
-	   }
-   }
+	/* ZObject getter / setter */
+	public int is_object
+	{
+		get
+		{
+			return selfp->tag == Object;
+		}
+	}
 
-   public int8_t as_int8
-   {
-	   get
-	   {
-		   assert(selfp->tag == Int8);
-		   return selfp->data._int8;
-	   }
-	   set
-	   {
-		   selfp->tag = Int8;
-		   selfp->data._int8 = value;
-	   }
-   }
+	public ZObject * as_object
+	{
+		get
+		{
+			assert(selfp->tag == Object);
+			z_object_ref(selfp->data._object);
+			return selfp->data._object;
+		}
+		set
+		{
+			if (selfp->tag == Object)
+				z_object_unref(selfp->data._object);
+			else
+				selfp->tag = Object;
 
-   public int is_int16
-   {
-	   get
-	   {
-		   return selfp->tag == Int16;
-	   }
-   }
+			selfp->data._object = value;
+			z_object_ref(value);
+		}
+	}
 
-   public int16_t as_int16
-   {
-	   get
-	   {
-		   assert(selfp->tag == Int16);
-		   return selfp->data._int16;
-	   }
-	   set
-	   {
-		   selfp->tag = Int16;
-		   selfp->data._int16 = value;
-	   }
-   }
+	/* boolean getter / setter */
+	public int is_boolean
+	{
+		get
+		{
+			return selfp->tag == Boolean;
+		}
+	}
 
-   public int is_int32
-   {
-	   get
-	   {
-		   return selfp->tag == Int32;
-	   }
-   }
+	public int as_boolean
+	{
+		get
+		{
+			assert(selfp->tag == Boolean);
+			return selfp->data._boolean;
+		}
+		set
+		{
+			if (selfp->tag == Object)
+				z_object_unref(selfp->data._object);
 
-   public int32_t as_int32
-   {
-	   get
-	   {
-		   assert(selfp->tag == Int32);
-		   return selfp->data._int32;
-	   }
-	   set
-	   {
-		   selfp->tag = Int32;
-		   selfp->data._int32 = value;
-	   }
-   }
+			selfp->tag = Boolean;
+			selfp->data._boolean = value;
+		}
+	}
 
-   public int is_int64
-   {
-	   get
-	   {
-		   return selfp->tag == Int64;
-	   }
-   }
+	/* signed integer getters / setters */
+	public int is_int8
+	{
+		get
+		{
+			return selfp->tag == Int8;
+		}
+	}
 
-   public int64_t as_int64
-   {
-	   get
-	   {
-		   assert(selfp->tag == Int64);
-		   return selfp->data._int64;
-	   }
-	   set
-	   {
-		   selfp->tag = Int64;
-		   selfp->data._int64 = value;
-	   }
-   }
+	public int8_t as_int8
+	{
+		get
+		{
+			assert(selfp->tag == Int8);
+			return selfp->data._int8;
+		}
+		set
+		{
+			if (selfp->tag == Object)
+				z_object_unref(selfp->data._object);
 
-   /* unsigned integer getters / setters */
-   public int is_uint8
-   {
-	   get
-	   {
-		   return selfp->tag == UInt8;
-	   }
-   }
+			selfp->tag = Int8;
+			selfp->data._int8 = value;
+		}
+	}
 
-   public uint8_t as_uint8
-   {
-	   get
-	   {
-		   assert(selfp->tag == UInt8);
-		   return selfp->data._uint8;
-	   }
-	   set
-	   {
-		   selfp->tag = UInt8;
-		   selfp->data._uint8 = value;
-	   }
-   }
+	public int is_int16
+	{
+		get
+		{
+			return selfp->tag == Int16;
+		}
+	}
 
-   public int is_uint16
-   {
-	   get
-	   {
-		   return selfp->tag == UInt16;
-	   }
-   }
+	public int16_t as_int16
+	{
+		get
+		{
+			assert(selfp->tag == Int16);
+			return selfp->data._int16;
+		}
+		set
+		{
+			if (selfp->tag == Object)
+				z_object_unref(selfp->data._object);
 
-   public uint16_t as_uint16
-   {
-	   get
-	   {
-		   assert(selfp->tag == UInt16);
-		   return selfp->data._uint16;
-	   }
-	   set
-	   {
-		   selfp->tag = UInt16;
-		   selfp->data._uint16 = value;
-	   }
-   }
+			selfp->tag = Int16;
+			selfp->data._int16 = value;
+		}
+	}
 
-   public int is_uint32
-   {
-	   get
-	   {
-		   return selfp->tag == UInt32;
-	   }
-   }
+	public int is_int32
+	{
+		get
+		{
+			return selfp->tag == Int32;
+		}
+	}
 
-   public uint32_t as_uint32
-   {
-	   get
-	   {
-		   assert(selfp->tag == UInt32);
-		   return selfp->data._uint32;
-	   }
-	   set
-	   {
-		   selfp->tag = UInt32;
-		   selfp->data._uint32 = value;
-	   }
-   }
+	public int32_t as_int32
+	{
+		get
+		{
+			assert(selfp->tag == Int32);
+			return selfp->data._int32;
+		}
+		set
+		{
+			if (selfp->tag == Object)
+				z_object_unref(selfp->data._object);
 
-   public int is_uint64
-   {
-	   get
-	   {
-		   return selfp->tag == UInt64;
-	   }
-   }
+			selfp->tag = Int32;
+			selfp->data._int32 = value;
+		}
+	}
 
-   public uint64_t as_uint64
-   {
-	   get
-	   {
-		   assert(selfp->tag == UInt64);
-		   return selfp->data._uint64;
-	   }
-	   set
-	   {
-		   selfp->tag = UInt64;
-		   selfp->data._uint64 = value;
-	   }
-   }
+	public int is_int64
+	{
+		get
+		{
+			return selfp->tag == Int64;
+		}
+	}
 
-   /* real number getters / setters */
-   public int is_real32
-   {
-	   get
-	   {
-		   return selfp->tag == Real32;
-	   }
-   }
+	public int64_t as_int64
+	{
+		get
+		{
+			assert(selfp->tag == Int64);
+			return selfp->data._int64;
+		}
+		set
+		{
+			if (selfp->tag == Object)
+				z_object_unref(selfp->data._object);
 
-   public float as_real32
-   {
-	   get
-	   {
-		   assert(selfp->tag == Real32);
-		   return selfp->data._real32;
-	   }
-	   set
-	   {
-		   selfp->tag = Real32;
-		   selfp->data._real32 = value;
-	   }
-   }
+			selfp->tag = Int64;
+			selfp->data._int64 = value;
+		}
+	}
 
-   public int is_real64
-   {
-	   get
-	   {
-		   return selfp->tag == Real64;
-	   }
-   }
+	/* unsigned integer getters / setters */
+	public int is_uint8
+	{
+		get
+		{
+			return selfp->tag == UInt8;
+		}
+	}
 
-   public double as_real64
-   {
-	   get
-	   {
-		   assert(selfp->tag == Real64);
-		   return selfp->data._real64;
-	   }
-	   set
-	   {
-		   selfp->tag = Real64;
-		   selfp->data._real64 = value;
-	   }
-   }
+	public uint8_t as_uint8
+	{
+		get
+		{
+			assert(selfp->tag == UInt8);
+			return selfp->data._uint8;
+		}
+		set
+		{
+			if (selfp->tag == Object)
+				z_object_unref(selfp->data._object);
+
+			selfp->tag = UInt8;
+			selfp->data._uint8 = value;
+		}
+	}
+
+	public int is_uint16
+	{
+		get
+		{
+			return selfp->tag == UInt16;
+		}
+	}
+
+	public uint16_t as_uint16
+	{
+		get
+		{
+			assert(selfp->tag == UInt16);
+			return selfp->data._uint16;
+		}
+		set
+		{
+			if (selfp->tag == Object)
+				z_object_unref(selfp->data._object);
+
+			selfp->tag = UInt16;
+			selfp->data._uint16 = value;
+		}
+	}
+
+	public int is_uint32
+	{
+		get
+		{
+			return selfp->tag == UInt32;
+		}
+	}
+
+	public uint32_t as_uint32
+	{
+		get
+		{
+			assert(selfp->tag == UInt32);
+			return selfp->data._uint32;
+		}
+		set
+		{
+			if (selfp->tag == Object)
+				z_object_unref(selfp->data._object);
+
+			selfp->tag = UInt32;
+			selfp->data._uint32 = value;
+		}
+	}
+
+	public int is_uint64
+	{
+		get
+		{
+			return selfp->tag == UInt64;
+		}
+	}
+
+	public uint64_t as_uint64
+	{
+		get
+		{
+			assert(selfp->tag == UInt64);
+			return selfp->data._uint64;
+		}
+		set
+		{
+			if (selfp->tag == Object)
+				z_object_unref(selfp->data._object);
+
+			selfp->tag = UInt64;
+			selfp->data._uint64 = value;
+		}
+	}
+
+	/* real number getters / setters */
+	public int is_real32
+	{
+		get
+		{
+			return selfp->tag == Real32;
+		}
+	}
+
+	public float as_real32
+	{
+		get
+		{
+			assert(selfp->tag == Real32);
+			return selfp->data._real32;
+		}
+		set
+		{
+			if (selfp->tag == Object)
+				z_object_unref(selfp->data._object);
+
+			selfp->tag = Real32;
+			selfp->data._real32 = value;
+		}
+	}
+
+	public int is_real64
+	{
+		get
+		{
+			return selfp->tag == Real64;
+		}
+	}
+
+	public double as_real64
+	{
+		get
+		{
+			assert(selfp->tag == Real64);
+			return selfp->data._real64;
+		}
+		set
+		{
+			if (selfp->tag == Object)
+				z_object_unref(selfp->data._object);
+
+			selfp->tag = Real64;
+			selfp->data._real64 = value;
+		}
+	}
 
 
 }

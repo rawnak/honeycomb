@@ -28,9 +28,9 @@
 
 class ZClosureMarshal 
 {
-	public virtual int invoke(Self *self, ZObjectSignalHandler handler, ZVector *args)
+	public virtual int invoke(Self *self, ZObjectSignalHandler handler, ZVector *args, void *userdata)
 	{
-		return 1; // handled
+		return 0; /* not handled */
 	}
 }
 

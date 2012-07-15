@@ -19,7 +19,6 @@
  */
 
 %{
-#define _GNU_SOURCE
 
 #include <stdio.h>
 #include <string.h>
@@ -45,7 +44,6 @@ char **parent_class_name_lowercase;
 char **parent_class_name_uppercase;
 char **parent_class_name_pascal;
 int is_attached_property;
-int is_signal;
 int class_needs_zvalue;
 int class_needs_vector;
 int class_needs_map;
@@ -198,7 +196,7 @@ static void special_member_function_decl(const char *symbol, const char *arglist
 	z_string_append_format(function_definitions, "static void %s_%s%s\n%s\n", current_class_name_lowercase, symbol, arglist, code);
 }
 
-static char * strndup(const char *s, int max_len)
+static char * self_strndup(const char *s, int max_len)
 {
 	int length = strlen(s);
 
@@ -215,10 +213,15 @@ static char * strndup(const char *s, int max_len)
 static void extract_argument(char *arg, char **arg_type, char **arg_name)
 {
 	int i, length = strlen(arg);
+	int j;
 
 	for (i=length-1; i>=0; --i) {
 		if (arg[i] == ' ' || arg[i] == '*') {
-			*arg_type = strndup(arg, i+1);
+			/* trim the spaces from the arg_type string and copy it */
+			for (j=i; arg[j] == ' '; --j);
+			*arg_type = self_strndup(arg, j+1);
+
+			/* copy the argument name */
 			*arg_name = strdup(arg + (i+1));
 			return;
 		}
@@ -272,31 +275,93 @@ static void signal_decl(const char *type, const char *symbol, const char *arglis
 
 	char *arglist_no_paren = strdup(arglist+1);
 	char *p;
-	int is_first = 1;
 
 	arglist_no_paren[strlen(arglist_no_paren)-1] = 0;
 
 	p = strtok(arglist_no_paren, ",");
 	while (p)
 	{
-		char *arg_type, *arg_name;
+		char *arg_type, *arg_name, *temp;
+		int is_pointer, length;
 
 		extract_argument(p, &arg_type, &arg_name);
 		p = strtok(NULL, ",");
 
-		if (!is_first) {
-			//z_string_push_back(str, ',');
+		/* create the ZValue object */
+		z_string_append_format(function_definitions,
+				"\t{\n"
+				"\t\tZValue *a = z_value_new(CTX);\n");
+
+		/* check if the parameter has pointers */
+		length = strlen(arg_type);
+		temp = strchr(arg_type, '*');
+		is_pointer = temp != NULL;
+
+		/* make sure there is at most one '*' character */
+		if (is_pointer && temp != arg_type + (length-1))
+			z_string_append_format(function_definitions, "\t\t#error \"Invalid signal parameter type %s\"\n", arg_type);
+
+		/* set the value into the ZValue */
+		else if (is_pointer && (!strncmp(arg_type, "Self", 4) || arg_type[0] == 'Z'))
+			z_string_append_format(function_definitions, "\t\tz_value_set_as_object(a, Z_OBJECT(%s));\n", arg_name);
+
+		else if (!strcmp(arg_type, "char") ||
+		         !strcmp(arg_type, "int8_t")) {
+
+			if (is_pointer)
+				z_string_append_format(function_definitions, 
+						"\t\tZString *_temp = z_string_new(CTX);\n"
+						"\t\tz_string_set_cstring(_temp, %s, Z_STRING_ENCODING_UTF8);\n"
+						"\t\tz_value_set_as_object(a, Z_OBJECT(_temp));\n"
+						"\t\tz_object_unref(Z_OBJECT(_temp));\n",
+						arg_name);
+			else 
+				z_string_append_format(function_definitions, "\t\tz_value_set_as_int8(a, %s);\n", arg_name);
+
+		} else if (!strcmp(arg_type, "short") ||
+			 !strcmp(arg_type, "int16_t")) {
+			z_string_append_format(function_definitions, "\t\tz_value_set_as_int16(a, %s);\n", arg_name);
+
+		} else if (!strcmp(arg_type, "int") ||
+			 !strcmp(arg_type, "int32_t")) {
+			z_string_append_format(function_definitions, "\t\tz_value_set_as_int32(a, %s);\n", arg_name);
+
+		} else if (!strcmp(arg_type, "long") ||
+			 !strcmp(arg_type, "long long") ||
+			 !strcmp(arg_type, "int64_t")) {
+			z_string_append_format(function_definitions, "\t\tz_value_set_as_int64(a, %s);\n", arg_name);
+
+		} else if (!strcmp(arg_type, "unsigned char") ||
+			 !strcmp(arg_type, "uint8_t")) {
+			z_string_append_format(function_definitions, "\t\tz_value_set_as_uint8(a, %s);\n", arg_name);
+
+		} else if (!strcmp(arg_type, "unsigned short") ||
+			 !strcmp(arg_type, "uint16_t")) {
+			z_string_append_format(function_definitions, "\t\tz_value_set_as_uint16(a, %s);\n", arg_name);
+
+		} else if (!strcmp(arg_type, "unsigned int") ||
+			 !strcmp(arg_type, "uint32_t")) {
+			z_string_append_format(function_definitions, "\t\tz_value_set_as_uint32(a, %s);\n", arg_name);
+
+		} else if (!strcmp(arg_type, "unsigned long") ||
+			 !strcmp(arg_type, "unsigned long long") ||
+			 !strcmp(arg_type, "uint64_t")) {
+			z_string_append_format(function_definitions, "\t\tz_value_set_as_uint64(a, %s);\n", arg_name);
+
+		} else if (!strcmp(arg_type, "float")) {
+			z_string_append_format(function_definitions, "\t\tz_value_set_as_real32(a, %s);\n", arg_name);
+
+		} else if (!strcmp(arg_type, "double")) {
+			z_string_append_format(function_definitions, "\t\tz_value_set_as_real64(a, %s);\n", arg_name);
+
 		} else {
-			is_first = 0;
+			z_string_append_format(function_definitions, "\t\t#error \"Invalid signal parameter type %s\"\n", arg_type);
 		}
 
-		
-		//z_string_append_cstring(str, q, Z_STRING_ENCODING_UTF8);
-
-		if (!strcmp(arg_type, "int")) {
-
-		}
-
+		/* add the ZValue into the vector */
+		z_string_append_format(function_definitions,
+				"\t\tz_vector_push_back(args, a);\n"
+				"\t}\n");
 
 		free(arg_type);
 		free(arg_name);
@@ -304,41 +369,11 @@ static void signal_decl(const char *type, const char *symbol, const char *arglis
 
 	free(arglist_no_paren);
 
-
-/* FIXME
-	for (each argument) {
-		z_string_append_format(function_definitions,
-				"\t{\n"
-				"\t\tZValue *a = z_value_new(CTX);\n"
-				"\t\tz_value_set_as_int32(a, %s);\n"
-				"\t\tz_vector_push_back(args, a);\n"
-				"\t}\n", ...);
-	}
-   */
-
 	/* end of function body */
 	z_string_append_format(function_definitions,
 			"\tz_object_emit_signal(Z_OBJECT(self), \"%s\", args);\n"
 			"\tz_object_unref(Z_OBJECT(args));\n"
 			"}\n", symbol);
-
-
-#if 0
-	static clicked(Self *self, int button)
-	{
-		ZVector *args = z_vector_new(CTX, sizeof(ZValue *));
-		z_vector_set_item_destruct(args, (ZVectorItemCallback *) z_object_unref);
-
-		/* argument #1 */
-		ZValue *a1 = z_value_new(CTX);
-		z_value_set_as_int32(a1, button);
-		z_vector_push_back(args, a1);
-
-
-		z_object_emit_signal(self, "clicked", args);
-		z_object_unref(Z_OBJECT(args));
-	}
-#endif
 
 	z_string_append_format(signal_registrations, "\tz_object_register_signal(Z_OBJECT(self), \"%s\");\n", symbol);
 }
@@ -1469,7 +1504,6 @@ symbol_name
 
 		/* reset state */
 		is_attached_property = 0;
-		is_signal = 0;
 	}
 	;
 
@@ -1534,16 +1568,16 @@ class_object
 	{ special_member_function_decl($1, $3, $5); free($2); free($3); free($4); free($5); }
 
 	/* signals */
-	| access_specifier ignorables type_name symbol_name bang argument_list SEMICOLON
+	| access_specifier ignorables type_name symbol_name BANG argument_list SEMICOLON
 	{ signal_decl(type_name, $4, $6); free($2); free($6); }
 
-	| access_specifier ignorables type_name symbol_name bang ignorables argument_list SEMICOLON
+	| access_specifier ignorables type_name symbol_name BANG ignorables argument_list SEMICOLON
 	{ signal_decl(type_name, $4, $7); free($2); free($5); free($7); }
 
-	| access_specifier ignorables type_name symbol_name bang argument_list ignorables SEMICOLON
+	| access_specifier ignorables type_name symbol_name BANG argument_list ignorables SEMICOLON
 	{ signal_decl(type_name, $4, $6); free($2); free($6); free($7); }
 
-	| access_specifier ignorables type_name symbol_name bang ignorables argument_list ignorables SEMICOLON
+	| access_specifier ignorables type_name symbol_name BANG ignorables argument_list ignorables SEMICOLON
 	{ signal_decl(type_name, $4, $7); free($2); free($6); free($7); free($8); }
 
 	/* properties */
@@ -1596,11 +1630,6 @@ class_object
 hash
 	: HASH { is_attached_property = 1; }
 	;
-
-bang
-	: BANG { is_signal = 1; }
-	;
-
 
 property_objects
 	: property_object 

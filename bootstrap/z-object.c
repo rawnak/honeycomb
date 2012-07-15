@@ -45,15 +45,15 @@
 #define unref z_object_unref
 #line 82 "z-object.zco"
 #define connect z_object_connect
-#line 110 "z-object.zco"
+#line 104 "z-object.zco"
 #define disconnect z_object_disconnect
-#line 133 "z-object.zco"
+#line 129 "z-object.zco"
 #define register_signal z_object_register_signal
-#line 148 "z-object.zco"
+#line 152 "z-object.zco"
 #define emit_signal z_object_emit_signal
-#line 171 "z-object.zco"
+#line 177 "z-object.zco"
 #define add_attached_property_map z_object_add_attached_property_map
-#line 180 "z-object.zco"
+#line 186 "z-object.zco"
 #define map_compare z_object_map_compare
 
 int z_object_type_id = -1;
@@ -69,7 +69,7 @@ static Self *__z_object_new(struct zco_context_t *ctx)
 static void z_object_init(Self *self);
 #line 33 "z-object.zco"
 static void  z_object_virtual_dispose(Self *self);
-#line 180 "z-object.zco"
+#line 186 "z-object.zco"
 static int  z_object_map_compare(ZMap *map,const void *a,const void *b);
 
 ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
@@ -179,18 +179,12 @@ void *  z_object_connect(Self *self,char *name,ZObjectSignalHandler handler,void
 {
  ZClosure *closure;
 
+ assert(selfp->signal_map != NULL);
+
  /* create a closure */
  closure = z_closure_new(CTX);
  z_closure_set_handler(closure, handler);
  z_closure_set_userdata(closure, userdata);
-
- /* create signal map (if necessary) */
- if (!selfp->signal_map) {
- selfp->signal_map = z_map_new(CTX);
- z_map_set_compare(selfp->signal_map, map_compare);
- z_map_set_key_destruct(selfp->signal_map, (ZMapItemCallback) free);
- z_map_set_value_destruct(selfp->signal_map, (ZMapItemCallback) z_object_unref);
- }
 
  /* locate signal's closure list by name */
  ZMapIter *it = z_map_find(selfp->signal_map, name);
@@ -202,9 +196,11 @@ void *  z_object_connect(Self *self,char *name,ZObjectSignalHandler handler,void
 
  return closure;
  }
-#line 110 "z-object.zco"
+#line 104 "z-object.zco"
 void  z_object_disconnect(Self *self,char *name,void *key)
 {
+ assert(selfp->signal_map != NULL);
+
  /* locate signal's closure list by name */
  ZMapIter *map_iter = z_map_find(selfp->signal_map, name);
  assert(map_iter != NULL);
@@ -225,9 +221,17 @@ void  z_object_disconnect(Self *self,char *name,void *key)
  }
  }
  }
-#line 133 "z-object.zco"
+#line 129 "z-object.zco"
 void  z_object_register_signal(Self *self,char *name)
 {
+ /* create signal map (if necessary) */
+ if (!selfp->signal_map) {
+ selfp->signal_map = z_map_new(CTX);
+ z_map_set_compare(selfp->signal_map, map_compare);
+ z_map_set_key_destruct(selfp->signal_map, (ZMapItemCallback) free);
+ z_map_set_value_destruct(selfp->signal_map, (ZMapItemCallback) z_object_unref);
+ }
+
  /* locate signal's closure list by name */
  ZMapIter *it = z_map_find(selfp->signal_map, name);
 
@@ -237,9 +241,11 @@ void  z_object_register_signal(Self *self,char *name)
  z_map_insert(selfp->signal_map, strdup(name), closure_list);
  }
  }
-#line 148 "z-object.zco"
+#line 152 "z-object.zco"
 int  z_object_emit_signal(Self *self,char *name,void *argv)
 {
+ assert(selfp->signal_map != NULL);
+
  /* locate signal's closure list by name */
  ZMapIter *map_iter = z_map_find(selfp->signal_map, name);
  assert(map_iter != NULL);
@@ -260,7 +266,7 @@ int  z_object_emit_signal(Self *self,char *name,void *argv)
 
  return rc;
  }
-#line 171 "z-object.zco"
+#line 177 "z-object.zco"
 void  z_object_add_attached_property_map(Self *self,void *map)
 {
  if (selfp->attached_properties == 0)
@@ -269,7 +275,7 @@ void  z_object_add_attached_property_map(Self *self,void *map)
  /* keep note of the maps that has a pointer to 'self' */
  z_vector_push_back((ZVector *) selfp->attached_properties, map);
  }
-#line 180 "z-object.zco"
+#line 186 "z-object.zco"
 static int  z_object_map_compare(ZMap *map,const void *a,const void *b)
 {
  return strcmp(a, b);

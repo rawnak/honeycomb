@@ -32,6 +32,7 @@ typedef void(*ZObjectSignalHandler)(struct ZObject *self, ...);
 #include <z-vector.h>
 #include <z-vector-iter.h>
 #include <z-closure.h>
+#include <z-closure-marshal.h>
 #include <z-string.h>
 %}
 
@@ -107,6 +108,7 @@ class ZObject
 
 		/* create a closure */
 		closure = z_closure_new(CTX);
+		z_closure_set_marshal(closure, Z_CLOSURE_MARSHAL(CTX->marshal));
 		z_closure_set_handler(closure, handler);
 		z_closure_set_userdata(closure, userdata);
 

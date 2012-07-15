@@ -1,7 +1,7 @@
 /* ZCO - Cross-platform Application Framework
  * Copyright (C) 2014  Syeda Sultana
  *
- * zco-type.h: Context management
+ * z-c-closure-marshal.zco: Closure marshaller for C bindings
  * This file is part of ZCO.
  *
  * This library is free software: you can redistribute it and/or modify
@@ -18,23 +18,26 @@
  * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+%h{
+#include <z-object.h>
+#include <z-closure-marshal.h>
+#include <z-vector.h>
+%}
 
-#ifndef _ZCO_H_
-#define _ZCO_H_
+%{
+%}
 
-struct zco_context_t {
-	void **types;
-	int type_count;
-	void *marshal;   /* pointer to the marshaller (must implement ZClosureMarshal interface) */
-};
+class ZCClosureMarshal : ZObject,ZClosureMarshal
+{
+	override(ZClosureMarshal)
+	int invoke(ZClosureMarshal *self, ZObjectSignalHandler handler, ZVector *args, void *userdata)
+	{
+		/* task:
+		   1. change the vector of ZValue into an argument list
+		   2. pass this argument list (with userdata as the last argument) to handler()
+		 */
 
-void    zco_context_init(struct zco_context_t *ctx);
-void    zco_context_destroy(struct zco_context_t *ctx);
-void    zco_context_set_marshal(struct zco_context_t *ctx, void *marshal);
-void ** zco_get_ctx_type(struct zco_context_t *ctx, int type_id);
-int     zco_allocate_type_id();
-void    zco_inherit_vtable(int **list, int *size, int *src_list, int src_size, void *base, void *target);
-void    zco_add_to_vtable(int **list, int *size, int type_id);
 
-#endif
+	}
+}
 

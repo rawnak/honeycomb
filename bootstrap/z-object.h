@@ -90,13 +90,13 @@ void  z_object_ref(Self *self);
 void  z_object_unref(Self *self);
 #line 82 "z-object.zco"
 void *  z_object_connect(Self *self,char *name,ZObjectSignalHandler handler,void *userdata);
-#line 110 "z-object.zco"
+#line 104 "z-object.zco"
 void  z_object_disconnect(Self *self,char *name,void *key);
-#line 133 "z-object.zco"
+#line 129 "z-object.zco"
 void  z_object_register_signal(Self *self,char *name);
-#line 148 "z-object.zco"
+#line 152 "z-object.zco"
 int  z_object_emit_signal(Self *self,char *name,void *argv);
-#line 171 "z-object.zco"
+#line 177 "z-object.zco"
 void  z_object_add_attached_property_map(Self *self,void *map);
 
 #undef Self

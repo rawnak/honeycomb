@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <z-object.h>
 
 static int next_id = -1;
 
@@ -29,6 +30,24 @@ void zco_context_init(struct zco_context_t *ctx)
 {
 	ctx->type_count = 0;
 	ctx->types = 0;
+	ctx->marshal = NULL;
+}
+
+void zco_context_destroy(struct zco_context_t *ctx)
+{
+	if (ctx->marshal) {
+		z_object_unref((ZObject *) ctx->marshal);
+		ctx->marshal = NULL;
+	}
+}
+
+void zco_context_set_marshal(struct zco_context_t *ctx, void *marshal)
+{
+	if (ctx->marshal)
+		z_object_unref((ZObject *) ctx->marshal);
+
+	ctx->marshal = marshal;
+	z_object_ref((ZObject *) marshal);
 }
 
 void **zco_get_ctx_type(struct zco_context_t *ctx, int type_id)
