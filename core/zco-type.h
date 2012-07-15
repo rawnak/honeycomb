@@ -25,7 +25,7 @@
 struct zco_context_t {
 	void **types;
 	int type_count;
-	void *marshal;   /* pointer to the marshaller (must implement ZClosureMarshal interface) */
+	void *marshal;			/* pointer to the marshaller (must implement ZClosureMarshal interface) */
 };
 
 void    zco_context_init(struct zco_context_t *ctx);

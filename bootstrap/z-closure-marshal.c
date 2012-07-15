@@ -28,7 +28,6 @@
 #define selfp (&self->_priv)
 #define GET_NEW(ctx) __z_closure_marshal_new(ctx)
 #define CTX self->_global->ctx
-#line 11 "z-closure-marshal.zco"
 #define invoke z_closure_marshal_invoke
 
 int z_closure_marshal_type_id = -1;
@@ -40,9 +39,13 @@ static Self *__z_closure_marshal_new(struct zco_context_t *ctx)
 	__z_closure_marshal_init(ctx, self);
 	return self;
 }
-#line 11 "z-closure-marshal.zco"
-static int  z_closure_marshal_virtual_invoke(Self *self,ZObjectSignalHandler handler,ZVector *args);
+static int  z_closure_marshal_virtual_invoke(Self *self,ZObjectSignalHandler handler,ZVector *args,void *userdata);
 
+static void cleanup_signal_arg(void *item, void *userdata)
+{
+	ZObject **obj = (ZObject **) item;
+	z_object_unref(*obj);
+}
 ZClosureMarshalGlobal * z_closure_marshal_get_type(struct zco_context_t *ctx)
 {
 	if (z_closure_marshal_type_id == -1)
@@ -64,7 +67,6 @@ ZClosureMarshalGlobal * z_closure_marshal_get_type(struct zco_context_t *ctx)
 		struct ZClosureMarshalClass temp;
 
 		zco_add_to_vtable(&global->vtable_off_list, &global->vtable_off_size, z_closure_marshal_type_id);		
-#line 11 "z-closure-marshal.zco"
 		global->_class->__invoke = z_closure_marshal_virtual_invoke;
 		#ifdef CLASS_INIT_EXISTS
 			class_init((ZClosureMarshalGlobal *) global);
@@ -83,16 +85,14 @@ void __z_closure_marshal_init(struct zco_context_t *ctx, Self *self)
 		init(self);
 	#endif
 }
-#line 11 "z-closure-marshal.zco"
-int  z_closure_marshal_invoke(Self *self,ZObjectSignalHandler handler,ZVector *args)
+int  z_closure_marshal_invoke(Self *self,ZObjectSignalHandler handler,ZVector *args,void *userdata)
 {
 	ZObject *obj = (ZObject *) self;
-	((ZClosureMarshalClass *) ((char *) obj->class_base + obj->vtable[z_closure_marshal_type_id]))->__invoke(self,handler,args);
+	((ZClosureMarshalClass *) ((char *) obj->class_base + obj->vtable[z_closure_marshal_type_id]))->__invoke(self,handler,args,userdata);
 }
-#line 11 "z-closure-marshal.zco"
-static int  z_closure_marshal_virtual_invoke(Self *self,ZObjectSignalHandler handler,ZVector *args)
+static int  z_closure_marshal_virtual_invoke(Self *self,ZObjectSignalHandler handler,ZVector *args,void *userdata)
 {
- return 1; // handled
+ return 0; /* not handled */
  }
 
 

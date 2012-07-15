@@ -7,11 +7,11 @@ include_directories(
       ${CMAKE_CURRENT_SOURCE_DIR}/core       # core header files
       ${CMAKE_CURRENT_BINARY_DIR}            # generated header files
       ${CMAKE_CURRENT_SOURCE_DIR}/bootstrap  # pre-generated header files for bootstrapping
+      /usr/lib/libffi-3.0.11/include         # libffi
       )
 
 # zco compiler
-#add_definitions(-pipe -g -fstack-protector-all -std=gnu99)
-add_definitions(-pipe)
+add_definitions(-pipe -g -fstack-protector-all -O0 -std=gnu99)
 
 bison_target(ZCO_PARSER core/zco.y ${CMAKE_CURRENT_BINARY_DIR}/zco.tab.c)
 flex_target(ZCO_SCANNER core/zco.l ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.c)
@@ -46,18 +46,20 @@ add_executable(
       ${FLEX_ZCO_SCANNER_OUTPUTS}
 )
 
-target_link_libraries(zco m zclib)
+target_link_libraries(zco m zclib ffi)
 
 # test driver
 add_executable(
    zco-test
+   z-test-object.c
+   core/signal-test.c
    core/zco-test.c
    core/z-vector-test.c
    core/z-string-test.c
    core/z-map-test.c
    )
 
-target_link_libraries(zco-test zclib m)
+target_link_libraries(zco-test zclib m ffi)
 
 # zclib
 add_custom_command(
@@ -141,6 +143,13 @@ add_custom_command(
       COMMAND ln -sf ${CMAKE_CURRENT_SOURCE_DIR}/core/z-c-closure-marshal.zco ${CMAKE_CURRENT_BINARY_DIR}/
       COMMAND ./zco z-c-closure-marshal.zco
       DEPENDS core/z-c-closure-marshal.zco
+      )
+
+add_custom_command(
+      OUTPUT z-test-object.h z-test-object.c
+      COMMAND ln -sf ${CMAKE_CURRENT_SOURCE_DIR}/core/z-test-object.zco ${CMAKE_CURRENT_BINARY_DIR}/
+      COMMAND ./zco z-test-object.zco
+      DEPENDS core/z-test-object.zco
       )
 
 add_library(zclib SHARED

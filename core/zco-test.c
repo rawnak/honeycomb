@@ -33,53 +33,19 @@ enum TestSet {
 	TestSetVector = 1,
 	TestSetString,
 	TestSetMap,
+	TestSetSignal,
 	TestSetEnd
 };
 
 void (*TestDriverSet[]) (int) = {
 	[TestSetVector] = z_vector_test,
 	[TestSetString] = z_string_test,
-	[TestSetMap] = z_map_test
+	[TestSetMap] = z_map_test,
+	[TestSetSignal] = signal_test
 };
-
-void test2(int a,int b,int c,int d,int e,int f,int g,int h,int i)
-{
-	printf("** x = %d, %d, %d, %d, %d, %d, %d, %d, %d\n", a,b,c,d,e,f,g,h,i);
-}
-
-
-typedef void(*dummy)();
-
-void dummies(dummy x) {}
-
-void test3()
-{
-   dummy x = (dummy) test2;
-   //volatile int x;
-   
-   int i;
-   int *buffer = alloca(32 * sizeof(int));
-
-   for (i=0; i<32; ++i)
-	   buffer[i] = i * 10;
-
-   asm ("movl $100,%edi\n"
-        "movq $200,%rsi\n"
-        "movq $300,%rdx\n"
-        "movq $400,%rcx\n"
-        "movq $500,%r8\n"
-        "movq $600,%r9\n"
-	);
-   ((dummy)test2)();
-}
-
 
 int main(int argc, char **argv)
 {
-	test3();
-	return;
-
-
 	/* getting argument list and options */
 	int c, help_wanted = 0, test_set_number = 0, test_case_number = 0;
 	int option_index = 0;

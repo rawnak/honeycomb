@@ -45,11 +45,8 @@ typedef struct ZObjectClass ZObjectClass;
 typedef struct ZObject ZObject;
 
 struct ZObjectPrivate {
-#line 22 "z-object.zco"
 	unsigned int ref_count;
-#line 23 "z-object.zco"
 	void *attached_properties;
-#line 24 "z-object.zco"
 	void *signal_map;
 };
 
@@ -66,7 +63,6 @@ struct ZObjectGlobal {
 };
 
 struct ZObjectClass {
-#line 33 "z-object.zco"
 	void  (*__dispose)(Self *self);
 };
 
@@ -74,29 +70,19 @@ struct ZObject {
 	struct ZObjectGlobal *_global;
 	struct ZObjectPrivate _priv;
 	struct ZObjectProtected _prot;
-#line 20 "z-object.zco"
 	void *class_base;
-#line 21 "z-object.zco"
 	int *vtable;
 };
 extern int z_object_type_id;
 ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx);
 void __z_object_init(struct zco_context_t *ctx, ZObject *self);
-#line 33 "z-object.zco"
 void  z_object_dispose(Self *self);
-#line 70 "z-object.zco"
 void  z_object_ref(Self *self);
-#line 75 "z-object.zco"
 void  z_object_unref(Self *self);
-#line 82 "z-object.zco"
 void *  z_object_connect(Self *self,char *name,ZObjectSignalHandler handler,void *userdata);
-#line 104 "z-object.zco"
 void  z_object_disconnect(Self *self,char *name,void *key);
-#line 129 "z-object.zco"
 void  z_object_register_signal(Self *self,char *name);
-#line 152 "z-object.zco"
 int  z_object_emit_signal(Self *self,char *name,void *argv);
-#line 177 "z-object.zco"
 void  z_object_add_attached_property_map(Self *self,void *map);
 
 #undef Self

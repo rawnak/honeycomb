@@ -29,27 +29,16 @@
 #define GET_NEW(ctx) __z_map_iter_new(ctx)
 #define CTX self->_global->ctx
 #define INIT_EXISTS
-#line 12 "z-map-iter.zco"
 #define init z_map_iter_init
-#line 17 "z-map-iter.zco"
 #define new z_map_iter_new
-#line 23 "z-map-iter.zco"
 #define dup z_map_iter_dup
-#line 33 "z-map-iter.zco"
 #define get_index z_map_iter_get_index
-#line 37 "z-map-iter.zco"
 #define set_index z_map_iter_set_index
-#line 43 "z-map-iter.zco"
 #define advance z_map_iter_advance
-#line 48 "z-map-iter.zco"
 #define increment z_map_iter_increment
-#line 53 "z-map-iter.zco"
 #define decrement z_map_iter_decrement
-#line 58 "z-map-iter.zco"
 #define is_equal z_map_iter_is_equal
-#line 63 "z-map-iter.zco"
 #define is_lte z_map_iter_is_lte
-#line 68 "z-map-iter.zco"
 #define is_gte z_map_iter_is_gte
 
 int z_map_iter_type_id = -1;
@@ -61,9 +50,13 @@ static Self *__z_map_iter_new(struct zco_context_t *ctx)
 	__z_map_iter_init(ctx, self);
 	return self;
 }
-#line 12 "z-map-iter.zco"
 static void z_map_iter_init(Self *self);
 
+static void cleanup_signal_arg(void *item, void *userdata)
+{
+	ZObject **obj = (ZObject **) item;
+	z_object_unref(*obj);
+}
 ZMapIterGlobal * z_map_iter_get_type(struct zco_context_t *ctx)
 {
 	if (z_map_iter_type_id == -1)
@@ -115,18 +108,15 @@ void __z_map_iter_init(struct zco_context_t *ctx, Self *self)
 		init(self);
 	#endif
 }
-#line 12 "z-map-iter.zco"
 static void z_map_iter_init(Self *self)
 {
  selfp->index = 0;
  }
-#line 17 "z-map-iter.zco"
 Self * z_map_iter_new(struct zco_context_t *ctx)
 {
  Self *self = GET_NEW(ctx);
  return self;
  }
-#line 23 "z-map-iter.zco"
 Self * z_map_iter_dup(ZMapIter *src)
 {
  Self *self = GET_NEW(src->_global->ctx);
@@ -134,42 +124,34 @@ Self * z_map_iter_dup(ZMapIter *src)
  set_index(self, get_index(src));
  return self;
  }
-#line 33 "z-map-iter.zco"
 int  z_map_iter_get_index(Self *self)
 {
  return selfp->index;
  }
-#line 37 "z-map-iter.zco"
 void z_map_iter_set_index(Self *self, int  value)
 {
  selfp->index = value;
  }
-#line 43 "z-map-iter.zco"
 void  z_map_iter_advance(Self *self,int steps)
 {
  selfp->index += steps;
  }
-#line 48 "z-map-iter.zco"
 void  z_map_iter_increment(Self *self)
 {
  ++selfp->index;
  }
-#line 53 "z-map-iter.zco"
 void  z_map_iter_decrement(Self *self)
 {
  --selfp->index;
  }
-#line 58 "z-map-iter.zco"
 int  z_map_iter_is_equal(Self *self,Self *other)
 {
  return selfp->index == get_index(other);
  }
-#line 63 "z-map-iter.zco"
 int  z_map_iter_is_lte(Self *self,Self *other)
 {
  return selfp->index <= get_index(other);
  }
-#line 68 "z-map-iter.zco"
 int  z_map_iter_is_gte(Self *self,Self *other)
 {
  return selfp->index >= get_index(other);

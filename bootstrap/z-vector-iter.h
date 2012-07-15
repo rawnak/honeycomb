@@ -41,7 +41,6 @@ typedef struct ZVectorIterClass ZVectorIterClass;
 typedef struct ZVectorIter ZVectorIter;
 
 struct ZVectorIterPrivate {
-#line 10 "z-vector-iter.zco"
 	int index;
 };
 
@@ -70,25 +69,15 @@ struct ZVectorIter {
 extern int z_vector_iter_type_id;
 ZVectorIterGlobal * z_vector_iter_get_type(struct zco_context_t *ctx);
 void __z_vector_iter_init(struct zco_context_t *ctx, ZVectorIter *self);
-#line 17 "z-vector-iter.zco"
 Self * z_vector_iter_new(struct zco_context_t *ctx);
-#line 23 "z-vector-iter.zco"
 Self * z_vector_iter_dup(ZVectorIter *src);
-#line 33 "z-vector-iter.zco"
 int  z_vector_iter_get_index(Self *self);
-#line 37 "z-vector-iter.zco"
 void z_vector_iter_set_index(Self *self, int  value);
-#line 43 "z-vector-iter.zco"
 void  z_vector_iter_advance(Self *self,int steps);
-#line 48 "z-vector-iter.zco"
 void  z_vector_iter_increment(Self *self);
-#line 53 "z-vector-iter.zco"
 void  z_vector_iter_decrement(Self *self);
-#line 58 "z-vector-iter.zco"
 int  z_vector_iter_is_equal(Self *self,Self *other);
-#line 63 "z-vector-iter.zco"
 int  z_vector_iter_is_lte(Self *self,Self *other);
-#line 68 "z-vector-iter.zco"
 int  z_vector_iter_is_gte(Self *self,Self *other);
 
 #undef Self

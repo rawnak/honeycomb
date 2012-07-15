@@ -48,3 +48,37 @@ Another enhancement will be to have support for RPC. This will need to be implem
 Another enhancement will be to change base container classes (such as ZVector) to support copy-on-write. This will allow range copy from and splicing to be very efficient operations.
 
 
+
+
+
+List of dynamic calling libraries:
+dynlib:
+	pro:
+		- uses ASM
+	cos:
+		- uses SVN
+		- not available as Arch binary
+
+libffi
+	pro:
+		- available in Arch
+		- uses Git
+
+	con:
+
+c/invoke
+	pro:
+
+	con:
+		- not available as Arch binary
+		- uses SVN
+
+ffcall
+	pro:
+		- available in Arch
+
+	con:
+		- uses CVS
+
+
+

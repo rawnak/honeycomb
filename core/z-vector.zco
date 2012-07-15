@@ -37,6 +37,7 @@ class ZVector : ZObject
 	private int item_size;
 	private int count;
 	private int capacity;
+	private int storage_mode;
 	private void *data;
 	private void *userdata;
 	private ZVectorItemCallback item_construct;
@@ -66,7 +67,15 @@ class ZVector : ZObject
 	public Self *new(struct zco_context_t *ctx, int item_size)
 	{
 		Self *self = GET_NEW(ctx);
-		selfp->item_size = item_size;
+
+		if (item_size == 0) {
+			selfp->storage_mode = 1;
+			selfp->item_size = sizeof(void*);
+		} else {
+			selfp->storage_mode = 0;
+			selfp->item_size = item_size;
+		}
+
 		return self;
 	}
 
@@ -146,9 +155,16 @@ class ZVector : ZObject
 				if (selfp->item_construct) {
 					int i;
 
-					for (i = selfp->count; i < value; ++i) {
-						int offset = i * selfp->item_size;
-						selfp->item_construct(selfp->data + offset, selfp->userdata);
+					if (selfp->storage_mode == 0) {
+						for (i = selfp->count; i < value; ++i) {
+							int offset = i * selfp->item_size;
+							selfp->item_construct(selfp->data + offset, selfp->userdata);
+						}
+					} else {
+						for (i = selfp->count; i < value; ++i) {
+							int offset = i * selfp->item_size;
+							selfp->item_construct(*((void **)(selfp->data + offset)), selfp->userdata);
+						}
 					}
 				}
 
@@ -157,9 +173,16 @@ class ZVector : ZObject
 				if (selfp->item_destruct) {
 					int i;
 
-					for (i = value; i < selfp->count; ++i) {
-						int offset = i * selfp->item_size;
-						selfp->item_destruct(selfp->data + offset, selfp->userdata);
+					if (selfp->storage_mode == 0) {
+						for (i = value; i < selfp->count; ++i) {
+							int offset = i * selfp->item_size;
+							selfp->item_destruct(selfp->data + offset, selfp->userdata);
+						}
+					} else {
+						for (i = value; i < selfp->count; ++i) {
+							int offset = i * selfp->item_size;
+							selfp->item_destruct(*((void **)(selfp->data + offset)), selfp->userdata);
+						}
 					}
 				}
 			}
@@ -232,11 +255,15 @@ class ZVector : ZObject
 		int index = z_vector_iter_get_index(iter);
 		int offset = index * selfp->item_size;
 
-		if (is_in_bound(self, iter))
-			return selfp->data + offset;
+		if (is_in_bound(self, iter)) {
+			if (selfp->storage_mode == 0)
+				return selfp->data + offset;
+			else
+				return *((void **)(selfp->data + offset));
 
-		else
+		} else {
 			fprintf(stderr, "Index out of bound. max=%d, index=%d\n", selfp->count-1, index);
+		}
 
 		return NULL;
 	}
@@ -249,7 +276,11 @@ class ZVector : ZObject
 		int offset = index * selfp->item_size;
 
 		if (index >= 0 && index < selfp->count) {
-			memcpy(selfp->data + offset, item, selfp->item_size);
+			if (selfp->storage_mode == 0)
+				memcpy(selfp->data + offset, item, selfp->item_size);
+			else
+				memcpy(selfp->data + offset, &item, selfp->item_size);
+
 			return 0;
 		}
 

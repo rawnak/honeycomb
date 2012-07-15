@@ -83,7 +83,7 @@ ZString *h_macros_head;
 ZString *h_macros_tail;
 ZString *c_macros;
 ZString *function_prototypes_h;
-ZString *signal_registrations;
+ZString *function_registrations;
 
 static struct zco_context_t context;
 
@@ -173,13 +173,16 @@ static void record_line_number()
 
 static void print_line_number(ZString *str)
 {
-	z_string_append_format(str, "#line %d \"%s\"\n", real_lineno, zco_filename);
+	//z_string_append_format(str, "#line %d \"%s\"\n", real_lineno, zco_filename);
 }
 
 static void special_member_function_decl(const char *symbol, const char *arglist, const char *code)
 {
 	if (!strcmp(symbol, "class_init"))
 		z_string_append_cstring(c_macros, "#define CLASS_INIT_EXISTS\n", Z_STRING_ENCODING_UTF8);
+
+	else if (!strcmp(symbol, "global_init"))
+		z_string_append_cstring(c_macros, "#define GLOBAL_INIT_EXISTS\n", Z_STRING_ENCODING_UTF8);
 
 	else if (!strcmp(symbol, "init"))
 		z_string_append_cstring(c_macros, "#define INIT_EXISTS\n", Z_STRING_ENCODING_UTF8);
@@ -269,7 +272,7 @@ static void signal_decl(const char *type, const char *symbol, const char *arglis
 	/* start of function body */
 	z_string_append_format(function_definitions,
 			"{\n"
-			"\tZVector *args = z_vector_new(CTX, sizeof(ZValue *));\n"
+			"\tZVector *args = z_vector_new(CTX, 0);\n"
 			"\tz_vector_set_item_destruct(args, (ZVectorItemCallback) z_object_unref);\n");
 
 
@@ -288,9 +291,7 @@ static void signal_decl(const char *type, const char *symbol, const char *arglis
 		p = strtok(NULL, ",");
 
 		/* create the ZValue object */
-		z_string_append_format(function_definitions,
-				"\t{\n"
-				"\t\tZValue *a = z_value_new(CTX);\n");
+		z_string_append_format(function_definitions, "\t{\n");
 
 		/* check if the parameter has pointers */
 		length = strlen(arg_type);
@@ -301,58 +302,87 @@ static void signal_decl(const char *type, const char *symbol, const char *arglis
 		if (is_pointer && temp != arg_type + (length-1))
 			z_string_append_format(function_definitions, "\t\t#error \"Invalid signal parameter type %s\"\n", arg_type);
 
+		/* if the value is already a ZValue, use it directly */
+		else if (is_pointer && !strcmp(arg_type, "ZValue"))
+			z_string_append_format(function_definitions,
+					"\t\tZValue *value = %s;\n"
+					"\t\tz_object_ref(Z_OBJECT(value));\n", arg_name);
+
 		/* set the value into the ZValue */
 		else if (is_pointer && (!strncmp(arg_type, "Self", 4) || arg_type[0] == 'Z'))
-			z_string_append_format(function_definitions, "\t\tz_value_set_as_object(a, Z_OBJECT(%s));\n", arg_name);
+			z_string_append_format(function_definitions,
+					"\t\tZValue *value = z_value_new(CTX);\n"
+					"\t\tz_value_set_as_object(value, Z_OBJECT(%s));\n", arg_name);
 
 		else if (!strcmp(arg_type, "char") ||
 		         !strcmp(arg_type, "int8_t")) {
 
 			if (is_pointer)
 				z_string_append_format(function_definitions, 
+						"\t\tZValue *value = z_value_new(CTX);\n"
 						"\t\tZString *_temp = z_string_new(CTX);\n"
 						"\t\tz_string_set_cstring(_temp, %s, Z_STRING_ENCODING_UTF8);\n"
-						"\t\tz_value_set_as_object(a, Z_OBJECT(_temp));\n"
+						"\t\tz_value_set_as_object(value, Z_OBJECT(_temp));\n"
 						"\t\tz_object_unref(Z_OBJECT(_temp));\n",
 						arg_name);
 			else 
-				z_string_append_format(function_definitions, "\t\tz_value_set_as_int8(a, %s);\n", arg_name);
+				z_string_append_format(function_definitions,
+						"\t\tZValue *value = z_value_new(CTX);\n"
+						"\t\tz_value_set_as_int8(value, %s);\n", arg_name);
 
 		} else if (!strcmp(arg_type, "short") ||
 			 !strcmp(arg_type, "int16_t")) {
-			z_string_append_format(function_definitions, "\t\tz_value_set_as_int16(a, %s);\n", arg_name);
+			z_string_append_format(function_definitions, 
+					"\t\tZValue *value = z_value_new(CTX);\n"
+					"\t\tz_value_set_as_int16(value, %s);\n", arg_name);
 
 		} else if (!strcmp(arg_type, "int") ||
 			 !strcmp(arg_type, "int32_t")) {
-			z_string_append_format(function_definitions, "\t\tz_value_set_as_int32(a, %s);\n", arg_name);
+			z_string_append_format(function_definitions,
+					"\t\tZValue *value = z_value_new(CTX);\n"
+					"\t\tz_value_set_as_int32(value, %s);\n", arg_name);
 
 		} else if (!strcmp(arg_type, "long") ||
 			 !strcmp(arg_type, "long long") ||
 			 !strcmp(arg_type, "int64_t")) {
-			z_string_append_format(function_definitions, "\t\tz_value_set_as_int64(a, %s);\n", arg_name);
+			z_string_append_format(function_definitions,
+					"\t\tZValue *value = z_value_new(CTX);\n"
+					"\t\tz_value_set_as_int64(value, %s);\n", arg_name);
 
 		} else if (!strcmp(arg_type, "unsigned char") ||
 			 !strcmp(arg_type, "uint8_t")) {
-			z_string_append_format(function_definitions, "\t\tz_value_set_as_uint8(a, %s);\n", arg_name);
+			z_string_append_format(function_definitions,
+					"\t\tZValue *value = z_value_new(CTX);\n"
+					"\t\tz_value_set_as_uint8(value, %s);\n", arg_name);
 
 		} else if (!strcmp(arg_type, "unsigned short") ||
 			 !strcmp(arg_type, "uint16_t")) {
-			z_string_append_format(function_definitions, "\t\tz_value_set_as_uint16(a, %s);\n", arg_name);
+			z_string_append_format(function_definitions, 
+					"\t\tZValue *value = z_value_new(CTX);\n"
+					"\t\tz_value_set_as_uint16(value, %s);\n", arg_name);
 
 		} else if (!strcmp(arg_type, "unsigned int") ||
 			 !strcmp(arg_type, "uint32_t")) {
-			z_string_append_format(function_definitions, "\t\tz_value_set_as_uint32(a, %s);\n", arg_name);
+			z_string_append_format(function_definitions,
+					"\t\tZValue *value = z_value_new(CTX);\n"
+					"\t\tz_value_set_as_uint32(value, %s);\n", arg_name);
 
 		} else if (!strcmp(arg_type, "unsigned long") ||
 			 !strcmp(arg_type, "unsigned long long") ||
 			 !strcmp(arg_type, "uint64_t")) {
-			z_string_append_format(function_definitions, "\t\tz_value_set_as_uint64(a, %s);\n", arg_name);
+			z_string_append_format(function_definitions,
+					"\t\tZValue *value = z_value_new(CTX);\n"
+					"\t\tz_value_set_as_uint64(value, %s);\n", arg_name);
 
 		} else if (!strcmp(arg_type, "float")) {
-			z_string_append_format(function_definitions, "\t\tz_value_set_as_real32(a, %s);\n", arg_name);
+			z_string_append_format(function_definitions,
+					"\t\tZValue *value = z_value_new(CTX);\n"
+					"\t\tz_value_set_as_real32(value, %s);\n", arg_name);
 
 		} else if (!strcmp(arg_type, "double")) {
-			z_string_append_format(function_definitions, "\t\tz_value_set_as_real64(a, %s);\n", arg_name);
+			z_string_append_format(function_definitions,
+					"\t\tZValue *value = z_value_new(CTX);\n"
+					"\t\tz_value_set_as_real64(value, %s);\n", arg_name);
 
 		} else {
 			z_string_append_format(function_definitions, "\t\t#error \"Invalid signal parameter type %s\"\n", arg_type);
@@ -360,7 +390,7 @@ static void signal_decl(const char *type, const char *symbol, const char *arglis
 
 		/* add the ZValue into the vector */
 		z_string_append_format(function_definitions,
-				"\t\tz_vector_push_back(args, a);\n"
+				"\t\tz_vector_push_back(args, value);\n"
 				"\t}\n");
 
 		free(arg_type);
@@ -375,7 +405,8 @@ static void signal_decl(const char *type, const char *symbol, const char *arglis
 			"\tz_object_unref(Z_OBJECT(args));\n"
 			"}\n", symbol);
 
-	z_string_append_format(signal_registrations, "\tz_object_register_signal(Z_OBJECT(self), \"%s\");\n", symbol);
+	print_line_number(function_registrations);
+	z_string_append_format(function_registrations, "\tz_object_register_signal(Z_OBJECT(self), \"%s\");\n", symbol);
 }
 
 static void member_function_decl(const char *type, const char *symbol, const char *arglist, const char *code)
@@ -396,6 +427,10 @@ static void member_function_decl(const char *type, const char *symbol, const cha
 			break;
 
 		case ACCESS_PUBLIC:
+			/* register method in look up table */
+			print_line_number(function_registrations);
+			z_string_append_format(function_registrations, "\tz_object_register_method(Z_OBJECT(self), \"%s\", (ZObjectSignalHandler) %s);\n", symbol, symbol);
+
 			/* for function prototype */
 			print_line_number(function_prototypes_h);
 			z_string_append_format(function_prototypes_h, "%s %s_%s%s;\n", type, current_class_name_lowercase, symbol, arglist);
@@ -431,12 +466,27 @@ static void add_data_member(int mode, const char *_type_name, const char *_symbo
 		case ACCESS_GLOBAL:
 			print_line_number(global_data);
 			z_string_append_format(global_data, "\t%s%s;\n", _type_name, _symbol_name);
-			z_string_append_format(c_macros, "#define %s (%s_global->%s)\n", _symbol_name, current_class_name_lowercase, _symbol_name);
+			z_string_append_format(c_macros, "#define %s (self->_global->%s)\n", _symbol_name, symbol_name);
 			break;
 		default:
 			abort();
 	}
 }
+
+static void add_virtual_data_member(int mode, const char *_type_name, const char *_symbol_name)
+{
+	switch (mode)
+	{
+		case ACCESS_PUBLIC:
+			print_line_number(public_data);
+			z_string_append_format(class_data, "\t%s %s;\n", _type_name, _symbol_name);
+			break;
+
+		default:
+			abort();
+	}
+}
+
 
 static void define_attached_property_getter(char *symbol_name, char *app_code)
 {
@@ -771,7 +821,7 @@ static void class_init(char *class_name)
 	h_macros_tail = z_string_new(&context);
 	c_macros = z_string_new(&context);
 	function_prototypes_h = z_string_new(&context);
-	signal_registrations = z_string_new(&context);
+	function_registrations = z_string_new(&context);
 
 	char * current_class_name_uppercase = pascal_to_uppercase(class_name, '_');
 	current_class_name_lowercase = pascal_to_lowercase(class_name, '_');
@@ -932,6 +982,7 @@ external_declaration
 	/* function prototypes in header file */
 	fprintf(header_file, "%sGlobal * %s_get_type(struct zco_context_t *ctx);\n", current_class_name_pascal, current_class_name_lowercase);
 	fprintf(header_file, "void __%s_init(struct zco_context_t *ctx, %s *self);\n", current_class_name_lowercase, current_class_name_pascal);
+	fprintf(header_file, "void __%s_class_init(struct zco_context_t *ctx, %sClass *_class);\n", current_class_name_lowercase, current_class_name_pascal);
 	dump_string(function_prototypes_h, header_file);
 	fprintf(header_file, "\n");
 
@@ -946,20 +997,20 @@ external_declaration
 			"#include <stdlib.h>\n",
 			header_filename);
 
-   if (class_needs_vector) {
-      class_needs_vector = 0;
-      fprintf(source_file, "#include <z-vector.h>\n");
-   }
+	if (class_needs_vector) {
+		class_needs_vector = 0;
+		fprintf(source_file, "#include <z-vector.h>\n");
+	}
 
-   if (class_needs_map) {
-      class_needs_map = 0;
-      fprintf(source_file, "#include <z-map.h>\n");
-   }
+	if (class_needs_map) {
+		class_needs_map = 0;
+		fprintf(source_file, "#include <z-map.h>\n");
+	}
 
-   if (class_needs_zvalue) {
-      class_needs_zvalue = 0;
-      fprintf(source_file, "#include <z-value.h>\n");
-   }
+	if (class_needs_zvalue) {
+		class_needs_zvalue = 0;
+		fprintf(source_file, "#include <z-value.h>\n");
+	}
 
 	/* macros in source file */
 	dump_string(c_macros, source_file);
@@ -967,7 +1018,6 @@ external_declaration
 
 	/* declare the global variables */
 	fprintf(source_file, "int %s_type_id = -1;\n", current_class_name_lowercase);
-	fprintf(source_file, "static %sGlobal * %s_global;\n", current_class_name_pascal, current_class_name_lowercase);
 	fprintf(source_file, "\n");
 
 	/* function prototypes in source file */
@@ -984,6 +1034,15 @@ external_declaration
 	dump_string(function_prototypes_c, source_file);
 	fprintf(source_file, "\n");
 
+
+	/* define cleanup_signal_arg */
+	fprintf(source_file, "static void cleanup_signal_arg(void *item, void *userdata)\n"
+			"{\n"
+			"\tZObject **obj = (ZObject **) item;\n"
+			"\tz_object_unref(*obj);\n"
+			"}\n");
+
+
 	/* define get_type */
 	fprintf(source_file, "%sGlobal * %s_get_type(struct zco_context_t *ctx)\n"
 			"{\n"
@@ -993,7 +1052,6 @@ external_declaration
 			"\tif (*global_ptr == 0) {\n"
 			"\t\t*global_ptr = malloc(sizeof(struct %sGlobal));\n"
 			"\t\tstruct %sGlobal *global = (%sGlobal *) *global_ptr;\n"
-			"\t\t%s_global = global;\n"
 			"\t\tglobal->ctx = ctx;\n"
 			"\t\tglobal->_class = malloc(sizeof(struct %sClass));\n"
 			"\t\tmemset(global->_class, 0, sizeof(struct %sClass));\n"
@@ -1010,7 +1068,6 @@ external_declaration
 			current_class_name_lowercase,
 			current_class_name_pascal,
 			current_class_name_pascal, current_class_name_pascal,
-			current_class_name_lowercase,
 			current_class_name_pascal,
 			current_class_name_pascal,
 			current_class_name_pascal,
@@ -1051,8 +1108,13 @@ external_declaration
 	dump_string(virtual_function_ptr_inits, source_file);
 
 	fprintf(source_file,
-			"\t\t#ifdef CLASS_INIT_EXISTS\n"
-			"\t\t\tclass_init((%sGlobal *) global);\n"
+			"\t\t__%s_class_init(ctx, (%sClass *) &temp);\n",
+			current_class_name_lowercase,
+			current_class_name_pascal);
+
+	fprintf(source_file,
+			"\t\t#ifdef GLOBAL_INIT_EXISTS\n"
+			"\t\t\tglobal_init((%sGlobal *) global);\n"
 			"\t\t#endif\n",
 			current_class_name_pascal);
 
@@ -1061,6 +1123,29 @@ external_declaration
 			"\treturn (%sGlobal *) *global_ptr;\n"
 			"}\n\n",
 			current_class_name_pascal);
+
+	/* define *_class_init */
+	fprintf(source_file,
+			"void __%s_class_init(struct zco_context_t *ctx, %sClass *_class)\n"
+			"{\n",
+			current_class_name_lowercase,
+			current_class_name_pascal);
+
+	for (i=0; i < parent_class_count; ++i) {
+		fprintf(source_file,
+				"\t__%s_class_init(ctx, (%sClass *) _class);\n",
+				parent_class_name_lowercase[i],
+				parent_class_name_pascal[i]);
+	}
+
+	/* call user defined init() */
+	fprintf(source_file,
+			"\t#ifdef CLASS_INIT_EXISTS\n"
+			"\t\tclass_init(ctx, _class);\n"
+			"\t#endif\n");
+
+	fprintf(source_file,
+			"}\n");
 
 	/* define *_init */
 	fprintf(source_file,
@@ -1091,8 +1176,8 @@ external_declaration
 			"\t\tinit(self);\n"
 			"\t#endif\n");
 
-	/* register signals */
-	dump_string(signal_registrations, source_file);
+	/* register methods and signals */
+	dump_string(function_registrations, source_file);
 
 	/* close the system defined init() definition */
 	fprintf(source_file, "}\n");
@@ -1515,6 +1600,13 @@ class_object
 	| access_specifier ignorables type_name symbol_name ignorables SEMICOLON
 	{ add_data_member(access_mode, type_name, symbol_name); free($2); free($6); }
 
+	/* virtual data members */
+	| access_specifier ignorables virtual_mode ignorables type_name symbol_name SEMICOLON
+	{ add_virtual_data_member(access_mode, type_name, symbol_name); free($2); }
+
+	| access_specifier ignorables virtual_mode ignorables type_name symbol_name ignorables SEMICOLON
+	{ add_virtual_data_member(access_mode, type_name, symbol_name); free($2); free($6); }
+
 	/* virtual member functions */
 	| access_specifier ignorables virtual_mode ignorables type_name symbol_name argument_list ccodes_block
 	{ virtual_member_function_decl(type_name, $6, $7, $8); free($2); free($4); free($7); free($8); }
@@ -1554,7 +1646,7 @@ class_object
 	| access_specifier ignorables type_name symbol_name ignorables argument_list ignorables ccodes_block
 	{ member_function_decl(type_name, $4, $6, $8); free($2); free($5); free($6); free($7); free($8); }
 
-	/* special member functions (ie. init() or class_init() */
+	/* special member functions (ie. init() or global_init() */
 	| symbol_name argument_list ccodes_block
 	{ special_member_function_decl($1, $2, $3); free($2); free($3); }
 

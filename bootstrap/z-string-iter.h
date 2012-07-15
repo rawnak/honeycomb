@@ -41,7 +41,6 @@ typedef struct ZStringIterClass ZStringIterClass;
 typedef struct ZStringIter ZStringIter;
 
 struct ZStringIterPrivate {
-#line 10 "z-string-iter.zco"
 	int index;
 };
 
@@ -70,25 +69,15 @@ struct ZStringIter {
 extern int z_string_iter_type_id;
 ZStringIterGlobal * z_string_iter_get_type(struct zco_context_t *ctx);
 void __z_string_iter_init(struct zco_context_t *ctx, ZStringIter *self);
-#line 17 "z-string-iter.zco"
 Self * z_string_iter_new(struct zco_context_t *ctx);
-#line 23 "z-string-iter.zco"
 Self * z_string_iter_dup(ZStringIter *src);
-#line 33 "z-string-iter.zco"
 int  z_string_iter_get_index(Self *self);
-#line 37 "z-string-iter.zco"
 void z_string_iter_set_index(Self *self, int  value);
-#line 43 "z-string-iter.zco"
 void  z_string_iter_advance(Self *self,int steps);
-#line 48 "z-string-iter.zco"
 void  z_string_iter_increment(Self *self);
-#line 53 "z-string-iter.zco"
 void  z_string_iter_decrement(Self *self);
-#line 58 "z-string-iter.zco"
 int  z_string_iter_is_equal(Self *self,Self *other);
-#line 63 "z-string-iter.zco"
 int  z_string_iter_is_lte(Self *self,Self *other);
-#line 68 "z-string-iter.zco"
 int  z_string_iter_is_gte(Self *self,Self *other);
 
 #undef Self

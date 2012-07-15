@@ -43,12 +43,18 @@ class ZObject
 	private unsigned int ref_count;
 	private void *attached_properties;
 	private void *signal_map;
+	public virtual void *method_map;
 
 	init(Self *self)
 	{
 		selfp->ref_count = 1;
 		selfp->attached_properties = 0;
 		selfp->signal_map = 0;
+	}
+
+	class_init(struct zco_context_t *ctx, ZObjectClass *_class)
+	{
+		_class->method_map = NULL;
 	}
 
 	public virtual void dispose(Self *self)
@@ -100,15 +106,20 @@ class ZObject
 			dispose(self);
 	}
 
-	public void * connect(Self *self, char *name, ZObjectSignalHandler handler, void *userdata)
+	public void * connect(Self *self, char *name, ZObject *target, char *method_name, void *userdata)
 	{
 		ZClosure *closure;
+		ZObjectSignalHandler handler;
 
 		assert(selfp->signal_map != NULL);
+
+		/* lookup handler from method_name */
+		handler = NULL;
 
 		/* create a closure */
 		closure = z_closure_new(CTX);
 		z_closure_set_marshal(closure, Z_CLOSURE_MARSHAL(CTX->marshal));
+		z_closure_set_target(closure, target);
 		z_closure_set_handler(closure, handler);
 		z_closure_set_userdata(closure, userdata);
 
@@ -148,6 +159,17 @@ class ZObject
 		}
 	}
 
+	public void register_method(Self *self, char *name, ZObjectSignalHandler method)
+	{
+		if (!self->_global->_class->method_map) {
+			self->_global->_class->method_map = z_map_new(CTX);
+			z_map_set_compare(self->_global->_class->method_map, map_compare);
+			z_map_set_key_destruct(self->_global->_class->method_map, (ZMapItemCallback) free);
+		}
+
+		//z_map_insert((ZMap *) method_map, strdup(name), method);
+	}
+
 	public void register_signal(Self *self, char *name)
 	{
 		/* create signal map (if necessary) */
@@ -162,12 +184,11 @@ class ZObject
 		ZMapIter *it = z_map_find(selfp->signal_map, name);
 
 		if (!it) {
-			ZVector *closure_list = z_vector_new(CTX, sizeof(void *));
+			ZVector *closure_list = z_vector_new(CTX, 0);
 			z_vector_set_item_destruct(closure_list, (ZVectorItemCallback) z_object_unref);
 			z_map_insert(selfp->signal_map, strdup(name), closure_list);
 		}
 	}
-
 
 	/*** INTERNAL METHODS ***/
 
@@ -191,6 +212,8 @@ class ZObject
 
 			if (rc == 1)
 				break;
+
+			z_vector_iter_increment(it);
 		}
 
 		return rc;

@@ -44,11 +44,8 @@ typedef struct ZClosureClass ZClosureClass;
 typedef struct ZClosure ZClosure;
 
 struct ZClosurePrivate {
-#line 14 "z-closure.zco"
 	ZClosureMarshal *marshal;
-#line 15 "z-closure.zco"
 	ZObjectSignalHandler handler;
-#line 16 "z-closure.zco"
 	void *userdata;
 };
 
@@ -62,7 +59,6 @@ struct ZClosureGlobal {
 	struct zco_context_t *ctx;
 	const char *name;
 	int id;
-#line 25 "z-closure.zco"
 	void  (*__parent_dispose)(ZObject *object);
 };
 
@@ -79,21 +75,13 @@ struct ZClosure {
 extern int z_closure_type_id;
 ZClosureGlobal * z_closure_get_type(struct zco_context_t *ctx);
 void __z_closure_init(struct zco_context_t *ctx, ZClosure *self);
-#line 35 "z-closure.zco"
 Self * z_closure_new(struct zco_context_t *ctx);
-#line 41 "z-closure.zco"
 Self * z_closure_dup(ZClosure *src);
-#line 49 "z-closure.zco"
 ZObjectSignalHandler  z_closure_get_handler(Self *self);
-#line 53 "z-closure.zco"
 void z_closure_set_handler(Self *self, ZObjectSignalHandler  value);
-#line 61 "z-closure.zco"
 void *  z_closure_get_userdata(Self *self);
-#line 65 "z-closure.zco"
 void z_closure_set_userdata(Self *self, void *  value);
-#line 73 "z-closure.zco"
 void z_closure_set_marshal(Self *self, ZClosureMarshal *  value);
-#line 83 "z-closure.zco"
 int  z_closure_invoke(Self *self,ZVector *args);
 
 #undef Self

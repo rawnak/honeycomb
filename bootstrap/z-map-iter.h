@@ -41,7 +41,6 @@ typedef struct ZMapIterClass ZMapIterClass;
 typedef struct ZMapIter ZMapIter;
 
 struct ZMapIterPrivate {
-#line 10 "z-map-iter.zco"
 	int index;
 };
 
@@ -70,25 +69,15 @@ struct ZMapIter {
 extern int z_map_iter_type_id;
 ZMapIterGlobal * z_map_iter_get_type(struct zco_context_t *ctx);
 void __z_map_iter_init(struct zco_context_t *ctx, ZMapIter *self);
-#line 17 "z-map-iter.zco"
 Self * z_map_iter_new(struct zco_context_t *ctx);
-#line 23 "z-map-iter.zco"
 Self * z_map_iter_dup(ZMapIter *src);
-#line 33 "z-map-iter.zco"
 int  z_map_iter_get_index(Self *self);
-#line 37 "z-map-iter.zco"
 void z_map_iter_set_index(Self *self, int  value);
-#line 43 "z-map-iter.zco"
 void  z_map_iter_advance(Self *self,int steps);
-#line 48 "z-map-iter.zco"
 void  z_map_iter_increment(Self *self);
-#line 53 "z-map-iter.zco"
 void  z_map_iter_decrement(Self *self);
-#line 58 "z-map-iter.zco"
 int  z_map_iter_is_equal(Self *self,Self *other);
-#line 63 "z-map-iter.zco"
 int  z_map_iter_is_lte(Self *self,Self *other);
-#line 68 "z-map-iter.zco"
 int  z_map_iter_is_gte(Self *self,Self *other);
 
 #undef Self

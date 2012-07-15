@@ -1,7 +1,7 @@
 /* ZCO - Cross-platform Application Framework
  * Copyright (C) 2014  Syeda Sultana
  *
- * z-closure-marshal.zco: Closure marshaller interface
+ * z-test-object.zco: Test object for signal test driver
  * This file is part of ZCO.
  *
  * This library is free software: you can redistribute it and/or modify
@@ -20,17 +20,34 @@
 
 %h{
 #include <z-object.h>
-#include <z-vector.h>
 %}
 
 %{
+#include <stdio.h>
 %}
 
-class ZClosureMarshal 
+class ZTestObject : ZObject
 {
-	public virtual int invoke(Self *self, ZObject *target, ZObjectSignalHandler handler, ZVector *args, void *userdata)
+	init(Self *self)
 	{
-		return 0; /* not handled */
+	}
+
+	public Self *new(struct zco_context_t *ctx)
+	{
+		Self *self = GET_NEW(ctx);
+		return self;
+	}
+
+	public Self *clicked!(Self *self);
+
+	public void click_it(Self *self)
+	{
+		clicked(self);
+	}
+
+	public void close(Self *self)
+	{
+		fprintf(stderr, "close called!!\n");
 	}
 }
 
