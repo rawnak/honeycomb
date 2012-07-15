@@ -21,6 +21,7 @@
 
 #include <assert.h>
 
+#include <z-map.h>
 #include <string.h>
 #include <z-closure.h>
 #include <zco-type.h>
@@ -30,15 +31,25 @@
 #define GET_NEW(ctx) __z_closure_new(ctx)
 #define CTX self->_global->ctx
 #define INIT_EXISTS
+#line 19 "z-closure.zco"
 #define init z_closure_init
+#line 42 "z-closure.zco"
 #define new z_closure_new
+#line 48 "z-closure.zco"
 #define dup z_closure_dup
+#line 56 "z-closure.zco"
 #define get_handler z_closure_get_handler
+#line 60 "z-closure.zco"
 #define set_handler z_closure_set_handler
+#line 68 "z-closure.zco"
 #define get_userdata z_closure_get_userdata
+#line 72 "z-closure.zco"
 #define set_userdata z_closure_set_userdata
+#line 80 "z-closure.zco"
 #define set_marshal z_closure_set_marshal
+#line 92 "z-closure.zco"
 #define set_target z_closure_set_target
+#line 102 "z-closure.zco"
 #define invoke z_closure_invoke
 
 int z_closure_type_id = -1;
@@ -49,7 +60,14 @@ static Self *__z_closure_new(struct zco_context_t *ctx)
 	__z_closure_init(ctx, self);
 	return self;
 }
+
+static int __map_compare(ZMap *map, const void *a, const void *b)
+{
+	return strcmp(a, b);
+}
+#line 19 "z-closure.zco"
 static void z_closure_init(Self *self);
+#line 27 "z-closure.zco"
 static void  z_closure_dispose(ZObject *object);
 
 static void cleanup_signal_arg(void *item, void *userdata)
@@ -59,22 +77,20 @@ static void cleanup_signal_arg(void *item, void *userdata)
 }
 ZClosureGlobal * z_closure_get_type(struct zco_context_t *ctx)
 {
-	if (z_closure_type_id == -1)
-		z_closure_type_id = zco_allocate_type_id();
-
-	void **global_ptr = zco_get_ctx_type(ctx, z_closure_type_id);
-	if (*global_ptr == 0) {
-		*global_ptr = malloc(sizeof(struct ZClosureGlobal));
-		struct ZClosureGlobal *global = (ZClosureGlobal *) *global_ptr;
+	void **global_ptr = NULL;
+	if (z_closure_type_id != -1) {
+		global_ptr = zco_get_ctx_type(ctx, z_closure_type_id);
+	}
+	if (!global_ptr || !*global_ptr) {
+		struct ZClosureGlobal *global = (ZClosureGlobal *) malloc(sizeof(struct ZClosureGlobal));
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZClosureClass));
 		memset(global->_class, 0, sizeof(struct ZClosureClass));
 		global->name = "ZClosure";
-		global->id = z_closure_type_id;
 		global->vtable_off_list = NULL;
 		global->vtable_off_size = 0;
 
-		struct ZClosureClass temp;
+		struct ZClosure temp;
 
 		{
 			struct ZObjectGlobal *p_class = z_object_get_type(ctx);
@@ -88,13 +104,33 @@ ZClosureGlobal * z_closure_get_type(struct zco_context_t *ctx)
 			unsigned long offset = global->vtable_off_list[z_object_type_id];
 			memcpy((char *) global->_class + offset, p_class->_class, sizeof(struct ZObjectClass));
 		}
-		zco_add_to_vtable(&global->vtable_off_list, &global->vtable_off_size, z_closure_type_id);		
+		if (z_closure_type_id == -1)
+			z_closure_type_id = zco_allocate_type_id();
+		global->id = z_closure_type_id;
+		zco_add_to_vtable(&global->vtable_off_list, &global->vtable_off_size, z_closure_type_id);
+		global_ptr = zco_get_ctx_type(ctx, z_closure_type_id);
+		*global_ptr = global;
+		
+#line 27 "z-closure.zco"
 		{
+#line 27 "z-closure.zco"
 			ZObjectClass *p_class = (ZObjectClass *) ((char *) global->_class + global->vtable_off_list[z_object_type_id]);
+#line 27 "z-closure.zco"
 			global->__parent_dispose = p_class->__dispose;
+#line 27 "z-closure.zco"
 			p_class->__dispose = z_closure_dispose;
+#line 27 "z-closure.zco"
 		}
-		__z_closure_class_init(ctx, (ZClosureClass *) &temp);
+		__z_closure_class_init(ctx, (ZClosureClass *) global->_class);
+		global->method_map = z_map_new(ctx);
+		z_map_set_compare(global->method_map, __map_compare);
+		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
+#line 42 "z-closure.zco"
+		z_map_insert((ZMap *) global->method_map, strdup("new"), (ZObjectSignalHandler) new);
+#line 48 "z-closure.zco"
+		z_map_insert((ZMap *) global->method_map, strdup("dup"), (ZObjectSignalHandler) dup);
+#line 102 "z-closure.zco"
+		z_map_insert((ZMap *) global->method_map, strdup("invoke"), (ZObjectSignalHandler) invoke);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZClosureGlobal *) global);
 		#endif
@@ -109,21 +145,20 @@ void __z_closure_class_init(struct zco_context_t *ctx, ZClosureClass *_class)
 	#ifdef CLASS_INIT_EXISTS
 		class_init(ctx, _class);
 	#endif
-	z_object_register_method(ctx, (ZObjectClass *) _class, "new", (ZObjectSignalHandler) new);
-	z_object_register_method(ctx, (ZObjectClass *) _class, "dup", (ZObjectSignalHandler) dup);
-	z_object_register_method(ctx, (ZObjectClass *) _class, "invoke", (ZObjectSignalHandler) invoke);
 }
 void __z_closure_init(struct zco_context_t *ctx, Self *self)
 {
 	struct ZClosureGlobal *_global = z_closure_get_type(ctx);
 	self->_global = _global;
-	__z_object_init(ctx, Z_OBJECT(self));
+	__z_object_init(ctx, (ZObject *) (self));
 	((ZObject *) self)->class_base = (void *) _global->_class;
+	((ZObject *) self)->global_base = (void *) _global;
 	((ZObject *) self)->vtable = _global->vtable_off_list;
 	#ifdef INIT_EXISTS
 		init(self);
 	#endif
 }
+#line 19 "z-closure.zco"
 static void z_closure_init(Self *self)
 {
  selfp->marshal = 0;
@@ -131,6 +166,7 @@ static void z_closure_init(Self *self)
  selfp->target = 0;
  selfp->userdata = 0;
  }
+#line 27 "z-closure.zco"
 #define PARENT_HANDLER self->_global->__parent_dispose
 static void  z_closure_dispose(ZObject *object)
 {
@@ -147,32 +183,39 @@ static void  z_closure_dispose(ZObject *object)
  }
  }
 #undef PARENT_HANDLER
+#line 42 "z-closure.zco"
 Self * z_closure_new(struct zco_context_t *ctx)
 {
  Self *self = GET_NEW(ctx);
  return self;
  }
+#line 48 "z-closure.zco"
 Self * z_closure_dup(ZClosure *src)
 {
  Self *self = GET_NEW(src->_global->ctx);
  return self;
  }
+#line 56 "z-closure.zco"
 ZObjectSignalHandler  z_closure_get_handler(Self *self)
 {
  return selfp->handler;
  }
+#line 60 "z-closure.zco"
 void z_closure_set_handler(Self *self, ZObjectSignalHandler  value)
 {
  selfp->handler = value;
  }
+#line 68 "z-closure.zco"
 void *  z_closure_get_userdata(Self *self)
 {
  return selfp->userdata;
  }
+#line 72 "z-closure.zco"
 void z_closure_set_userdata(Self *self, void *  value)
 {
  selfp->userdata = value;
  }
+#line 80 "z-closure.zco"
 void z_closure_set_marshal(Self *self, ZClosureMarshal *  value)
 {
  if (selfp->marshal)
@@ -181,6 +224,7 @@ void z_closure_set_marshal(Self *self, ZClosureMarshal *  value)
  selfp->marshal = value;
  z_object_ref(Z_OBJECT(selfp->marshal));
  }
+#line 92 "z-closure.zco"
 void z_closure_set_target(Self *self, ZObject *  value)
 {
  if (selfp->target)
@@ -189,6 +233,7 @@ void z_closure_set_target(Self *self, ZObject *  value)
  selfp->target = value;
  z_object_ref(Z_OBJECT(selfp->target));
  }
+#line 102 "z-closure.zco"
 int  z_closure_invoke(Self *self,ZVector *args)
 {
  return z_closure_marshal_invoke(selfp->marshal, selfp->target, selfp->handler, args, selfp->userdata);

@@ -39,6 +39,7 @@ typedef void(*ZObjectSignalHandler)(struct ZObject *self, ...);
 class ZObject 
 {
 	public void *class_base;
+	public void *global_base;
 	public int *vtable;
 	private unsigned int ref_count;
 	private void *attached_properties;
@@ -100,6 +101,37 @@ class ZObject
 			dispose(self);
 	}
 
+	private ZObjectSignalHandler lookup_method(Self *self, char *method_name)
+	{
+		/* This reinterpret cast is only valid for the fields that
+		   are common between the source (unknown) *Global type and
+		   ZObjectGlobal. Since we are interested in the vtable information,
+		   we can perform the cast */
+		ZObjectGlobal *gbl = (ZObjectGlobal *) self->global_base;
+		int *vtable_off_list = gbl->vtable_off_list;
+		int vtable_off_size = gbl->vtable_off_size;
+		int i;
+
+		for (i=vtable_off_size-1; i>=0; --i) {
+			int offset = vtable_off_list[i];
+
+			/* -1 indicates that this object is not derived from
+			   a parent class with the type id 'i' */
+			if (offset == -1)
+				continue;
+
+			gbl = *((void **) zco_get_ctx_type(CTX, i));
+			ZMap *method_map = (ZMap *) gbl->method_map;
+			ZMapIter *it = z_map_find(method_map, method_name);
+
+			if (it) {
+				return z_map_get_value(method_map, it);
+			}
+		}
+
+		return NULL;
+	}
+
 	public void * connect(Self *self, char *name, ZObject *target, char *method_name, void *userdata)
 	{
 		ZClosure *closure;
@@ -108,7 +140,8 @@ class ZObject
 		assert(selfp->signal_map != NULL);
 
 		/* lookup handler from method_name */
-		handler = NULL;
+		handler = lookup_method(self, method_name);
+		assert(handler != NULL);
 
 		/* create a closure */
 		closure = z_closure_new(CTX);

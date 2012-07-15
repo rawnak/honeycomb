@@ -45,9 +45,15 @@ class ZTestObject : ZObject
 		clicked(self);
 	}
 
-	public void close(Self *self)
+	public void close1(Self *self)
 	{
-		fprintf(stderr, "close called!!\n");
+		fprintf(stderr, "close1 called!!\n");
 	}
+
+	public void close2(Self *self)
+	{
+		fprintf(stderr, "close2 called!!\n");
+	}
+
 }
 

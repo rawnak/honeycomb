@@ -27,6 +27,7 @@
 #include <z-closure-marshal.h>
 #include <z-string.h>
 
+#include <z-map.h>
 #include <string.h>
 #include <z-object.h>
 #include <zco-type.h>
@@ -36,18 +37,27 @@
 #define GET_NEW(ctx) __z_object_new(ctx)
 #define CTX self->_global->ctx
 #define INIT_EXISTS
+#line 28 "z-object.zco"
 #define init z_object_init
-#define CLASS_INIT_EXISTS
-#define class_init z_object_class_init
+#line 35 "z-object.zco"
 #define dispose z_object_dispose
+#line 72 "z-object.zco"
 #define ref z_object_ref
+#line 77 "z-object.zco"
 #define unref z_object_unref
+#line 84 "z-object.zco"
+#define lookup_method z_object_lookup_method
+#line 115 "z-object.zco"
 #define connect z_object_connect
+#line 144 "z-object.zco"
 #define disconnect z_object_disconnect
-#define register_method z_object_register_method
+#line 169 "z-object.zco"
 #define register_signal z_object_register_signal
+#line 191 "z-object.zco"
 #define emit_signal z_object_emit_signal
+#line 218 "z-object.zco"
 #define add_attached_property_map z_object_add_attached_property_map
+#line 227 "z-object.zco"
 #define map_compare z_object_map_compare
 
 int z_object_type_id = -1;
@@ -58,9 +68,18 @@ static Self *__z_object_new(struct zco_context_t *ctx)
 	__z_object_init(ctx, self);
 	return self;
 }
+
+static int __map_compare(ZMap *map, const void *a, const void *b)
+{
+	return strcmp(a, b);
+}
+#line 28 "z-object.zco"
 static void z_object_init(Self *self);
-static void z_object_class_init(struct zco_context_t *ctx,ZObjectClass *_class);
+#line 35 "z-object.zco"
 static void  z_object_virtual_dispose(Self *self);
+#line 84 "z-object.zco"
+static ZObjectSignalHandler  z_object_lookup_method(Self *self,char *method_name);
+#line 227 "z-object.zco"
 static int  z_object_map_compare(ZMap *map,const void *a,const void *b);
 
 static void cleanup_signal_arg(void *item, void *userdata)
@@ -70,26 +89,50 @@ static void cleanup_signal_arg(void *item, void *userdata)
 }
 ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
 {
-	if (z_object_type_id == -1)
-		z_object_type_id = zco_allocate_type_id();
-
-	void **global_ptr = zco_get_ctx_type(ctx, z_object_type_id);
-	if (*global_ptr == 0) {
-		*global_ptr = malloc(sizeof(struct ZObjectGlobal));
-		struct ZObjectGlobal *global = (ZObjectGlobal *) *global_ptr;
+	void **global_ptr = NULL;
+	if (z_object_type_id != -1) {
+		global_ptr = zco_get_ctx_type(ctx, z_object_type_id);
+	}
+	if (!global_ptr || !*global_ptr) {
+		struct ZObjectGlobal *global = (ZObjectGlobal *) malloc(sizeof(struct ZObjectGlobal));
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZObjectClass));
 		memset(global->_class, 0, sizeof(struct ZObjectClass));
 		global->name = "ZObject";
-		global->id = z_object_type_id;
 		global->vtable_off_list = NULL;
 		global->vtable_off_size = 0;
 
-		struct ZObjectClass temp;
+		struct ZObject temp;
 
-		zco_add_to_vtable(&global->vtable_off_list, &global->vtable_off_size, z_object_type_id);		
+		if (z_object_type_id == -1)
+			z_object_type_id = zco_allocate_type_id();
+		global->id = z_object_type_id;
+		zco_add_to_vtable(&global->vtable_off_list, &global->vtable_off_size, z_object_type_id);
+		global_ptr = zco_get_ctx_type(ctx, z_object_type_id);
+		*global_ptr = global;
+		
+#line 35 "z-object.zco"
 		global->_class->__dispose = z_object_virtual_dispose;
-		__z_object_class_init(ctx, (ZObjectClass *) &temp);
+		__z_object_class_init(ctx, (ZObjectClass *) global->_class);
+		global->method_map = z_map_new(ctx);
+		z_map_set_compare(global->method_map, __map_compare);
+		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
+#line 35 "z-object.zco"
+		z_map_insert((ZMap *) global->method_map, strdup("dispose"), (ZObjectSignalHandler) dispose);
+#line 72 "z-object.zco"
+		z_map_insert((ZMap *) global->method_map, strdup("ref"), (ZObjectSignalHandler) ref);
+#line 77 "z-object.zco"
+		z_map_insert((ZMap *) global->method_map, strdup("unref"), (ZObjectSignalHandler) unref);
+#line 115 "z-object.zco"
+		z_map_insert((ZMap *) global->method_map, strdup("connect"), (ZObjectSignalHandler) connect);
+#line 144 "z-object.zco"
+		z_map_insert((ZMap *) global->method_map, strdup("disconnect"), (ZObjectSignalHandler) disconnect);
+#line 169 "z-object.zco"
+		z_map_insert((ZMap *) global->method_map, strdup("register_signal"), (ZObjectSignalHandler) register_signal);
+#line 191 "z-object.zco"
+		z_map_insert((ZMap *) global->method_map, strdup("emit_signal"), (ZObjectSignalHandler) emit_signal);
+#line 218 "z-object.zco"
+		z_map_insert((ZMap *) global->method_map, strdup("add_attached_property_map"), (ZObjectSignalHandler) add_attached_property_map);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZObjectGlobal *) global);
 		#endif
@@ -103,41 +146,32 @@ void __z_object_class_init(struct zco_context_t *ctx, ZObjectClass *_class)
 	#ifdef CLASS_INIT_EXISTS
 		class_init(ctx, _class);
 	#endif
-	z_object_register_method(ctx, (ZObjectClass *) _class, "dispose", (ZObjectSignalHandler) dispose);
-	z_object_register_method(ctx, (ZObjectClass *) _class, "ref", (ZObjectSignalHandler) ref);
-	z_object_register_method(ctx, (ZObjectClass *) _class, "unref", (ZObjectSignalHandler) unref);
-	z_object_register_method(ctx, (ZObjectClass *) _class, "connect", (ZObjectSignalHandler) connect);
-	z_object_register_method(ctx, (ZObjectClass *) _class, "disconnect", (ZObjectSignalHandler) disconnect);
-	z_object_register_method(ctx, (ZObjectClass *) _class, "register_method", (ZObjectSignalHandler) register_method);
-	z_object_register_method(ctx, (ZObjectClass *) _class, "register_signal", (ZObjectSignalHandler) register_signal);
-	z_object_register_method(ctx, (ZObjectClass *) _class, "emit_signal", (ZObjectSignalHandler) emit_signal);
-	z_object_register_method(ctx, (ZObjectClass *) _class, "add_attached_property_map", (ZObjectSignalHandler) add_attached_property_map);
 }
 void __z_object_init(struct zco_context_t *ctx, Self *self)
 {
 	struct ZObjectGlobal *_global = z_object_get_type(ctx);
 	self->_global = _global;
 	((ZObject *) self)->class_base = (void *) _global->_class;
+	((ZObject *) self)->global_base = (void *) _global;
 	((ZObject *) self)->vtable = _global->vtable_off_list;
 	#ifdef INIT_EXISTS
 		init(self);
 	#endif
 }
+#line 28 "z-object.zco"
 static void z_object_init(Self *self)
 {
  selfp->ref_count = 1;
  selfp->attached_properties = 0;
  selfp->signal_map = 0;
  }
-static void z_object_class_init(struct zco_context_t *ctx,ZObjectClass *_class)
-{
- _class->method_map = NULL;
- }
+#line 35 "z-object.zco"
 void  z_object_dispose(Self *self)
 {
 	ZObject *obj = (ZObject *) self;
 	((ZObjectClass *) ((char *) obj->class_base + obj->vtable[z_object_type_id]))->__dispose(self);
 }
+#line 35 "z-object.zco"
 static void  z_object_virtual_dispose(Self *self)
 {
  ZVector *attached_properties = selfp->attached_properties;
@@ -174,16 +208,50 @@ static void  z_object_virtual_dispose(Self *self)
 
  free(self);
  }
+#line 72 "z-object.zco"
 void  z_object_ref(Self *self)
 {
  ++selfp->ref_count;
  }
+#line 77 "z-object.zco"
 void  z_object_unref(Self *self)
 {
  assert(selfp->ref_count > 0);
  if (--selfp->ref_count == 0)
  dispose(self);
  }
+#line 84 "z-object.zco"
+static ZObjectSignalHandler  z_object_lookup_method(Self *self,char *method_name)
+{
+ /* This reinterpret cast is only valid for the fields that
+		   are common between the source (unknown) *Global type and
+		   ZObjectGlobal. Since we are interested in the vtable information,
+		   we can perform the cast */
+ ZObjectGlobal *gbl = (ZObjectGlobal *) self->global_base;
+ int *vtable_off_list = gbl->vtable_off_list;
+ int vtable_off_size = gbl->vtable_off_size;
+ int i;
+
+ for (i=vtable_off_size-1; i>=0; --i) {
+ int offset = vtable_off_list[i];
+
+ /* -1 indicates that this object is not derived from
+			   a parent class with the type id 'i' */
+ if (offset == -1)
+ continue;
+
+ gbl = *((void **) zco_get_ctx_type(CTX, i));
+ ZMap *method_map = (ZMap *) gbl->method_map;
+ ZMapIter *it = z_map_find(method_map, method_name);
+
+ if (it) {
+ return z_map_get_value(method_map, it);
+ }
+ }
+
+ return NULL;
+ }
+#line 115 "z-object.zco"
 void *  z_object_connect(Self *self,char *name,ZObject *target,char *method_name,void *userdata)
 {
  ZClosure *closure;
@@ -192,7 +260,8 @@ void *  z_object_connect(Self *self,char *name,ZObject *target,char *method_name
  assert(selfp->signal_map != NULL);
 
  /* lookup handler from method_name */
- handler = NULL;
+ handler = lookup_method(self, method_name);
+ assert(handler != NULL);
 
  /* create a closure */
  closure = z_closure_new(CTX);
@@ -211,6 +280,7 @@ void *  z_object_connect(Self *self,char *name,ZObject *target,char *method_name
 
  return closure;
  }
+#line 144 "z-object.zco"
 void  z_object_disconnect(Self *self,char *name,void *key)
 {
  assert(selfp->signal_map != NULL);
@@ -235,16 +305,7 @@ void  z_object_disconnect(Self *self,char *name,void *key)
  }
  }
  }
-void  z_object_register_method(struct zco_context_t *ctx,ZObjectClass *_class,char *name,ZObjectSignalHandler method)
-{
- if (!_class->method_map) {
- _class->method_map = z_map_new(ctx);
- z_map_set_compare(_class->method_map, map_compare);
- z_map_set_key_destruct(_class->method_map, (ZMapItemCallback) free);
- }
-
- z_map_insert((ZMap *) _class->method_map, strdup(name), method);
- }
+#line 169 "z-object.zco"
 void  z_object_register_signal(Self *self,char *name)
 {
  /* create signal map (if necessary) */
@@ -264,6 +325,7 @@ void  z_object_register_signal(Self *self,char *name)
  z_map_insert(selfp->signal_map, strdup(name), closure_list);
  }
  }
+#line 191 "z-object.zco"
 int  z_object_emit_signal(Self *self,char *name,void *argv)
 {
  assert(selfp->signal_map != NULL);
@@ -290,6 +352,7 @@ int  z_object_emit_signal(Self *self,char *name,void *argv)
 
  return rc;
  }
+#line 218 "z-object.zco"
 void  z_object_add_attached_property_map(Self *self,void *map)
 {
  if (selfp->attached_properties == 0)
@@ -298,6 +361,7 @@ void  z_object_add_attached_property_map(Self *self,void *map)
  /* keep note of the maps that has a pointer to 'self' */
  z_vector_push_back((ZVector *) selfp->attached_properties, map);
  }
+#line 227 "z-object.zco"
 static int  z_object_map_compare(ZMap *map,const void *a,const void *b)
 {
  return strcmp(a, b);

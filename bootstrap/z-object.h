@@ -29,7 +29,7 @@ typedef void(*ZObjectSignalHandler)(struct ZObject *self, ...);
 
 #include <zco-type.h>
 #define Self ZObject
-#define Z_OBJECT(s) ((ZObject *) ((char *) (s) + ((int *) (s)->_global)[z_object_type_id]))
+#define Z_OBJECT(s) ((ZObject *) ((char *) (s) + (s)->_global->vtable_off_list[z_object_type_id]))
 
 
 struct ZObjectPrivate;
@@ -45,8 +45,11 @@ typedef struct ZObjectClass ZObjectClass;
 typedef struct ZObject ZObject;
 
 struct ZObjectPrivate {
+#line 24 "z-object.zco"
 	unsigned int ref_count;
+#line 25 "z-object.zco"
 	void *attached_properties;
+#line 26 "z-object.zco"
 	void *signal_map;
 };
 
@@ -60,10 +63,11 @@ struct ZObjectGlobal {
 	struct zco_context_t *ctx;
 	const char *name;
 	int id;
+	void *method_map;
 };
 
 struct ZObjectClass {
-	void * method_map;
+#line 35 "z-object.zco"
 	void  (*__dispose)(Self *self);
 };
 
@@ -71,21 +75,32 @@ struct ZObject {
 	struct ZObjectGlobal *_global;
 	struct ZObjectPrivate _priv;
 	struct ZObjectProtected _prot;
+#line 21 "z-object.zco"
 	void *class_base;
+#line 22 "z-object.zco"
+	void *global_base;
+#line 23 "z-object.zco"
 	int *vtable;
 };
 extern int z_object_type_id;
 ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx);
 void __z_object_init(struct zco_context_t *ctx, ZObject *self);
 void __z_object_class_init(struct zco_context_t *ctx, ZObjectClass *_class);
+#line 35 "z-object.zco"
 void  z_object_dispose(Self *self);
+#line 72 "z-object.zco"
 void  z_object_ref(Self *self);
+#line 77 "z-object.zco"
 void  z_object_unref(Self *self);
+#line 115 "z-object.zco"
 void *  z_object_connect(Self *self,char *name,ZObject *target,char *method_name,void *userdata);
+#line 144 "z-object.zco"
 void  z_object_disconnect(Self *self,char *name,void *key);
-void  z_object_register_method(struct zco_context_t *ctx,ZObjectClass *_class,char *name,ZObjectSignalHandler method);
+#line 169 "z-object.zco"
 void  z_object_register_signal(Self *self,char *name);
+#line 191 "z-object.zco"
 int  z_object_emit_signal(Self *self,char *name,void *argv);
+#line 218 "z-object.zco"
 void  z_object_add_attached_property_map(Self *self,void *map);
 
 #undef Self

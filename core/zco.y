@@ -174,7 +174,7 @@ static void record_line_number()
 
 static void print_line_number(ZString *str)
 {
-	//z_string_append_format(str, "#line %d \"%s\"\n", real_lineno, zco_filename);
+	z_string_append_format(str, "#line %d \"%s\"\n", real_lineno, zco_filename);
 }
 
 static void special_member_function_decl(const char *symbol, const char *arglist, const char *code)
@@ -1068,17 +1068,16 @@ external_declaration
 	/* define get_type */
 	fprintf(source_file, "%sGlobal * %s_get_type(struct zco_context_t *ctx)\n"
 			"{\n"
-			"\tif (%s_type_id == -1)\n"
-			"\t\t%s_type_id = zco_allocate_type_id();\n\n"
-			"\tvoid **global_ptr = zco_get_ctx_type(ctx, %s_type_id);\n"
-			"\tif (*global_ptr == 0) {\n"
-			"\t\t*global_ptr = malloc(sizeof(struct %sGlobal));\n"
-			"\t\tstruct %sGlobal *global = (%sGlobal *) *global_ptr;\n"
+			"\tvoid **global_ptr = NULL;\n"
+			"\tif (%s_type_id != -1) {\n"
+			"\t\tglobal_ptr = zco_get_ctx_type(ctx, %s_type_id);\n"
+			"\t}\n"
+			"\tif (!global_ptr || !*global_ptr) {\n"
+			"\t\tstruct %sGlobal *global = (%sGlobal *) malloc(sizeof(struct %sGlobal));\n"
 			"\t\tglobal->ctx = ctx;\n"
 			"\t\tglobal->_class = malloc(sizeof(struct %sClass));\n"
 			"\t\tmemset(global->_class, 0, sizeof(struct %sClass));\n"
 			"\t\tglobal->name = \"%s\";\n"
-			"\t\tglobal->id = %s_type_id;\n"
 			"\t\tglobal->vtable_off_list = NULL;\n"
 			"\t\tglobal->vtable_off_size = 0;\n"
          "\n"
@@ -1087,13 +1086,11 @@ external_declaration
 			current_class_name_pascal, current_class_name_lowercase,
 			current_class_name_lowercase,
 			current_class_name_lowercase,
-			current_class_name_lowercase,
 			current_class_name_pascal,
 			current_class_name_pascal, current_class_name_pascal,
 			current_class_name_pascal,
 			current_class_name_pascal,
 			current_class_name_pascal,
-			current_class_name_lowercase,
 			current_class_name_pascal);
 
 	/* inherit the vtable from the parent class */
@@ -1122,8 +1119,17 @@ external_declaration
 	}
 
 	fprintf(source_file,
-			"\t\tzco_add_to_vtable(&global->vtable_off_list, &global->vtable_off_size, %s_type_id);"
+			"\t\tif (%s_type_id == -1)\n"
+			"\t\t\t%s_type_id = zco_allocate_type_id();\n"
+			"\t\tglobal->id = %s_type_id;\n"
+			"\t\tzco_add_to_vtable(&global->vtable_off_list, &global->vtable_off_size, %s_type_id);\n"
+			"\t\tglobal_ptr = zco_get_ctx_type(ctx, %s_type_id);\n"
+			"\t\t*global_ptr = global;\n"
 			"\t\t\n",
+			current_class_name_lowercase,
+			current_class_name_lowercase,
+			current_class_name_lowercase,
+			current_class_name_lowercase,
 			current_class_name_lowercase);
 
 	/* assign the virtual function pointers */
@@ -1218,8 +1224,10 @@ external_declaration
 	}
 
 	/* assign current class as the active class */
-	fprintf(source_file, "\t((ZObject *) self)->class_base = (void *) _global->_class;\n");
-	fprintf(source_file, "\t((ZObject *) self)->vtable = _global->vtable_off_list;\n");
+	fprintf(source_file,
+			"\t((ZObject *) self)->class_base = (void *) _global->_class;\n"
+			"\t((ZObject *) self)->global_base = (void *) _global;\n"
+			"\t((ZObject *) self)->vtable = _global->vtable_off_list;\n");
 
 	dump_string(signal_registrations, source_file);
 

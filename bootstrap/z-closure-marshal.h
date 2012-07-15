@@ -26,7 +26,7 @@
 
 #include <zco-type.h>
 #define Self ZClosureMarshal
-#define Z_CLOSURE_MARSHAL(s) ((ZClosureMarshal *) ((char *) (s) + ((int *) (s)->_global)[z_closure_marshal_type_id]))
+#define Z_CLOSURE_MARSHAL(s) ((ZClosureMarshal *) ((char *) (s) + (s)->_global->vtable_off_list[z_closure_marshal_type_id]))
 
 
 struct ZClosureMarshalPrivate;
@@ -54,9 +54,11 @@ struct ZClosureMarshalGlobal {
 	struct zco_context_t *ctx;
 	const char *name;
 	int id;
+	void *method_map;
 };
 
 struct ZClosureMarshalClass {
+#line 11 "z-closure-marshal.zco"
 	int  (*__invoke)(Self *self,ZObject *target,ZObjectSignalHandler handler,ZVector *args,void *userdata);
 };
 
@@ -69,6 +71,7 @@ extern int z_closure_marshal_type_id;
 ZClosureMarshalGlobal * z_closure_marshal_get_type(struct zco_context_t *ctx);
 void __z_closure_marshal_init(struct zco_context_t *ctx, ZClosureMarshal *self);
 void __z_closure_marshal_class_init(struct zco_context_t *ctx, ZClosureMarshalClass *_class);
+#line 11 "z-closure-marshal.zco"
 int  z_closure_marshal_invoke(Self *self,ZObject *target,ZObjectSignalHandler handler,ZVector *args,void *userdata);
 
 #undef Self
