@@ -1757,7 +1757,11 @@ int main(int argc, char **argv)
 	filename[base_length+1] = 'h';
 	filename[base_length+2] = 0;
 	header_filename = strdup(filename);
-	header_file = fopen(header_filename, "w");
+	if ((header_file = fopen(header_filename, "w")) == NULL) {
+		fputs("zco: ", stderr);
+		perror(header_filename);
+		return -1;
+	}
 
 	/* write the include guard in the header file */
 	char *temp = macro_safe(header_filename);
@@ -1769,7 +1773,11 @@ int main(int argc, char **argv)
 	source_file = fopen(filename, "w");
 
 	/* use input .zco file as standard input */
-	freopen(argv[1], "r", stdin);
+	if (freopen(argv[1], "r", stdin) == NULL) {
+		fputs("zco: ", stderr);
+		perror(argv[1]);
+		return -1;
+	}
 
 	rc = yyparse();
 
