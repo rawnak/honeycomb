@@ -1,0 +1,78 @@
+/* ZCO - Cross-platform Application Framework
+ * Copyright (C) 2014  Syeda Sultana
+ *
+ * z-closure.zco: Function closure
+ * This file is part of ZCO.
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZCO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+%h{
+#include <z-object.h>
+#include <stdint.h>
+%}
+
+%{
+#include <assert.h>
+
+%}
+   
+class ZClosure : ZObject
+{
+   private ZObjectSignalHandler handler;
+   private void *userdata;
+
+   init(Self *self)
+   {
+	   selfp->handler = 0;
+	   selfp->userdata = 0;
+   }
+
+   public Self *new(struct zco_context_t *ctx)
+   {
+	   Self *self = GET_NEW(ctx);
+	   return self;
+   }
+
+   public Self *dup(ZClosure *src)
+   {
+	   Self *self = GET_NEW(src->_global->ctx);
+	   return self;
+   }
+
+   public ZObjectSignalHandler handler
+   {
+	   get
+	   {
+		   return selfp->handler;
+	   } 
+	   set
+	   {
+		   selfp->handler = value;
+	   }
+   }
+
+   public void * userdata
+   {
+	   get
+	   {
+		   return selfp->userdata;
+	   }
+	   set
+	   {
+		   selfp->userdata = value;
+	   }
+   }
+}
+

@@ -119,6 +119,13 @@ add_custom_command(
       DEPENDS z-value.zco
       )
 
+add_custom_command(
+      OUTPUT z-closure.h z-closure.c
+      COMMAND ln -sf ${CMAKE_CURRENT_SOURCE_DIR}/z-closure.zco ${CMAKE_CURRENT_BINARY_DIR}/
+      COMMAND ./zco z-closure.zco
+      DEPENDS z-closure.zco
+      )
+
 add_library(zclib SHARED
       zco-type.c
       z-object.c
@@ -130,5 +137,6 @@ add_library(zclib SHARED
       z-map.c
       z-log.c
       z-value.c
+      z-closure.c
       )
 

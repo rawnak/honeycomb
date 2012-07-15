@@ -21,6 +21,10 @@
 %h{
 #define likely(x)    __builtin_expect((x),1)
 #define unlikely(x)  __builtin_expect((x),0)
+
+struct ZObject;
+typedef struct ZObject ZObject;
+typedef void(*ZObjectSignalHandler)(ZObject *self, ...);
 %}
 
 %{
@@ -28,6 +32,7 @@
 #include <z-map.h>
 #include <z-vector.h>
 #include <z-vector-iter.h>
+#include <z-closure.h>
 %}
 
 class ZObject 
@@ -96,5 +101,24 @@ class ZObject
 		z_vector_push_back((ZVector *) selfp->attached_properties, map);
 	}
 
+	public void connect(Self *self, char *name, ZObjectSignalHandler handler, void *userdata)
+	{
+		ZClosure *closure;
+
+		closure = z_closure_new(CTX);
+		z_closure_set_handler(closure, handler);
+		z_closure_set_userdata(closure, userdata);
+
+
+		
+
+		/* steps:
+			1. create a ZClosure object (done)
+			2. locate the signal by 'name'
+			3. add this closure object to this signal
+		 */
+
+
+	}
 }
 
