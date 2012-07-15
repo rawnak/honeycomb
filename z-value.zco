@@ -1,0 +1,365 @@
+/* ZCO - Cross-platform Application Framework
+ * Copyright (C) 2014  Syeda Sultana
+ *
+ * z-value.zco: A generic value type
+ * This file is part of ZCO.
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZCO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+%h{
+#include <z-object.h>
+#include <stdint.h>
+%}
+
+%{
+#include <z-object.h>
+#include <stdint.h>
+#include <assert.h>
+
+enum VariantTag {
+   None,
+   Boolean,
+   Int8,
+   Int16,
+   Int32,
+   Int64,
+   UInt8,
+   UInt16,
+   UInt32,
+   UInt64,
+   Real32,
+   Real64,
+   Object
+};
+
+
+union VariantData {
+   uint8_t   _boolean;
+   int8_t    _int8;
+   int16_t   _int16;
+   int32_t   _int32;
+   int64_t   _int64;
+   uint8_t   _uint8;
+   uint16_t  _uint16;
+   uint32_t  _uint32;
+   uint64_t  _uint64;
+   float     _real32;
+   double    _real64;
+   ZObject * _object;
+};
+
+%}
+   
+class ZValue : ZObject
+{
+   private union VariantData data;
+   private int tag;
+
+   init(Self *self)
+   {
+	   selfp->tag = None;
+   }
+
+   public Self *new(struct zco_context_t *ctx)
+   {
+	   Self *self = GET_NEW(ctx);
+	   return self;
+   }
+
+   public Self *dup(ZValue *src)
+   {
+	   Self *self = GET_NEW(src->_global->ctx);
+
+	   selfp->data = src->_priv.data;
+	   selfp->tag = src->_priv.tag;
+
+	   if (selfp->tag == Object)
+		   z_object_ref(Z_OBJECT(selfp->data._object));
+
+	   return self;
+   }
+
+   /* ZObject getter / setter */
+   public int is_object
+   {
+	   get
+	   {
+		   return selfp->tag == Object;
+	   }
+   }
+
+   public ZObject * as_object
+   {
+	   get
+	   {
+		   assert(selfp->tag == Object);
+		   return selfp->data._object;
+	   }
+	   set
+	   {
+		   selfp->tag = Object;
+		   selfp->data._object = value;
+	   }
+   }
+
+   /* boolean getter / setter */
+   public int is_boolean
+   {
+	   get
+	   {
+		   return selfp->tag == Boolean;
+	   }
+   }
+
+   public int as_boolean
+   {
+	   get
+	   {
+		   assert(selfp->tag == Boolean);
+		   return selfp->data._boolean;
+	   }
+	   set
+	   {
+		   selfp->tag = Boolean;
+		   selfp->data._boolean = value;
+	   }
+   }
+
+   /* signed integer getters / setters */
+   public int is_int8
+   {
+	   get
+	   {
+		   return selfp->tag == Int8;
+	   }
+   }
+
+   public int8_t as_int8
+   {
+	   get
+	   {
+		   assert(selfp->tag == Int8);
+		   return selfp->data._int8;
+	   }
+	   set
+	   {
+		   selfp->tag = Int8;
+		   selfp->data._int8 = value;
+	   }
+   }
+
+   public int is_int16
+   {
+	   get
+	   {
+		   return selfp->tag == Int16;
+	   }
+   }
+
+   public int16_t as_int16
+   {
+	   get
+	   {
+		   assert(selfp->tag == Int16);
+		   return selfp->data._int16;
+	   }
+	   set
+	   {
+		   selfp->tag = Int16;
+		   selfp->data._int16 = value;
+	   }
+   }
+
+   public int is_int32
+   {
+	   get
+	   {
+		   return selfp->tag == Int32;
+	   }
+   }
+
+   public int32_t as_int32
+   {
+	   get
+	   {
+		   assert(selfp->tag == Int32);
+		   return selfp->data._int32;
+	   }
+	   set
+	   {
+		   selfp->tag = Int32;
+		   selfp->data._int32 = value;
+	   }
+   }
+
+   public int is_int64
+   {
+	   get
+	   {
+		   return selfp->tag == Int64;
+	   }
+   }
+
+   public int64_t as_int64
+   {
+	   get
+	   {
+		   assert(selfp->tag == Int64);
+		   return selfp->data._int64;
+	   }
+	   set
+	   {
+		   selfp->tag = Int64;
+		   selfp->data._int64 = value;
+	   }
+   }
+
+   /* unsigned integer getters / setters */
+   public int is_uint8
+   {
+	   get
+	   {
+		   return selfp->tag == UInt8;
+	   }
+   }
+
+   public uint8_t as_uint8
+   {
+	   get
+	   {
+		   assert(selfp->tag == UInt8);
+		   return selfp->data._uint8;
+	   }
+	   set
+	   {
+		   selfp->tag = UInt8;
+		   selfp->data._uint8 = value;
+	   }
+   }
+
+   public int is_uint16
+   {
+	   get
+	   {
+		   return selfp->tag == UInt16;
+	   }
+   }
+
+   public uint16_t as_uint16
+   {
+	   get
+	   {
+		   assert(selfp->tag == UInt16);
+		   return selfp->data._uint16;
+	   }
+	   set
+	   {
+		   selfp->tag = UInt16;
+		   selfp->data._uint16 = value;
+	   }
+   }
+
+   public int is_uint32
+   {
+	   get
+	   {
+		   return selfp->tag == UInt32;
+	   }
+   }
+
+   public uint32_t as_uint32
+   {
+	   get
+	   {
+		   assert(selfp->tag == UInt32);
+		   return selfp->data._uint32;
+	   }
+	   set
+	   {
+		   selfp->tag = UInt32;
+		   selfp->data._uint32 = value;
+	   }
+   }
+
+   public int is_uint64
+   {
+	   get
+	   {
+		   return selfp->tag == UInt64;
+	   }
+   }
+
+   public uint64_t as_uint64
+   {
+	   get
+	   {
+		   assert(selfp->tag == UInt64);
+		   return selfp->data._uint64;
+	   }
+	   set
+	   {
+		   selfp->tag = UInt64;
+		   selfp->data._uint64 = value;
+	   }
+   }
+
+   /* real number getters / setters */
+   public int is_real32
+   {
+	   get
+	   {
+		   return selfp->tag == Real32;
+	   }
+   }
+
+   public float as_real32
+   {
+	   get
+	   {
+		   assert(selfp->tag == Real32);
+		   return selfp->data._real32;
+	   }
+	   set
+	   {
+		   selfp->tag = Real32;
+		   selfp->data._real32 = value;
+	   }
+   }
+
+   public int is_real64
+   {
+	   get
+	   {
+		   return selfp->tag == Real64;
+	   }
+   }
+
+   public double as_real64
+   {
+	   get
+	   {
+		   assert(selfp->tag == Real64);
+		   return selfp->data._real64;
+	   }
+	   set
+	   {
+		   selfp->tag = Real64;
+		   selfp->data._real64 = value;
+	   }
+   }
+
+
+}
+

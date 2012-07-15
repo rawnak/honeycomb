@@ -1,8 +1,4 @@
 *.sw?
-distcc.log
-zco.c
-*.output
 .directory
-zco-test
 build
 

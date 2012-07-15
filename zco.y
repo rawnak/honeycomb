@@ -649,7 +649,7 @@ static void class_init(char *class_name)
 
 %}
 
-%token HEADER_BLK_START SOURCE_BLK_START FILE_BLK_END CLASS STRUCT CONST SIGNED UNSIGNED COLON GLOBAL PUBLIC PRIVATE PROPERTY GET SET 
+%token HEADER_BLK_START SOURCE_BLK_START FILE_BLK_END CLASS STRUCT UNION CONST SIGNED UNSIGNED COLON GLOBAL PUBLIC PRIVATE PROPERTY GET SET 
 %token OVERRIDE VIRTUAL WORD CODE OBRACE EBRACE OPAREN EPAREN SEMICOLON VAR_ARGS SPACE ASTERISK COMMENT COMMA HASH
 
 
@@ -941,10 +941,10 @@ ccodes
 	| ccodes CLASS
 	{ $$=strdup2($1,$2); free($1); }
 
-	| STRUCT
+	| struct_union
 	{ $$=strdup($1); }
 
-	| ccodes STRUCT
+	| ccodes struct_union
 	{ $$=strdup2($1,$2); free($1); }
 
 	| VAR_ARGS
@@ -1147,6 +1147,11 @@ pointers
 	| pointers ignorable	{ $$=strdup2($1,$2); free($1); free($2); }
 	;
 
+struct_union
+	: STRUCT
+	| UNION
+	;
+
 argument
 	: WORD pointers WORD
 	{ $$=strdup3($1,$2,$3); free($1); free($2); free($3); }
@@ -1154,10 +1159,10 @@ argument
 	| CONST ignorables WORD pointers WORD
 	{ $$=strdup5($1,$2,$3,$4,$5); free($2); free($3); free($4); free($5); }
 
-	| STRUCT ignorables WORD pointers WORD
+	| struct_union ignorables WORD pointers WORD
 	{ $$=strdup5($1,$2,$3,$4,$5); free($2); free($3); free($4); free($5); }
 
-	| CONST ignorables STRUCT ignorables WORD pointers WORD
+	| CONST ignorables struct_union ignorables WORD pointers WORD
 	{ $$=strdup7($1,$2,$3,$4,$5,$6,$7); free($2); free($4); free($5); free($6); free($7); }
 
 	| sign ignorables WORD pointers WORD
@@ -1249,10 +1254,10 @@ type_name
 	| CONST ignorables WORD pointers
 	{ if (type_name) { free(type_name); } type_name=strdup4($1," ",$3,$4); free($2); free($3); free($4); }
 
-	| STRUCT ignorables WORD pointers
+	| struct_union ignorables WORD pointers
 	{ if (type_name) { free(type_name); } type_name=strdup4($1," ", $3,$4); free($2); free($3); free($4); }
 
-	| CONST ignorables STRUCT ignorables WORD pointers
+	| CONST ignorables struct_union ignorables WORD pointers
 	{ if (type_name) { free(type_name); } type_name=strdup6($1," ",$3," ", $5,$6); free($2); free($4); free($5); free($6); }
 
 	| sign ignorables WORD pointers
