@@ -20,23 +20,36 @@
 
 %h{
 #include <z-object.h>
+#include <z-vector.h>
 #include <stdint.h>
+#include <z-closure-marshal.h>
 %}
 
 %{
 #include <assert.h>
-
 %}
    
 class ZClosure : ZObject
 {
+   private ZClosureMarshal *marshal;
    private ZObjectSignalHandler handler;
    private void *userdata;
 
    init(Self *self)
    {
+	   selfp->marshal = 0;
 	   selfp->handler = 0;
 	   selfp->userdata = 0;
+   }
+
+   override(ZObject) void dispose(ZObject *object)
+   {
+	ZClosure *self = (ZClosure *) object;
+	
+	if (selfp->marshal) {
+		z_object_unref(Z_OBJECT(selfp->marshal));
+		selfp->marshal = 0;
+	}
    }
 
    public Self *new(struct zco_context_t *ctx)
@@ -73,6 +86,23 @@ class ZClosure : ZObject
 	   {
 		   selfp->userdata = value;
 	   }
+   }
+
+   public ZClosureMarshal * marshal
+   {
+	   set
+	   {
+		   if (selfp->marshal)
+			   z_object_unref(Z_OBJECT(selfp->marshal));
+
+		   selfp->marshal = value;
+		   z_object_ref(Z_OBJECT(selfp->marshal));
+	   }
+   }
+
+   public int invoke(Self *self, ZVector *args)
+   {
+      return z_closure_marshal_invoke(selfp->marshal, selfp->handler, args);
    }
 }
 

@@ -21,6 +21,22 @@
 %h{
 #include <z-object.h>
 #include <stdint.h>
+
+union ZValueDataType {
+   uint8_t   _boolean;
+   int8_t    _int8;
+   int16_t   _int16;
+   int32_t   _int32;
+   int64_t   _int64;
+   uint8_t   _uint8;
+   uint16_t  _uint16;
+   uint32_t  _uint32;
+   uint64_t  _uint64;
+   float     _real32;
+   double    _real64;
+   ZObject * _object;
+};
+
 %}
 
 %{
@@ -28,7 +44,7 @@
 #include <stdint.h>
 #include <assert.h>
 
-enum VariantTag {
+enum ZValueType {
    None,
    Boolean,
    Int8,
@@ -45,26 +61,11 @@ enum VariantTag {
 };
 
 
-union VariantData {
-   uint8_t   _boolean;
-   int8_t    _int8;
-   int16_t   _int16;
-   int32_t   _int32;
-   int64_t   _int64;
-   uint8_t   _uint8;
-   uint16_t  _uint16;
-   uint32_t  _uint32;
-   uint64_t  _uint64;
-   float     _real32;
-   double    _real64;
-   ZObject * _object;
-};
-
 %}
    
 class ZValue : ZObject
 {
-   private union VariantData data;
+   private union ZValueDataType data;
    private int tag;
 
    init(Self *self)

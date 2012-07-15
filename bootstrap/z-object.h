@@ -24,6 +24,9 @@
 #define likely(x) __builtin_expect((x),1)
 #define unlikely(x) __builtin_expect((x),0)
 
+struct ZObject;
+typedef void(*ZObjectSignalHandler)(struct ZObject *self, ...);
+
 #include <zco-type.h>
 #define Self ZObject
 #define Z_OBJECT(s) ((ZObject *) (s))
@@ -42,10 +45,12 @@ typedef struct ZObjectClass ZObjectClass;
 typedef struct ZObject ZObject;
 
 struct ZObjectPrivate {
-#line 17 "z-object.zco"
+#line 22 "z-object.zco"
 	unsigned int ref_count;
-#line 18 "z-object.zco"
+#line 23 "z-object.zco"
 	void *attached_properties;
+#line 24 "z-object.zco"
+	void *signal_map;
 };
 
 struct ZObjectProtected {
@@ -61,7 +66,7 @@ struct ZObjectGlobal {
 };
 
 struct ZObjectClass {
-#line 26 "z-object.zco"
+#line 33 "z-object.zco"
 	void  (*__dispose)(Self *self);
 };
 
@@ -69,21 +74,29 @@ struct ZObject {
 	struct ZObjectGlobal *_global;
 	struct ZObjectPrivate _priv;
 	struct ZObjectProtected _prot;
-#line 15 "z-object.zco"
+#line 20 "z-object.zco"
 	void *class_base;
-#line 16 "z-object.zco"
+#line 21 "z-object.zco"
 	int *vtable;
 };
 extern int z_object_type_id;
 ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx);
 void __z_object_init(struct zco_context_t *ctx, ZObject *self);
-#line 26 "z-object.zco"
+#line 33 "z-object.zco"
 void  z_object_dispose(Self *self);
-#line 58 "z-object.zco"
-void  z_object_ref(Self *self);
-#line 63 "z-object.zco"
-void  z_object_unref(Self *self);
 #line 70 "z-object.zco"
+void  z_object_ref(Self *self);
+#line 75 "z-object.zco"
+void  z_object_unref(Self *self);
+#line 82 "z-object.zco"
+void *  z_object_connect(Self *self,char *name,ZObjectSignalHandler handler,void *userdata);
+#line 110 "z-object.zco"
+void  z_object_disconnect(Self *self,char *name,void *key);
+#line 133 "z-object.zco"
+void  z_object_register_signal(Self *self,char *name);
+#line 148 "z-object.zco"
+int  z_object_emit_signal(Self *self,char *name,void *argv);
+#line 171 "z-object.zco"
 void  z_object_add_attached_property_map(Self *self,void *map);
 
 #undef Self

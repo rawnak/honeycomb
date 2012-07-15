@@ -59,6 +59,7 @@
 ";"                     { yylval=";";                          return SEMICOLON;        }
 "..."                   { yylval="...";                        return VAR_ARGS;         }
 "*"                     { yylval=strdup("*");                  return ASTERISK;         }
+"!"                     { yylval="!";                          return BANG;             }
 "#"                     { yylval="#";                          return HASH;             }
 "global"                { yylval="global";                     return GLOBAL;           }
 "public"                { yylval="public";                     return PUBLIC;           }

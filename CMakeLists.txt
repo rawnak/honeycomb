@@ -10,7 +10,7 @@ include_directories(
       )
 
 # zco compiler
-add_definitions(-pipe -g -fstack-protector-all)
+add_definitions(-pipe -g -fstack-protector-all -std=gnu99)
 
 bison_target(ZCO_PARSER zco.y ${CMAKE_CURRENT_BINARY_DIR}/zco.tab.c)
 flex_target(ZCO_SCANNER zco.l ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.c)
@@ -23,6 +23,8 @@ add_executable(
       ${BISON_ZCO_PARSER_OUTPUTS}
       ${FLEX_ZCO_SCANNER_OUTPUTS}
       zco-type.c
+      bootstrap/z-closure.c
+      bootstrap/z-closure-marshal.c
       bootstrap/z-map.c
       bootstrap/z-map-iter.c
       bootstrap/z-string.c
@@ -126,6 +128,13 @@ add_custom_command(
       DEPENDS z-closure.zco
       )
 
+add_custom_command(
+      OUTPUT z-closure-marshal.h z-closure-marshal.c
+      COMMAND ln -sf ${CMAKE_CURRENT_SOURCE_DIR}/z-closure-marshal.zco ${CMAKE_CURRENT_BINARY_DIR}/
+      COMMAND ./zco z-closure-marshal.zco
+      DEPENDS z-closure-marshal.zco
+      )
+
 add_library(zclib SHARED
       zco-type.c
       z-object.c
@@ -138,5 +147,6 @@ add_library(zclib SHARED
       z-log.c
       z-value.c
       z-closure.c
+      z-closure-marshal.c
       )
 

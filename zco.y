@@ -19,6 +19,8 @@
  */
 
 %{
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -43,6 +45,10 @@ char **parent_class_name_lowercase;
 char **parent_class_name_uppercase;
 char **parent_class_name_pascal;
 int is_attached_property;
+int is_signal;
+int class_needs_zvalue;
+int class_needs_vector;
+int class_needs_map;
 
 extern int yylineno;
 int real_lineno;
@@ -79,9 +85,11 @@ ZString *h_macros_head;
 ZString *h_macros_tail;
 ZString *c_macros;
 ZString *function_prototypes_h;
+ZString *signal_registrations;
 
 static struct zco_context_t context;
 
+int yylex(void);
 void yyerror(const char *s);
 
 static char * strdup2(const char *s1, const char *s2)
@@ -190,6 +198,151 @@ static void special_member_function_decl(const char *symbol, const char *arglist
 	z_string_append_format(function_definitions, "static void %s_%s%s\n%s\n", current_class_name_lowercase, symbol, arglist, code);
 }
 
+static char * strndup(const char *s, int max_len)
+{
+	int length = strlen(s);
+
+	if (length > max_len)
+		length = max_len;
+
+	char *str = malloc(length + 1);
+	memcpy(str, s, length);
+	str[length] = 0;
+
+	return str;
+}
+
+static void extract_argument(char *arg, char **arg_type, char **arg_name)
+{
+	int i, length = strlen(arg);
+
+	for (i=length-1; i>=0; --i) {
+		if (arg[i] == ' ' || arg[i] == '*') {
+			*arg_type = strndup(arg, i+1);
+			*arg_name = strdup(arg + (i+1));
+			return;
+		}
+	}
+
+	*arg_type = strdup("");
+	*arg_name = strdup(arg);
+}
+
+
+static void signal_decl(const char *type, const char *symbol, const char *arglist)
+{
+	print_line_number(c_macros);
+	z_string_append_format(c_macros, "#define %s %s_%s\n", symbol, current_class_name_lowercase, symbol);
+
+	switch (access_mode)
+	{
+		case ACCESS_PRIVATE:
+			/* for function prototype */
+			print_line_number(function_prototypes_c);
+			z_string_append_format(function_prototypes_c, "static %s %s_%s%s;\n", type, current_class_name_lowercase, symbol, arglist);
+
+			/* for function definition */
+			print_line_number(function_definitions);
+			z_string_append_format(function_definitions, "static %s %s_%s%s\n", type, current_class_name_lowercase, symbol, arglist);
+			break;
+
+		case ACCESS_PUBLIC:
+			/* for function prototype */
+			print_line_number(function_prototypes_h);
+			z_string_append_format(function_prototypes_h, "%s %s_%s%s;\n", type, current_class_name_lowercase, symbol, arglist);
+
+			/* for function definition */
+			print_line_number(function_definitions);
+			z_string_append_format(function_definitions, "%s %s_%s%s\n", type, current_class_name_lowercase, symbol, arglist);
+			break;
+
+		default:
+			abort();
+	}
+
+	class_needs_vector = 1;
+	class_needs_zvalue = 1;
+
+	/* start of function body */
+	z_string_append_format(function_definitions,
+			"{\n"
+			"\tZVector *args = z_vector_new(CTX, sizeof(ZValue *));\n"
+			"\tz_vector_set_item_destruct(args, (ZVectorItemCallback) z_object_unref);\n");
+
+
+	char *arglist_no_paren = strdup(arglist+1);
+	char *p;
+	int is_first = 1;
+
+	arglist_no_paren[strlen(arglist_no_paren)-1] = 0;
+
+	p = strtok(arglist_no_paren, ",");
+	while (p)
+	{
+		char *arg_type, *arg_name;
+
+		extract_argument(p, &arg_type, &arg_name);
+		p = strtok(NULL, ",");
+
+		if (!is_first) {
+			//z_string_push_back(str, ',');
+		} else {
+			is_first = 0;
+		}
+
+		
+		//z_string_append_cstring(str, q, Z_STRING_ENCODING_UTF8);
+
+		if (!strcmp(arg_type, "int")) {
+
+		}
+
+
+		free(arg_type);
+		free(arg_name);
+	}
+
+	free(arglist_no_paren);
+
+
+/* FIXME
+	for (each argument) {
+		z_string_append_format(function_definitions,
+				"\t{\n"
+				"\t\tZValue *a = z_value_new(CTX);\n"
+				"\t\tz_value_set_as_int32(a, %s);\n"
+				"\t\tz_vector_push_back(args, a);\n"
+				"\t}\n", ...);
+	}
+   */
+
+	/* end of function body */
+	z_string_append_format(function_definitions,
+			"\tz_object_emit_signal(Z_OBJECT(self), \"%s\", args);\n"
+			"\tz_object_unref(Z_OBJECT(args));\n"
+			"}\n", symbol);
+
+
+#if 0
+	static clicked(Self *self, int button)
+	{
+		ZVector *args = z_vector_new(CTX, sizeof(ZValue *));
+		z_vector_set_item_destruct(args, (ZVectorItemCallback *) z_object_unref);
+
+		/* argument #1 */
+		ZValue *a1 = z_value_new(CTX);
+		z_value_set_as_int32(a1, button);
+		z_vector_push_back(args, a1);
+
+
+		z_object_emit_signal(self, "clicked", args);
+		z_object_unref(Z_OBJECT(args));
+	}
+#endif
+
+	z_string_append_format(signal_registrations, "\tz_object_register_signal(Z_OBJECT(self), \"%s\");\n", symbol);
+}
+
 static void member_function_decl(const char *type, const char *symbol, const char *arglist, const char *code)
 {
 	print_line_number(c_macros);
@@ -216,6 +369,8 @@ static void member_function_decl(const char *type, const char *symbol, const cha
 			print_line_number(function_definitions);
 			z_string_append_format(function_definitions, "%s %s_%s%s\n%s\n", type, current_class_name_lowercase, symbol, arglist, code);
 			break;
+		default:
+			abort();
 	}
 }
 
@@ -243,6 +398,8 @@ static void add_data_member(int mode, const char *_type_name, const char *_symbo
 			z_string_append_format(global_data, "\t%s%s;\n", _type_name, _symbol_name);
 			z_string_append_format(c_macros, "#define %s (%s_global->%s)\n", _symbol_name, current_class_name_lowercase, _symbol_name);
 			break;
+		default:
+			abort();
 	}
 }
 
@@ -267,6 +424,7 @@ static void define_attached_property_getter(char *symbol_name, char *app_code)
 	z_string_append_format(function_definitions, "#undef get_current_value\n");
 
 	/* define the method to get the value of the attached property */
+   class_needs_map = 1;
 	code = z_string_new(&context);
 	z_string_format(code,
 		"{\n"
@@ -307,6 +465,7 @@ static void define_attached_property_setter(char *symbol_name, char *app_code)
 	z_string_append_format(function_definitions, "#undef set_current_value\n");
 
 	/* define the method to set the value of the attached property */
+   class_needs_map = 1;
 	code = z_string_new(&context);
 	z_string_format(code,
 		"{\n"
@@ -577,6 +736,7 @@ static void class_init(char *class_name)
 	h_macros_tail = z_string_new(&context);
 	c_macros = z_string_new(&context);
 	function_prototypes_h = z_string_new(&context);
+	signal_registrations = z_string_new(&context);
 
 	char * current_class_name_uppercase = pascal_to_uppercase(class_name, '_');
 	current_class_name_lowercase = pascal_to_lowercase(class_name, '_');
@@ -645,12 +805,16 @@ static void class_init(char *class_name)
 	symbol_name = 0;
 	type_name = 0;
 	virtual_base_name = 0;
+
+   class_needs_zvalue = 0;
+   class_needs_vector = 0;
+   class_needs_map = 0;
 }
 
 %}
 
 %token HEADER_BLK_START SOURCE_BLK_START FILE_BLK_END CLASS STRUCT UNION CONST SIGNED UNSIGNED COLON GLOBAL PUBLIC PRIVATE PROPERTY GET SET 
-%token OVERRIDE VIRTUAL WORD CODE OBRACE EBRACE OPAREN EPAREN SEMICOLON VAR_ARGS SPACE ASTERISK COMMENT COMMA HASH
+%token OVERRIDE VIRTUAL WORD CODE OBRACE EBRACE OPAREN EPAREN SEMICOLON VAR_ARGS SPACE ASTERISK COMMENT COMMA HASH BANG
 
 
 %start translation_unit
@@ -746,6 +910,21 @@ external_declaration
 			"#include <zco-type.h>\n"
 			"#include <stdlib.h>\n",
 			header_filename);
+
+   if (class_needs_vector) {
+      class_needs_vector = 0;
+      fprintf(source_file, "#include <z-vector.h>\n");
+   }
+
+   if (class_needs_map) {
+      class_needs_map = 0;
+      fprintf(source_file, "#include <z-map.h>\n");
+   }
+
+   if (class_needs_zvalue) {
+      class_needs_zvalue = 0;
+      fprintf(source_file, "#include <z-value.h>\n");
+   }
 
 	/* macros in source file */
 	dump_string(c_macros, source_file);
@@ -871,11 +1050,17 @@ external_declaration
 	fprintf(source_file, "\t((ZObject *) self)->class_base = (void *) _global->_class;\n");
 	fprintf(source_file, "\t((ZObject *) self)->vtable = _global->vtable_off_list;\n");
 
+	/* call user defined init() */
 	fprintf(source_file,
 			"\t#ifdef INIT_EXISTS\n"
 			"\t\tinit(self);\n"
-			"\t#endif\n"
-			"}\n");
+			"\t#endif\n");
+
+	/* register signals */
+	dump_string(signal_registrations, source_file);
+
+	/* close the system defined init() definition */
+	fprintf(source_file, "}\n");
 
 	dump_string(function_definitions, source_file);
 	fprintf(source_file, "\n");
@@ -999,6 +1184,12 @@ ccodes
 	{ $$=strdup($1); }
 
 	| ccodes HASH
+	{ $$=strdup2($1,$2); free($1); }
+
+	| BANG
+	{ $$=strdup($1); }
+
+	| ccodes BANG
 	{ $$=strdup2($1,$2); free($1); }
 
 	| SEMICOLON
@@ -1278,6 +1469,7 @@ symbol_name
 
 		/* reset state */
 		is_attached_property = 0;
+		is_signal = 0;
 	}
 	;
 
@@ -1341,6 +1533,19 @@ class_object
 	| symbol_name ignorables argument_list ignorables ccodes_block
 	{ special_member_function_decl($1, $3, $5); free($2); free($3); free($4); free($5); }
 
+	/* signals */
+	| access_specifier ignorables type_name symbol_name bang argument_list SEMICOLON
+	{ signal_decl(type_name, $4, $6); free($2); free($6); }
+
+	| access_specifier ignorables type_name symbol_name bang ignorables argument_list SEMICOLON
+	{ signal_decl(type_name, $4, $7); free($2); free($5); free($7); }
+
+	| access_specifier ignorables type_name symbol_name bang argument_list ignorables SEMICOLON
+	{ signal_decl(type_name, $4, $6); free($2); free($6); free($7); }
+
+	| access_specifier ignorables type_name symbol_name bang ignorables argument_list ignorables SEMICOLON
+	{ signal_decl(type_name, $4, $7); free($2); free($6); free($7); free($8); }
+
 	/* properties */
 	| access_specifier ignorables type_name symbol_name OBRACE property_objects EBRACE
 	{ 
@@ -1391,6 +1596,11 @@ class_object
 hash
 	: HASH { is_attached_property = 1; }
 	;
+
+bang
+	: BANG { is_signal = 1; }
+	;
+
 
 property_objects
 	: property_object 

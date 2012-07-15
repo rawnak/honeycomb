@@ -20,6 +20,7 @@
 
 %h{
 #include <stdint.h>
+#include <stdarg.h>
 #include <z-object.h>
 #include <z-vector.h>
 #include <z-string-iter.h>
@@ -37,7 +38,6 @@ enum ZStringEncoding
 %}
 
 %{
-#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-classes=( z-map-iter z-map z-object z-string-iter z-string z-vector-iter z-vector )
+classes=( z-closure z-closure-marshal z-map-iter z-map z-object z-string-iter z-string z-vector-iter z-vector )
 
 for class_name in ${classes[@]}; do
    cp build/$class_name.[ch] bootstrap/

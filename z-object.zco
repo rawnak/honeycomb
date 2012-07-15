@@ -23,8 +23,7 @@
 #define unlikely(x)  __builtin_expect((x),0)
 
 struct ZObject;
-typedef struct ZObject ZObject;
-typedef void(*ZObjectSignalHandler)(ZObject *self, ...);
+typedef void(*ZObjectSignalHandler)(struct ZObject *self, ...);
 %}
 
 %{
@@ -33,6 +32,7 @@ typedef void(*ZObjectSignalHandler)(ZObject *self, ...);
 #include <z-vector.h>
 #include <z-vector-iter.h>
 #include <z-closure.h>
+#include <z-string.h>
 %}
 
 class ZObject 
@@ -41,30 +41,29 @@ class ZObject
 	public int *vtable;
 	private unsigned int ref_count;
 	private void *attached_properties;
+	private void *signal_map;
 
 	init(Self *self)
 	{
 		selfp->ref_count = 1;
 		selfp->attached_properties = 0;
+		selfp->signal_map = 0;
 	}
 
 	public virtual void dispose(Self *self)
 	{
-		free(self);
-
-		ZVector *vec = selfp->attached_properties;
-
-		if (vec) {
+		ZVector *attached_properties = selfp->attached_properties;
+		if (attached_properties) {
 			ZVectorIter *it, *end;
 
 			/* iterate through all attached properties */
-			it = z_vector_get_begin(vec);
-			end = z_vector_get_end(vec);
+			it = z_vector_get_begin(attached_properties);
+			end = z_vector_get_end(attached_properties);
 
 			for (; !z_vector_iter_is_equal(it, end); z_vector_iter_increment(it)) {
 				/* the vector contains a list of maps that has a pointer to 'self'.
 				   our goal is to remove 'self' from the map */
-				ZMap *map = (ZMap *) z_vector_get_item(vec, it);
+				ZMap *map = (ZMap *) z_vector_get_item(attached_properties, it);
 
 				/* remove the pointer */
 				ZMapIter *x = z_map_find(map, self);
@@ -74,10 +73,18 @@ class ZObject
 
 			z_object_unref(Z_OBJECT(end));
 			z_object_unref(Z_OBJECT(it));
-			z_object_unref(Z_OBJECT(vec));
+			z_object_unref(Z_OBJECT(attached_properties));
 
 			selfp->attached_properties = NULL;
 		}
+
+		ZMap *signal_map = selfp->signal_map;
+		if (signal_map) {
+			z_object_unref(Z_OBJECT(signal_map));
+			selfp->signal_map = NULL;
+		}
+
+		free(self);
 	}
 
 	public void ref(Self *self)
@@ -92,6 +99,101 @@ class ZObject
 			dispose(self);
 	}
 
+	public void * connect(Self *self, char *name, ZObjectSignalHandler handler, void *userdata)
+	{
+		ZClosure *closure;
+
+		assert(selfp->signal_map != NULL);
+
+		/* create a closure */
+		closure = z_closure_new(CTX);
+		z_closure_set_handler(closure, handler);
+		z_closure_set_userdata(closure, userdata);
+
+		/* locate signal's closure list by name */
+		ZMapIter *it = z_map_find(selfp->signal_map, name);
+		assert(it != NULL);
+		ZVector *closure_list = z_map_get_value(selfp->signal_map, it);
+
+		/* add new closure into the signal */
+		z_vector_push_back(closure_list, closure);
+
+		return closure;
+	}
+
+	public void disconnect(Self *self, char *name, void *key)
+	{
+		assert(selfp->signal_map != NULL);
+
+		/* locate signal's closure list by name */
+		ZMapIter *map_iter = z_map_find(selfp->signal_map, name);
+		assert(map_iter != NULL);
+		ZVector *closure_list = z_map_get_value(selfp->signal_map, map_iter);
+
+		/* remove the closure from the list */
+		ZVectorIter *it = z_vector_get_begin(closure_list);
+		ZVectorIter *end = z_vector_get_end(closure_list);
+
+		while (!z_vector_iter_is_equal(it, end)) {
+			void *current_key = z_vector_get_item(closure_list, it);
+
+			if (current_key == key) {
+				z_vector_erase1(closure_list, it);
+				break;
+			} else {
+				z_vector_iter_increment(it);
+			}
+		}
+	}
+
+	public void register_signal(Self *self, char *name)
+	{
+		/* create signal map (if necessary) */
+		if (!selfp->signal_map) {
+			selfp->signal_map = z_map_new(CTX);
+			z_map_set_compare(selfp->signal_map, map_compare);
+			z_map_set_key_destruct(selfp->signal_map, (ZMapItemCallback) free);
+			z_map_set_value_destruct(selfp->signal_map, (ZMapItemCallback) z_object_unref);
+		}
+
+		/* locate signal's closure list by name */
+		ZMapIter *it = z_map_find(selfp->signal_map, name);
+
+		if (!it) {
+			ZVector *closure_list = z_vector_new(CTX, sizeof(void *));
+			z_vector_set_item_destruct(closure_list, (ZVectorItemCallback) z_object_unref);
+			z_map_insert(selfp->signal_map, strdup(name), closure_list);
+		}
+	}
+
+
+	/*** INTERNAL METHODS ***/
+
+	public int emit_signal(Self *self, char *name, void *argv)
+	{
+		assert(selfp->signal_map != NULL);
+
+		/* locate signal's closure list by name */
+		ZMapIter *map_iter = z_map_find(selfp->signal_map, name);
+		assert(map_iter != NULL);
+		ZVector *closure_list = z_map_get_value(selfp->signal_map, map_iter);
+
+		/* remove the closure from the list */
+		ZVectorIter *it = z_vector_get_begin(closure_list);
+		ZVectorIter *end = z_vector_get_end(closure_list);
+		int rc = 0;
+
+		while (!z_vector_iter_is_equal(it, end)) {
+			ZClosure *closure = ((ZClosure *) z_vector_get_item(closure_list, it));
+			rc = z_closure_invoke(closure, (ZVector *) argv);
+
+			if (rc == 1)
+				break;
+		}
+
+		return rc;
+	}
+
 	public void add_attached_property_map(Self *self, void *map)
 	{
 		if (selfp->attached_properties == 0)
@@ -101,24 +203,9 @@ class ZObject
 		z_vector_push_back((ZVector *) selfp->attached_properties, map);
 	}
 
-	public void connect(Self *self, char *name, ZObjectSignalHandler handler, void *userdata)
+	private int map_compare(ZMap *map, const void *a, const void *b)
 	{
-		ZClosure *closure;
-
-		closure = z_closure_new(CTX);
-		z_closure_set_handler(closure, handler);
-		z_closure_set_userdata(closure, userdata);
-
-
-		
-
-		/* steps:
-			1. create a ZClosure object (done)
-			2. locate the signal by 'name'
-			3. add this closure object to this signal
-		 */
-
-
+		return strcmp(a, b);
 	}
 }
 

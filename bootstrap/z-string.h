@@ -22,6 +22,7 @@
 #define _Z_STRING_H_
 
 #include <stdint.h>
+#include <stdarg.h>
 #include <z-object.h>
 #include <z-vector.h>
 #include <z-string-iter.h>

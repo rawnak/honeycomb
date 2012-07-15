@@ -1,0 +1,78 @@
+/* ZCO - Cross-platform Application Framework
+ * Copyright (C) 2014  Syeda Sultana
+ *
+ * z-closure-marshal.h: Bootstrap file for z-closure-marshal.zco
+ * This file is part of ZCO.
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZCO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#ifndef _Z_CLOSURE_MARSHAL_H_
+#define _Z_CLOSURE_MARSHAL_H_
+
+#include <z-object.h>
+#include <z-vector.h>
+
+#include <zco-type.h>
+#define Self ZClosureMarshal
+#define Z_CLOSURE_MARSHAL(s) ((ZClosureMarshal *) (s))
+
+
+struct ZClosureMarshalPrivate;
+struct ZClosureMarshalProtected;
+struct ZClosureMarshalGlobal;
+struct ZClosureMarshalClass;
+struct ZClosureMarshal;
+
+typedef struct ZClosureMarshalPrivate ZClosureMarshalPrivate;
+typedef struct ZClosureMarshalProtected ZClosureMarshalProtected;
+typedef struct ZClosureMarshalGlobal ZClosureMarshalGlobal;
+typedef struct ZClosureMarshalClass ZClosureMarshalClass;
+typedef struct ZClosureMarshal ZClosureMarshal;
+
+struct ZClosureMarshalPrivate {
+};
+
+struct ZClosureMarshalProtected {
+};
+
+struct ZClosureMarshalGlobal {
+	int *vtable_off_list;
+	int vtable_off_size;
+	struct ZClosureMarshalClass *_class;
+	struct zco_context_t *ctx;
+	const char *name;
+	int id;
+};
+
+struct ZClosureMarshalClass {
+#line 11 "z-closure-marshal.zco"
+	int  (*__invoke)(Self *self,ZObjectSignalHandler handler,ZVector *args);
+};
+
+struct ZClosureMarshal {
+	struct ZClosureMarshalGlobal *_global;
+	struct ZClosureMarshalPrivate _priv;
+	struct ZClosureMarshalProtected _prot;
+};
+extern int z_closure_marshal_type_id;
+ZClosureMarshalGlobal * z_closure_marshal_get_type(struct zco_context_t *ctx);
+void __z_closure_marshal_init(struct zco_context_t *ctx, ZClosureMarshal *self);
+#line 11 "z-closure-marshal.zco"
+int  z_closure_marshal_invoke(Self *self,ZObjectSignalHandler handler,ZVector *args);
+
+#undef Self
+
+
+#endif
