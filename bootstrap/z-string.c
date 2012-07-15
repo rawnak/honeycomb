@@ -83,7 +83,6 @@
 #define token_next z_string_token_next
 
 int z_string_type_id = -1;
-static ZStringGlobal * z_string_global;
 
 static Self *__z_string_new(struct zco_context_t *ctx)
 {
@@ -119,7 +118,6 @@ ZStringGlobal * z_string_get_type(struct zco_context_t *ctx)
 	if (*global_ptr == 0) {
 		*global_ptr = malloc(sizeof(struct ZStringGlobal));
 		struct ZStringGlobal *global = (ZStringGlobal *) *global_ptr;
-		z_string_global = global;
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZStringClass));
 		memset(global->_class, 0, sizeof(struct ZStringClass));
@@ -148,13 +146,52 @@ ZStringGlobal * z_string_get_type(struct zco_context_t *ctx)
 			global->__parent_dispose = p_class->__dispose;
 			p_class->__dispose = z_string_dispose;
 		}
-		#ifdef CLASS_INIT_EXISTS
-			class_init((ZStringGlobal *) global);
+		__z_string_class_init(ctx, (ZStringClass *) &temp);
+		#ifdef GLOBAL_INIT_EXISTS
+			global_init((ZStringGlobal *) global);
 		#endif
+		return global;
 	}
 	return (ZStringGlobal *) *global_ptr;
 }
 
+void __z_string_class_init(struct zco_context_t *ctx, ZStringClass *_class)
+{
+	__z_object_class_init(ctx, (ZObjectClass *) _class);
+	#ifdef CLASS_INIT_EXISTS
+		class_init(ctx, _class);
+	#endif
+	z_object_register_method(ctx, (ZObjectClass *) _class, "new", (ZObjectSignalHandler) new);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "dup", (ZObjectSignalHandler) dup);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "is_in_bound", (ZObjectSignalHandler) is_in_bound);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "validate", (ZObjectSignalHandler) validate);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "get_char", (ZObjectSignalHandler) get_char);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "set_char", (ZObjectSignalHandler) set_char);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "set_cstring", (ZObjectSignalHandler) set_cstring);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "get_cstring", (ZObjectSignalHandler) get_cstring);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "append", (ZObjectSignalHandler) append);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "insert", (ZObjectSignalHandler) insert);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "erase", (ZObjectSignalHandler) erase);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "replace_with_chars", (ZObjectSignalHandler) replace_with_chars);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "replace", (ZObjectSignalHandler) replace);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "append_cstring", (ZObjectSignalHandler) append_cstring);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "push_back", (ZObjectSignalHandler) push_back);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "insert_char", (ZObjectSignalHandler) insert_char);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "compare", (ZObjectSignalHandler) compare);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "clear", (ZObjectSignalHandler) clear);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "find", (ZObjectSignalHandler) find);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "find_char", (ZObjectSignalHandler) find_char);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "find_any_char", (ZObjectSignalHandler) find_any_char);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "get_real64", (ZObjectSignalHandler) get_real64);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "get_int64", (ZObjectSignalHandler) get_int64);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "get_uint64", (ZObjectSignalHandler) get_uint64);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "append_vformat", (ZObjectSignalHandler) append_vformat);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "vformat", (ZObjectSignalHandler) vformat);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "append_format", (ZObjectSignalHandler) append_format);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "format", (ZObjectSignalHandler) format);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "token_start", (ZObjectSignalHandler) token_start);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "token_next", (ZObjectSignalHandler) token_next);
+}
 void __z_string_init(struct zco_context_t *ctx, Self *self)
 {
 	struct ZStringGlobal *_global = z_string_get_type(ctx);

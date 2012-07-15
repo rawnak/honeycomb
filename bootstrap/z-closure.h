@@ -28,7 +28,7 @@
 
 #include <zco-type.h>
 #define Self ZClosure
-#define Z_CLOSURE(s) ((ZClosure *) (s))
+#define Z_CLOSURE(s) ((ZClosure *) ((char *) (s) + ((int *) (s)->_global)[z_closure_type_id]))
 
 
 struct ZClosurePrivate;
@@ -46,6 +46,7 @@ typedef struct ZClosure ZClosure;
 struct ZClosurePrivate {
 	ZClosureMarshal *marshal;
 	ZObjectSignalHandler handler;
+	ZObject *target;
 	void *userdata;
 };
 
@@ -75,6 +76,7 @@ struct ZClosure {
 extern int z_closure_type_id;
 ZClosureGlobal * z_closure_get_type(struct zco_context_t *ctx);
 void __z_closure_init(struct zco_context_t *ctx, ZClosure *self);
+void __z_closure_class_init(struct zco_context_t *ctx, ZClosureClass *_class);
 Self * z_closure_new(struct zco_context_t *ctx);
 Self * z_closure_dup(ZClosure *src);
 ZObjectSignalHandler  z_closure_get_handler(Self *self);
@@ -82,6 +84,7 @@ void z_closure_set_handler(Self *self, ZObjectSignalHandler  value);
 void *  z_closure_get_userdata(Self *self);
 void z_closure_set_userdata(Self *self, void *  value);
 void z_closure_set_marshal(Self *self, ZClosureMarshal *  value);
+void z_closure_set_target(Self *self, ZObject *  value);
 int  z_closure_invoke(Self *self,ZVector *args);
 
 #undef Self

@@ -25,7 +25,7 @@
 
 #include <zco-type.h>
 #define Self ZMapIter
-#define Z_MAP_ITER(s) ((ZMapIter *) (s))
+#define Z_MAP_ITER(s) ((ZMapIter *) ((char *) (s) + ((int *) (s)->_global)[z_map_iter_type_id]))
 
 
 struct ZMapIterPrivate;
@@ -69,6 +69,7 @@ struct ZMapIter {
 extern int z_map_iter_type_id;
 ZMapIterGlobal * z_map_iter_get_type(struct zco_context_t *ctx);
 void __z_map_iter_init(struct zco_context_t *ctx, ZMapIter *self);
+void __z_map_iter_class_init(struct zco_context_t *ctx, ZMapIterClass *_class);
 Self * z_map_iter_new(struct zco_context_t *ctx);
 Self * z_map_iter_dup(ZMapIter *src);
 int  z_map_iter_get_index(Self *self);

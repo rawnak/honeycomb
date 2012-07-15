@@ -25,7 +25,7 @@
 
 #include <zco-type.h>
 #define Self ZStringIter
-#define Z_STRING_ITER(s) ((ZStringIter *) (s))
+#define Z_STRING_ITER(s) ((ZStringIter *) ((char *) (s) + ((int *) (s)->_global)[z_string_iter_type_id]))
 
 
 struct ZStringIterPrivate;
@@ -69,6 +69,7 @@ struct ZStringIter {
 extern int z_string_iter_type_id;
 ZStringIterGlobal * z_string_iter_get_type(struct zco_context_t *ctx);
 void __z_string_iter_init(struct zco_context_t *ctx, ZStringIter *self);
+void __z_string_iter_class_init(struct zco_context_t *ctx, ZStringIterClass *_class);
 Self * z_string_iter_new(struct zco_context_t *ctx);
 Self * z_string_iter_dup(ZStringIter *src);
 int  z_string_iter_get_index(Self *self);

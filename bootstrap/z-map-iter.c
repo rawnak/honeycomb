@@ -42,7 +42,6 @@
 #define is_gte z_map_iter_is_gte
 
 int z_map_iter_type_id = -1;
-static ZMapIterGlobal * z_map_iter_global;
 
 static Self *__z_map_iter_new(struct zco_context_t *ctx)
 {
@@ -66,7 +65,6 @@ ZMapIterGlobal * z_map_iter_get_type(struct zco_context_t *ctx)
 	if (*global_ptr == 0) {
 		*global_ptr = malloc(sizeof(struct ZMapIterGlobal));
 		struct ZMapIterGlobal *global = (ZMapIterGlobal *) *global_ptr;
-		z_map_iter_global = global;
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZMapIterClass));
 		memset(global->_class, 0, sizeof(struct ZMapIterClass));
@@ -90,13 +88,30 @@ ZMapIterGlobal * z_map_iter_get_type(struct zco_context_t *ctx)
 			memcpy((char *) global->_class + offset, p_class->_class, sizeof(struct ZObjectClass));
 		}
 		zco_add_to_vtable(&global->vtable_off_list, &global->vtable_off_size, z_map_iter_type_id);		
-		#ifdef CLASS_INIT_EXISTS
-			class_init((ZMapIterGlobal *) global);
+		__z_map_iter_class_init(ctx, (ZMapIterClass *) &temp);
+		#ifdef GLOBAL_INIT_EXISTS
+			global_init((ZMapIterGlobal *) global);
 		#endif
+		return global;
 	}
 	return (ZMapIterGlobal *) *global_ptr;
 }
 
+void __z_map_iter_class_init(struct zco_context_t *ctx, ZMapIterClass *_class)
+{
+	__z_object_class_init(ctx, (ZObjectClass *) _class);
+	#ifdef CLASS_INIT_EXISTS
+		class_init(ctx, _class);
+	#endif
+	z_object_register_method(ctx, (ZObjectClass *) _class, "new", (ZObjectSignalHandler) new);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "dup", (ZObjectSignalHandler) dup);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "advance", (ZObjectSignalHandler) advance);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "increment", (ZObjectSignalHandler) increment);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "decrement", (ZObjectSignalHandler) decrement);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "is_equal", (ZObjectSignalHandler) is_equal);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "is_lte", (ZObjectSignalHandler) is_lte);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "is_gte", (ZObjectSignalHandler) is_gte);
+}
 void __z_map_iter_init(struct zco_context_t *ctx, Self *self)
 {
 	struct ZMapIterGlobal *_global = z_map_iter_get_type(ctx);

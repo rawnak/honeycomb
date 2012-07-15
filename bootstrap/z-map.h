@@ -33,7 +33,7 @@ typedef void(*ZMapItemCallback)(void *item, void *userdata);
 
 #include <zco-type.h>
 #define Self ZMap
-#define Z_MAP(s) ((ZMap *) (s))
+#define Z_MAP(s) ((ZMap *) ((char *) (s) + ((int *) (s)->_global)[z_map_type_id]))
 
 
 struct ZMapPrivate;
@@ -82,6 +82,7 @@ struct ZMap {
 extern int z_map_type_id;
 ZMapGlobal * z_map_get_type(struct zco_context_t *ctx);
 void __z_map_init(struct zco_context_t *ctx, ZMap *self);
+void __z_map_class_init(struct zco_context_t *ctx, ZMapClass *_class);
 Self * z_map_new(struct zco_context_t *ctx);
 void z_map_set_userdata(Self *self, void *  value);
 void z_map_set_key_destruct(Self *self, ZMapItemCallback  value);

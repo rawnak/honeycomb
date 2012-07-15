@@ -118,7 +118,7 @@ class ZObject
 
 		/* create a closure */
 		closure = z_closure_new(CTX);
-		z_closure_set_marshal(closure, Z_CLOSURE_MARSHAL(CTX->marshal));
+		z_closure_set_marshal(closure, (ZClosureMarshal *) CTX->marshal);
 		z_closure_set_target(closure, target);
 		z_closure_set_handler(closure, handler);
 		z_closure_set_userdata(closure, userdata);
@@ -159,15 +159,15 @@ class ZObject
 		}
 	}
 
-	public void register_method(Self *self, char *name, ZObjectSignalHandler method)
+	public void register_method(struct zco_context_t *ctx, ZObjectClass *_class, char *name, ZObjectSignalHandler method)
 	{
-		if (!self->_global->_class->method_map) {
-			self->_global->_class->method_map = z_map_new(CTX);
-			z_map_set_compare(self->_global->_class->method_map, map_compare);
-			z_map_set_key_destruct(self->_global->_class->method_map, (ZMapItemCallback) free);
+		if (!_class->method_map) {
+			_class->method_map = z_map_new(ctx);
+			z_map_set_compare(_class->method_map, map_compare);
+			z_map_set_key_destruct(_class->method_map, (ZMapItemCallback) free);
 		}
 
-		//z_map_insert((ZMap *) method_map, strdup(name), method);
+		z_map_insert((ZMap *) _class->method_map, strdup(name), method);
 	}
 
 	public void register_signal(Self *self, char *name)

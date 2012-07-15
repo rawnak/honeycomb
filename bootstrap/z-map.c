@@ -67,7 +67,6 @@
 #define set_compare z_map_set_compare
 
 int z_map_type_id = -1;
-static ZMapGlobal * z_map_global;
 
 static Self *__z_map_new(struct zco_context_t *ctx)
 {
@@ -100,7 +99,6 @@ ZMapGlobal * z_map_get_type(struct zco_context_t *ctx)
 	if (*global_ptr == 0) {
 		*global_ptr = malloc(sizeof(struct ZMapGlobal));
 		struct ZMapGlobal *global = (ZMapGlobal *) *global_ptr;
-		z_map_global = global;
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZMapClass));
 		memset(global->_class, 0, sizeof(struct ZMapClass));
@@ -129,13 +127,34 @@ ZMapGlobal * z_map_get_type(struct zco_context_t *ctx)
 			global->__parent_dispose = p_class->__dispose;
 			p_class->__dispose = z_map_dispose;
 		}
-		#ifdef CLASS_INIT_EXISTS
-			class_init((ZMapGlobal *) global);
+		__z_map_class_init(ctx, (ZMapClass *) &temp);
+		#ifdef GLOBAL_INIT_EXISTS
+			global_init((ZMapGlobal *) global);
 		#endif
+		return global;
 	}
 	return (ZMapGlobal *) *global_ptr;
 }
 
+void __z_map_class_init(struct zco_context_t *ctx, ZMapClass *_class)
+{
+	__z_object_class_init(ctx, (ZObjectClass *) _class);
+	#ifdef CLASS_INIT_EXISTS
+		class_init(ctx, _class);
+	#endif
+	z_object_register_method(ctx, (ZObjectClass *) _class, "new", (ZObjectSignalHandler) new);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "clear", (ZObjectSignalHandler) clear);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "find", (ZObjectSignalHandler) find);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "get_key", (ZObjectSignalHandler) get_key);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "get_value", (ZObjectSignalHandler) get_value);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "assign", (ZObjectSignalHandler) assign);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "insert", (ZObjectSignalHandler) insert);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "erase", (ZObjectSignalHandler) erase);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "erase1", (ZObjectSignalHandler) erase1);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "erase1_inc", (ZObjectSignalHandler) erase1_inc);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "lower_bound", (ZObjectSignalHandler) lower_bound);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "upper_bound", (ZObjectSignalHandler) upper_bound);
+}
 void __z_map_init(struct zco_context_t *ctx, Self *self)
 {
 	struct ZMapGlobal *_global = z_map_get_type(ctx);

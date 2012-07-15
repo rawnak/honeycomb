@@ -28,7 +28,7 @@ typedef void(*ZVectorItemCallback)(void *item, void *userdata);
 
 #include <zco-type.h>
 #define Self ZVector
-#define Z_VECTOR(s) ((ZVector *) (s))
+#define Z_VECTOR(s) ((ZVector *) ((char *) (s) + ((int *) (s)->_global)[z_vector_type_id]))
 
 
 struct ZVectorPrivate;
@@ -80,6 +80,7 @@ struct ZVector {
 extern int z_vector_type_id;
 ZVectorGlobal * z_vector_get_type(struct zco_context_t *ctx);
 void __z_vector_init(struct zco_context_t *ctx, ZVector *self);
+void __z_vector_class_init(struct zco_context_t *ctx, ZVectorClass *_class);
 Self * z_vector_new(struct zco_context_t *ctx,int item_size);
 void z_vector_set_item_construct(Self *self, ZVectorItemCallback  value);
 void z_vector_set_item_destruct(Self *self, ZVectorItemCallback  value);

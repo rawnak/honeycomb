@@ -38,10 +38,10 @@
 #define get_userdata z_closure_get_userdata
 #define set_userdata z_closure_set_userdata
 #define set_marshal z_closure_set_marshal
+#define set_target z_closure_set_target
 #define invoke z_closure_invoke
 
 int z_closure_type_id = -1;
-static ZClosureGlobal * z_closure_global;
 
 static Self *__z_closure_new(struct zco_context_t *ctx)
 {
@@ -66,7 +66,6 @@ ZClosureGlobal * z_closure_get_type(struct zco_context_t *ctx)
 	if (*global_ptr == 0) {
 		*global_ptr = malloc(sizeof(struct ZClosureGlobal));
 		struct ZClosureGlobal *global = (ZClosureGlobal *) *global_ptr;
-		z_closure_global = global;
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZClosureClass));
 		memset(global->_class, 0, sizeof(struct ZClosureClass));
@@ -95,13 +94,25 @@ ZClosureGlobal * z_closure_get_type(struct zco_context_t *ctx)
 			global->__parent_dispose = p_class->__dispose;
 			p_class->__dispose = z_closure_dispose;
 		}
-		#ifdef CLASS_INIT_EXISTS
-			class_init((ZClosureGlobal *) global);
+		__z_closure_class_init(ctx, (ZClosureClass *) &temp);
+		#ifdef GLOBAL_INIT_EXISTS
+			global_init((ZClosureGlobal *) global);
 		#endif
+		return global;
 	}
 	return (ZClosureGlobal *) *global_ptr;
 }
 
+void __z_closure_class_init(struct zco_context_t *ctx, ZClosureClass *_class)
+{
+	__z_object_class_init(ctx, (ZObjectClass *) _class);
+	#ifdef CLASS_INIT_EXISTS
+		class_init(ctx, _class);
+	#endif
+	z_object_register_method(ctx, (ZObjectClass *) _class, "new", (ZObjectSignalHandler) new);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "dup", (ZObjectSignalHandler) dup);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "invoke", (ZObjectSignalHandler) invoke);
+}
 void __z_closure_init(struct zco_context_t *ctx, Self *self)
 {
 	struct ZClosureGlobal *_global = z_closure_get_type(ctx);
@@ -117,6 +128,7 @@ static void z_closure_init(Self *self)
 {
  selfp->marshal = 0;
  selfp->handler = 0;
+ selfp->target = 0;
  selfp->userdata = 0;
  }
 #define PARENT_HANDLER self->_global->__parent_dispose
@@ -127,6 +139,11 @@ static void  z_closure_dispose(ZObject *object)
  if (selfp->marshal) {
  z_object_unref(Z_OBJECT(selfp->marshal));
  selfp->marshal = 0;
+ }
+
+ if (selfp->target) {
+ z_object_unref(Z_OBJECT(selfp->target));
+ selfp->target = 0;
  }
  }
 #undef PARENT_HANDLER
@@ -164,9 +181,17 @@ void z_closure_set_marshal(Self *self, ZClosureMarshal *  value)
  selfp->marshal = value;
  z_object_ref(Z_OBJECT(selfp->marshal));
  }
+void z_closure_set_target(Self *self, ZObject *  value)
+{
+ if (selfp->target)
+ z_object_unref(Z_OBJECT(selfp->target));
+
+ selfp->target = value;
+ z_object_ref(Z_OBJECT(selfp->target));
+ }
 int  z_closure_invoke(Self *self,ZVector *args)
 {
- return z_closure_marshal_invoke(selfp->marshal, selfp->handler, args, selfp->userdata);
+ return z_closure_marshal_invoke(selfp->marshal, selfp->target, selfp->handler, args, selfp->userdata);
  }
 
 

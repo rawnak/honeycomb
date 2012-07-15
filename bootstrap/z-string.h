@@ -40,7 +40,7 @@ enum ZStringEncoding
 
 #include <zco-type.h>
 #define Self ZString
-#define Z_STRING(s) ((ZString *) (s))
+#define Z_STRING(s) ((ZString *) ((char *) (s) + ((int *) (s)->_global)[z_string_type_id]))
 
 
 struct ZStringPrivate;
@@ -87,6 +87,7 @@ struct ZString {
 extern int z_string_type_id;
 ZStringGlobal * z_string_get_type(struct zco_context_t *ctx);
 void __z_string_init(struct zco_context_t *ctx, ZString *self);
+void __z_string_class_init(struct zco_context_t *ctx, ZStringClass *_class);
 Self * z_string_new(struct zco_context_t *ctx);
 Self * z_string_dup(Self *src);
 int  z_string_is_in_bound(Self *self,ZStringIter *it);

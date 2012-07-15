@@ -84,6 +84,7 @@ ZString *h_macros_tail;
 ZString *c_macros;
 ZString *function_prototypes_h;
 ZString *function_registrations;
+ZString *signal_registrations;
 
 static struct zco_context_t context;
 
@@ -405,11 +406,11 @@ static void signal_decl(const char *type, const char *symbol, const char *arglis
 			"\tz_object_unref(Z_OBJECT(args));\n"
 			"}\n", symbol);
 
-	print_line_number(function_registrations);
-	z_string_append_format(function_registrations, "\tz_object_register_signal(Z_OBJECT(self), \"%s\");\n", symbol);
+	print_line_number(signal_registrations);
+	z_string_append_format(signal_registrations, "\tz_object_register_signal(Z_OBJECT(self), \"%s\");\n", symbol);
 }
 
-static void member_function_decl(const char *type, const char *symbol, const char *arglist, const char *code)
+static void member_function_decl(const char *type, const char *symbol, const char *arglist, const char *code, int should_register_method)
 {
 	print_line_number(c_macros);
 	z_string_append_format(c_macros, "#define %s %s_%s\n", symbol, current_class_name_lowercase, symbol);
@@ -427,9 +428,12 @@ static void member_function_decl(const char *type, const char *symbol, const cha
 			break;
 
 		case ACCESS_PUBLIC:
-			/* register method in look up table */
-			print_line_number(function_registrations);
-			z_string_append_format(function_registrations, "\tz_object_register_method(Z_OBJECT(self), \"%s\", (ZObjectSignalHandler) %s);\n", symbol, symbol);
+			if (should_register_method) {
+				/* register method in look up table */
+				print_line_number(function_registrations);
+				// FIXME: _class cannot be casted to ZObjectClass* if it's originally an interface, like ZClosureMarshalClass
+				z_string_append_format(function_registrations, "\tz_object_register_method(ctx, (ZObjectClass *) _class, \"%s\", (ZObjectSignalHandler) %s);\n", symbol, symbol);
+			}
 
 			/* for function prototype */
 			print_line_number(function_prototypes_h);
@@ -501,7 +505,7 @@ static void define_attached_property_getter(char *symbol_name, char *app_code)
 
 	/* define the exposed getter of the attached property */
 	symbol = strdup2("get_", symbol_name);
-	member_function_decl(type_name, symbol, arglist, app_code);
+	member_function_decl(type_name, symbol, arglist, app_code, 0);
 	free(symbol);
 
 	/* undefine the helper macro previously defined before the exposed getter */
@@ -522,7 +526,7 @@ static void define_attached_property_getter(char *symbol_name, char *app_code)
 
 	symbol = strdup2("get_attached_", symbol_name);
 	temp = z_string_get_cstring(code, Z_STRING_ENCODING_UTF8);
-	member_function_decl(type_name, symbol, arglist, temp);
+	member_function_decl(type_name, symbol, arglist, temp, 0);
 	free(temp);
 	free(symbol);
 
@@ -542,7 +546,7 @@ static void define_attached_property_setter(char *symbol_name, char *app_code)
 
 	/* define the exposed setter of the attached property */
 	symbol = strdup2("set_", symbol_name);
-	member_function_decl(type_name, symbol, arglist, app_code);
+	member_function_decl(type_name, symbol, arglist, app_code, 0);
 	free(symbol);
 
 	/* undefine the helper macro previously defined before the exposed setter */
@@ -550,7 +554,7 @@ static void define_attached_property_setter(char *symbol_name, char *app_code)
 	z_string_append_format(function_definitions, "#undef set_current_value\n");
 
 	/* define the method to set the value of the attached property */
-   class_needs_map = 1;
+	class_needs_map = 1;
 	code = z_string_new(&context);
 	z_string_format(code,
 		"{\n"
@@ -561,7 +565,7 @@ static void define_attached_property_setter(char *symbol_name, char *app_code)
 
 	symbol = strdup2("set_attached_", symbol_name);
 	temp = z_string_get_cstring(code, Z_STRING_ENCODING_UTF8);
-	member_function_decl("void", symbol, arglist, temp);
+	member_function_decl("void", symbol, arglist, temp, 0);
 	free(temp);
 	free(symbol);
 	free(arglist);
@@ -587,13 +591,13 @@ static void property_decl(char *get_or_set, char *code)
 		if (!strcmp(get_or_set, "get")) {
 			arglist = "(Self *self)";
 			symbol = strdup2("get_", symbol_name);
-			member_function_decl(type_name, symbol, arglist, code);
+			member_function_decl(type_name, symbol, arglist, code, 0);
 			free(symbol);
 
 		} else if (!strcmp(get_or_set, "set")) {
 			arglist = strdup3("(Self *self, ", type_name, " value)");
 			symbol = strdup2("set_", symbol_name);
-			member_function_decl("void", symbol, arglist, code);
+			member_function_decl("void", symbol, arglist, code, 0);
 			free(arglist);
 			free(symbol);
 		}
@@ -743,7 +747,7 @@ static void virtual_member_function_decl(const char *type, const char *symbol, c
 	z_string_append_cstring(vcode, ");\n}", Z_STRING_ENCODING_UTF8);
 
 	char *temp = z_string_get_cstring(vcode, Z_STRING_ENCODING_UTF8);
-	member_function_decl(type, symbol, arglist, temp);
+	member_function_decl(type, symbol, arglist, temp, 1);
 
 	free(temp);
 	z_object_unref(Z_OBJECT(vcode));
@@ -822,6 +826,7 @@ static void class_init(char *class_name)
 	c_macros = z_string_new(&context);
 	function_prototypes_h = z_string_new(&context);
 	function_registrations = z_string_new(&context);
+	signal_registrations = z_string_new(&context);
 
 	char * current_class_name_uppercase = pascal_to_uppercase(class_name, '_');
 	current_class_name_lowercase = pascal_to_lowercase(class_name, '_');
@@ -837,7 +842,11 @@ static void class_init(char *class_name)
 	z_string_append_format(h_macros_head, "#define Self %s\n", class_name);
 
 	/* define the macro to upcast a derived object */
-	z_string_append_format(h_macros_head, "#define %s(s) ((%s *) (s))\n\n", current_class_name_uppercase, current_class_name_pascal);
+	z_string_append_format(h_macros_head, "#define %s(s) ((%s *) ((char *) (s) + ((int *) (s)->_global)[%s_type_id]))\n\n",
+			current_class_name_uppercase,
+			current_class_name_pascal,
+			current_class_name_lowercase);
+
 	free(current_class_name_uppercase);
 
 	/* define the tailing macros */
@@ -1059,8 +1068,6 @@ external_declaration
 			"\t\tglobal->id = %s_type_id;\n"
 			"\t\tglobal->vtable_off_list = NULL;\n"
 			"\t\tglobal->vtable_off_size = 0;\n"
-			"\n"
-			"\t\tstruct %sClass temp;\n"
 			"\n",
 			current_class_name_pascal, current_class_name_lowercase,
 			current_class_name_lowercase,
@@ -1071,8 +1078,7 @@ external_declaration
 			current_class_name_pascal,
 			current_class_name_pascal,
 			current_class_name_pascal,
-			current_class_name_lowercase,
-			current_class_name_pascal);
+			current_class_name_lowercase);
 
 	/* inherit the vtable from the parent class */
 	for (i=0; i < parent_class_count; ++i) {
@@ -1084,8 +1090,8 @@ external_declaration
 				"\t\t\t\t&global->vtable_off_size,\n"
 				"\t\t\t\tp_class->vtable_off_list,\n"
 				"\t\t\t\tp_class->vtable_off_size,\n"
-				"\t\t\t\t&temp,\n"
-				"\t\t\t\t&temp.parent_%s);\n",
+				"\t\t\t\tglobal->_class,\n"
+				"\t\t\t\t&global->_class->parent_%s);\n",
 				parent_class_name_pascal[i],
 				parent_class_name_lowercase[i],
 				parent_class_name_lowercase[i]);
@@ -1108,7 +1114,7 @@ external_declaration
 	dump_string(virtual_function_ptr_inits, source_file);
 
 	fprintf(source_file,
-			"\t\t__%s_class_init(ctx, (%sClass *) &temp);\n",
+			"\t\t__%s_class_init(ctx, (%sClass *) global->_class);\n",
 			current_class_name_lowercase,
 			current_class_name_pascal);
 
@@ -1118,7 +1124,11 @@ external_declaration
 			"\t\t#endif\n",
 			current_class_name_pascal);
 
+	/* It's important to return global inside the if-block because the value of *global_ptr can become invalid
+	   due to memory reallocation inside zco-type.c. Since we cannot dereference global_ptr if the if-block
+	   runs, we might as well just return the previously dereferenced value */
 	fprintf(source_file,
+			"\t\treturn global;\n"
 			"\t}\n"
 			"\treturn (%sGlobal *) *global_ptr;\n"
 			"}\n\n",
@@ -1138,11 +1148,14 @@ external_declaration
 				parent_class_name_pascal[i]);
 	}
 
-	/* call user defined init() */
+	/* call user defined class_init() */
 	fprintf(source_file,
 			"\t#ifdef CLASS_INIT_EXISTS\n"
 			"\t\tclass_init(ctx, _class);\n"
 			"\t#endif\n");
+
+	/* register methods */
+	dump_string(function_registrations, source_file);
 
 	fprintf(source_file,
 			"}\n");
@@ -1170,14 +1183,13 @@ external_declaration
 	fprintf(source_file, "\t((ZObject *) self)->class_base = (void *) _global->_class;\n");
 	fprintf(source_file, "\t((ZObject *) self)->vtable = _global->vtable_off_list;\n");
 
+	dump_string(signal_registrations, source_file);
+
 	/* call user defined init() */
 	fprintf(source_file,
 			"\t#ifdef INIT_EXISTS\n"
 			"\t\tinit(self);\n"
 			"\t#endif\n");
-
-	/* register methods and signals */
-	dump_string(function_registrations, source_file);
 
 	/* close the system defined init() definition */
 	fprintf(source_file, "}\n");
@@ -1635,16 +1647,16 @@ class_object
 
 	/* member functions */
 	| access_specifier ignorables type_name symbol_name argument_list ccodes_block
-	{ member_function_decl(type_name, $4, $5, $6); free($2); free($5); free($6); }
+	{ member_function_decl(type_name, $4, $5, $6, 1); free($2); free($5); free($6); }
 
 	| access_specifier ignorables type_name symbol_name ignorables argument_list ccodes_block
-	{ member_function_decl(type_name, $4, $6, $7); free($2); free($5); free($6); free($7); }
+	{ member_function_decl(type_name, $4, $6, $7, 1); free($2); free($5); free($6); free($7); }
 
 	| access_specifier ignorables type_name symbol_name argument_list ignorables ccodes_block
-	{ member_function_decl(type_name, $4, $5, $7); free($2); free($5); free($6); free($7); }
+	{ member_function_decl(type_name, $4, $5, $7, 1); free($2); free($5); free($6); free($7); }
 
 	| access_specifier ignorables type_name symbol_name ignorables argument_list ignorables ccodes_block
-	{ member_function_decl(type_name, $4, $6, $8); free($2); free($5); free($6); free($7); free($8); }
+	{ member_function_decl(type_name, $4, $6, $8, 1); free($2); free($5); free($6); free($7); free($8); }
 
 	/* special member functions (ie. init() or global_init() */
 	| symbol_name argument_list ccodes_block

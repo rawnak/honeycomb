@@ -25,7 +25,7 @@
 
 #include <zco-type.h>
 #define Self ZVectorIter
-#define Z_VECTOR_ITER(s) ((ZVectorIter *) (s))
+#define Z_VECTOR_ITER(s) ((ZVectorIter *) ((char *) (s) + ((int *) (s)->_global)[z_vector_iter_type_id]))
 
 
 struct ZVectorIterPrivate;
@@ -69,6 +69,7 @@ struct ZVectorIter {
 extern int z_vector_iter_type_id;
 ZVectorIterGlobal * z_vector_iter_get_type(struct zco_context_t *ctx);
 void __z_vector_iter_init(struct zco_context_t *ctx, ZVectorIter *self);
+void __z_vector_iter_class_init(struct zco_context_t *ctx, ZVectorIterClass *_class);
 Self * z_vector_iter_new(struct zco_context_t *ctx);
 Self * z_vector_iter_dup(ZVectorIter *src);
 int  z_vector_iter_get_index(Self *self);

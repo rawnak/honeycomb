@@ -29,7 +29,7 @@ typedef void(*ZObjectSignalHandler)(struct ZObject *self, ...);
 
 #include <zco-type.h>
 #define Self ZObject
-#define Z_OBJECT(s) ((ZObject *) (s))
+#define Z_OBJECT(s) ((ZObject *) ((char *) (s) + ((int *) (s)->_global)[z_object_type_id]))
 
 
 struct ZObjectPrivate;
@@ -63,6 +63,7 @@ struct ZObjectGlobal {
 };
 
 struct ZObjectClass {
+	void * method_map;
 	void  (*__dispose)(Self *self);
 };
 
@@ -76,11 +77,13 @@ struct ZObject {
 extern int z_object_type_id;
 ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx);
 void __z_object_init(struct zco_context_t *ctx, ZObject *self);
+void __z_object_class_init(struct zco_context_t *ctx, ZObjectClass *_class);
 void  z_object_dispose(Self *self);
 void  z_object_ref(Self *self);
 void  z_object_unref(Self *self);
-void *  z_object_connect(Self *self,char *name,ZObjectSignalHandler handler,void *userdata);
+void *  z_object_connect(Self *self,char *name,ZObject *target,char *method_name,void *userdata);
 void  z_object_disconnect(Self *self,char *name,void *key);
+void  z_object_register_method(struct zco_context_t *ctx,ZObjectClass *_class,char *name,ZObjectSignalHandler method);
 void  z_object_register_signal(Self *self,char *name);
 int  z_object_emit_signal(Self *self,char *name,void *argv);
 void  z_object_add_attached_property_map(Self *self,void *map);

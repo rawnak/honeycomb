@@ -31,7 +31,6 @@
 #define invoke z_closure_marshal_invoke
 
 int z_closure_marshal_type_id = -1;
-static ZClosureMarshalGlobal * z_closure_marshal_global;
 
 static Self *__z_closure_marshal_new(struct zco_context_t *ctx)
 {
@@ -39,7 +38,7 @@ static Self *__z_closure_marshal_new(struct zco_context_t *ctx)
 	__z_closure_marshal_init(ctx, self);
 	return self;
 }
-static int  z_closure_marshal_virtual_invoke(Self *self,ZObjectSignalHandler handler,ZVector *args,void *userdata);
+static int  z_closure_marshal_virtual_invoke(Self *self,ZObject *target,ZObjectSignalHandler handler,ZVector *args,void *userdata);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
@@ -55,7 +54,6 @@ ZClosureMarshalGlobal * z_closure_marshal_get_type(struct zco_context_t *ctx)
 	if (*global_ptr == 0) {
 		*global_ptr = malloc(sizeof(struct ZClosureMarshalGlobal));
 		struct ZClosureMarshalGlobal *global = (ZClosureMarshalGlobal *) *global_ptr;
-		z_closure_marshal_global = global;
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZClosureMarshalClass));
 		memset(global->_class, 0, sizeof(struct ZClosureMarshalClass));
@@ -68,13 +66,22 @@ ZClosureMarshalGlobal * z_closure_marshal_get_type(struct zco_context_t *ctx)
 
 		zco_add_to_vtable(&global->vtable_off_list, &global->vtable_off_size, z_closure_marshal_type_id);		
 		global->_class->__invoke = z_closure_marshal_virtual_invoke;
-		#ifdef CLASS_INIT_EXISTS
-			class_init((ZClosureMarshalGlobal *) global);
+		__z_closure_marshal_class_init(ctx, (ZClosureMarshalClass *) &temp);
+		#ifdef GLOBAL_INIT_EXISTS
+			global_init((ZClosureMarshalGlobal *) global);
 		#endif
+		return global;
 	}
 	return (ZClosureMarshalGlobal *) *global_ptr;
 }
 
+void __z_closure_marshal_class_init(struct zco_context_t *ctx, ZClosureMarshalClass *_class)
+{
+	#ifdef CLASS_INIT_EXISTS
+		class_init(ctx, _class);
+	#endif
+	z_object_register_method(ctx, (ZObjectClass *) _class, "invoke", (ZObjectSignalHandler) invoke);
+}
 void __z_closure_marshal_init(struct zco_context_t *ctx, Self *self)
 {
 	struct ZClosureMarshalGlobal *_global = z_closure_marshal_get_type(ctx);
@@ -85,12 +92,12 @@ void __z_closure_marshal_init(struct zco_context_t *ctx, Self *self)
 		init(self);
 	#endif
 }
-int  z_closure_marshal_invoke(Self *self,ZObjectSignalHandler handler,ZVector *args,void *userdata)
+int  z_closure_marshal_invoke(Self *self,ZObject *target,ZObjectSignalHandler handler,ZVector *args,void *userdata)
 {
 	ZObject *obj = (ZObject *) self;
-	((ZClosureMarshalClass *) ((char *) obj->class_base + obj->vtable[z_closure_marshal_type_id]))->__invoke(self,handler,args,userdata);
+	((ZClosureMarshalClass *) ((char *) obj->class_base + obj->vtable[z_closure_marshal_type_id]))->__invoke(self,target,handler,args,userdata);
 }
-static int  z_closure_marshal_virtual_invoke(Self *self,ZObjectSignalHandler handler,ZVector *args,void *userdata)
+static int  z_closure_marshal_virtual_invoke(Self *self,ZObject *target,ZObjectSignalHandler handler,ZVector *args,void *userdata)
 {
  return 0; /* not handled */
  }

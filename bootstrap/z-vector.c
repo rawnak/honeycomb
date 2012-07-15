@@ -62,7 +62,6 @@
 #define clear z_vector_clear
 
 int z_vector_type_id = -1;
-static ZVectorGlobal * z_vector_global;
 
 static Self *__z_vector_new(struct zco_context_t *ctx)
 {
@@ -87,7 +86,6 @@ ZVectorGlobal * z_vector_get_type(struct zco_context_t *ctx)
 	if (*global_ptr == 0) {
 		*global_ptr = malloc(sizeof(struct ZVectorGlobal));
 		struct ZVectorGlobal *global = (ZVectorGlobal *) *global_ptr;
-		z_vector_global = global;
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZVectorClass));
 		memset(global->_class, 0, sizeof(struct ZVectorClass));
@@ -116,13 +114,34 @@ ZVectorGlobal * z_vector_get_type(struct zco_context_t *ctx)
 			global->__parent_dispose = p_class->__dispose;
 			p_class->__dispose = z_vector_dispose;
 		}
-		#ifdef CLASS_INIT_EXISTS
-			class_init((ZVectorGlobal *) global);
+		__z_vector_class_init(ctx, (ZVectorClass *) &temp);
+		#ifdef GLOBAL_INIT_EXISTS
+			global_init((ZVectorGlobal *) global);
 		#endif
+		return global;
 	}
 	return (ZVectorGlobal *) *global_ptr;
 }
 
+void __z_vector_class_init(struct zco_context_t *ctx, ZVectorClass *_class)
+{
+	__z_object_class_init(ctx, (ZObjectClass *) _class);
+	#ifdef CLASS_INIT_EXISTS
+		class_init(ctx, _class);
+	#endif
+	z_object_register_method(ctx, (ZObjectClass *) _class, "new", (ZObjectSignalHandler) new);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "is_in_bound", (ZObjectSignalHandler) is_in_bound);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "get_item", (ZObjectSignalHandler) get_item);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "set_item", (ZObjectSignalHandler) set_item);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "push_back", (ZObjectSignalHandler) push_back);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "pop_back", (ZObjectSignalHandler) pop_back);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "insert", (ZObjectSignalHandler) insert);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "insert_range", (ZObjectSignalHandler) insert_range);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "erase", (ZObjectSignalHandler) erase);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "erase1", (ZObjectSignalHandler) erase1);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "erase1_increment", (ZObjectSignalHandler) erase1_increment);
+	z_object_register_method(ctx, (ZObjectClass *) _class, "clear", (ZObjectSignalHandler) clear);
+}
 void __z_vector_init(struct zco_context_t *ctx, Self *self)
 {
 	struct ZVectorGlobal *_global = z_vector_get_type(ctx);

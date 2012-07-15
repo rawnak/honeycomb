@@ -134,7 +134,7 @@ static void case2(void)
 		second = z_map_iter_dup(first);
 		z_map_iter_increment(second);
 
-		key = Z_STRING(z_map_get_key(mymap, first));
+		key = (ZString *) z_map_get_key(mymap, first);
 		raw_key = z_string_get_cstring(key, Z_STRING_ENCODING_UTF8);
 		value = PTR_TO_INT(z_map_get_value(mymap, first));
 
