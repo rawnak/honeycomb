@@ -66,6 +66,8 @@ class ZString : ZObject
 		if (selfp->token_it)
 			z_object_unref(Z_OBJECT(selfp->token_it));
 
+		z_object_unref(Z_OBJECT(selfp->data));
+
 		PARENT_HANDLER(object);
 	}
 
@@ -97,7 +99,7 @@ class ZString : ZObject
 		last = z_vector_get_end(selfp->data);
 
 		selfp->length = 0;
-		it = first;
+		it = z_vector_iter_dup(first);
 
 		while (!z_vector_iter_is_gte(it, last)) {
 			strict_decode(self, it, &status);
@@ -114,6 +116,8 @@ class ZString : ZObject
 		}
 
 		z_object_unref(Z_OBJECT(it));
+		z_object_unref(Z_OBJECT(first));
+		z_object_unref(Z_OBJECT(last));
 
 		return status;
 	}
@@ -291,6 +295,7 @@ class ZString : ZObject
 		}
 
 		z_object_unref(Z_OBJECT(it));
+		z_object_unref(Z_OBJECT(last));
 		return buffer;
 	}
 
@@ -330,6 +335,8 @@ class ZString : ZObject
 		pos = get_char_ref(self, it);
 		z_vector_insert_range(selfp->data, pos, src->_priv.data, it1, it2);
 		z_object_unref(Z_OBJECT(pos));
+		z_object_unref(Z_OBJECT(it2));
+		z_object_unref(Z_OBJECT(it1));
 	}
 
 	public void erase(Self *self, ZStringIter *first, ZStringIter *last)

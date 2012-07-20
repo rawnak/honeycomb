@@ -114,21 +114,21 @@ ZMapIter * z_map_find(Self *self,const void *key);
 void * z_map_get_key(Self *self,ZMapIter *it);
 #line 293 "z-map.zco"
 void * z_map_get_value(Self *self,ZMapIter *it);
-#line 374 "z-map.zco"
+#line 376 "z-map.zco"
 int  z_map_assign(Self *self,void *key,void *value);
-#line 379 "z-map.zco"
+#line 381 "z-map.zco"
 int  z_map_insert(Self *self,void *key,void *value);
-#line 384 "z-map.zco"
+#line 386 "z-map.zco"
 void  z_map_erase(Self *self,ZMapIter *first,ZMapIter *last);
-#line 407 "z-map.zco"
+#line 409 "z-map.zco"
 void  z_map_erase1(Self *self,ZMapIter *it);
-#line 417 "z-map.zco"
+#line 419 "z-map.zco"
 void  z_map_erase1_inc(Self *self,ZMapIter **it);
-#line 437 "z-map.zco"
+#line 439 "z-map.zco"
 ZMapIter * z_map_lower_bound(Self *self,void *key);
-#line 455 "z-map.zco"
+#line 457 "z-map.zco"
 ZMapIter * z_map_upper_bound(Self *self,void *key);
-#line 493 "z-map.zco"
+#line 495 "z-map.zco"
 void z_map_set_compare(Self *self, ZMapCompareFunc  value);
 
 #undef Self

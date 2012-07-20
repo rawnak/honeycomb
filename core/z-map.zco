@@ -349,6 +349,7 @@ class ZMap : ZObject
 
 			ZVectorIter *prev_ptr = z_vector_iter_new(CTX);
 			z_vector_iter_set_index(prev_ptr, z_map_iter_get_index(prev));
+			z_object_unref(Z_OBJECT(prev));
 
 			if (z_vector_is_in_bound(selfp->data, prev_ptr)) {
 				item = z_vector_get_item(selfp->data, prev_ptr);
@@ -377,6 +378,7 @@ class ZMap : ZObject
 			ZVectorIter *it_ptr = z_vector_iter_new(CTX);
 			z_vector_iter_set_index(it_ptr, z_map_iter_get_index(it));
 			z_vector_insert(selfp->data, it_ptr, 1, key_value);
+			z_object_unref(Z_OBJECT(it));
 			z_object_unref(Z_OBJECT(it_ptr));
 
 

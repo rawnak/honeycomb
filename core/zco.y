@@ -497,7 +497,7 @@ static void add_virtual_data_member(int mode, const char *_type_name, const char
 }
 
 
-static void define_attached_property_getter(char *symbol_name, char *app_code)
+static void define_attached_property_getter(char *symbol_name, const char *app_code)
 {
 	ZString *code;
 	const char *arglist = "(ZObject *object)";
@@ -538,7 +538,7 @@ static void define_attached_property_getter(char *symbol_name, char *app_code)
 	z_object_unref(Z_OBJECT(code));
 }
 
-static void define_attached_property_setter(char *symbol_name, char *app_code)
+static void define_attached_property_setter(const char *symbol_name, const char *app_code)
 {
 	ZString *code;
 	char *arglist = strdup3("(ZObject *object, ", type_name, " value)");
@@ -578,7 +578,7 @@ static void define_attached_property_setter(char *symbol_name, char *app_code)
 	z_object_unref(Z_OBJECT(code));
 }
 
-static void property_decl(char *get_or_set, char *code)
+static void property_decl(const char *get_or_set, const char *code)
 {
 	char *arglist, *symbol;
 
@@ -947,6 +947,10 @@ external_declaration
 	dump_string(h_macros_head, header_file);
 	fprintf(header_file, "\n");
 
+	z_object_unref(Z_OBJECT(h_macros_head));
+	h_macros_head = NULL;
+
+
 	/* forward declarations of data structures */
 	fprintf(header_file,
 			"struct %sPrivate;\n"
@@ -977,21 +981,36 @@ external_declaration
 	dump_string(private_data, header_file);
 	fprintf(header_file, "};\n\n");
 
+	z_object_unref(Z_OBJECT(private_data));
+	private_data = NULL;
+
 	/* protected data members */
 	dump_string(protected_data, header_file);
 	fprintf(header_file, "};\n\n");
+
+	z_object_unref(Z_OBJECT(protected_data));
+	protected_data = NULL;
 
 	/* global data members */
 	dump_string(global_data, header_file);
 	fprintf(header_file, "};\n\n");
 
+	z_object_unref(Z_OBJECT(global_data));
+	global_data = NULL;
+
 	/* klass data members */
 	dump_string(class_data, header_file);
 	fprintf(header_file, "};\n\n");
 
+	z_object_unref(Z_OBJECT(class_data));
+	class_data = NULL;
+
 	/* public data members */
 	dump_string(public_data, header_file);
 	fprintf(header_file, "};\n");
+
+	z_object_unref(Z_OBJECT(public_data));
+	public_data = NULL;
 
 	/* extern variables */
 	fprintf(header_file, "extern int %s_type_id;\n", current_class_name_lowercase);
@@ -1003,9 +1022,16 @@ external_declaration
 	dump_string(function_prototypes_h, header_file);
 	fprintf(header_file, "\n");
 
+	z_object_unref(Z_OBJECT(function_prototypes_h));
+	function_prototypes_h = NULL;
+
+
 	/* tail macros in header file */
 	dump_string(h_macros_tail, header_file);
 	fprintf(header_file, "\n");
+
+	z_object_unref(Z_OBJECT(h_macros_tail));
+	h_macros_tail = NULL;
 
 	/* includes in source file */
 	fprintf(source_file,
@@ -1033,6 +1059,10 @@ external_declaration
 	dump_string(c_macros, source_file);
 	fprintf(source_file, "\n");
 
+	z_object_unref(Z_OBJECT(c_macros));
+	c_macros = NULL;
+
+
 	/* declare the global variables */
 	fprintf(source_file, "int %s_type_id = -1;\n", current_class_name_lowercase);
 	fprintf(source_file, "\n");
@@ -1055,6 +1085,9 @@ external_declaration
 
 	dump_string(function_prototypes_c, source_file);
 	fprintf(source_file, "\n");
+
+	z_object_unref(Z_OBJECT(function_prototypes_c));
+	function_prototypes_c = NULL;
 
 
 	/* define cleanup_signal_arg */
@@ -1140,14 +1173,20 @@ external_declaration
 			current_class_name_lowercase,
 			current_class_name_pascal);
 
+	z_object_unref(Z_OBJECT(virtual_function_ptr_inits));
+	virtual_function_ptr_inits = NULL;
+
 
 	/* register methods */
-   fprintf(source_file,
-         "\t\tglobal->method_map = z_map_new(ctx);\n"
-         "\t\tz_map_set_compare(global->method_map, __map_compare);\n"
-         "\t\tz_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);\n");
+	fprintf(source_file,
+		 "\t\tglobal->method_map = z_map_new(ctx);\n"
+		 "\t\tz_map_set_compare(global->method_map, __map_compare);\n"
+		 "\t\tz_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);\n");
 
 	dump_string(function_registrations, source_file);
+
+	z_object_unref(Z_OBJECT(function_registrations));
+	function_registrations = NULL;
 
 
 	fprintf(source_file,
@@ -1231,6 +1270,10 @@ external_declaration
 
 	dump_string(signal_registrations, source_file);
 
+	z_object_unref(Z_OBJECT(signal_registrations));
+	signal_registrations = NULL;
+
+
 	/* call user defined init() */
 	fprintf(source_file,
 			"\t#ifdef INIT_EXISTS\n"
@@ -1242,6 +1285,9 @@ external_declaration
 
 	dump_string(function_definitions, source_file);
 	fprintf(source_file, "\n");
+
+	z_object_unref(Z_OBJECT(function_definitions));
+	function_definitions = NULL;
 
 	free(current_class_name_lowercase);
 
@@ -1257,6 +1303,8 @@ external_declaration
 		free(parent_class_name_lowercase);
 		free(parent_class_name_uppercase);
 	}
+
+	parent_class_count = 0;
 }
 ;
 
@@ -1474,7 +1522,7 @@ full_class_declaration
 	{ class_init($1); free($2); }
 
 	| subclass_declaration ignorables COLON ignorables parent_declaration
-	{ class_init($1); free($2); }
+	{ class_init($1); free($2); free($4); }
 
 	| subclass_declaration ignorables COLON ignorables parent_declaration ignorables
 	{ class_init($1); free($2); free($4); free($6); }
@@ -1494,7 +1542,7 @@ class_objects
 argument_list
 	: OPAREN EPAREN               { $$=strdup("()"); }
 	| OPAREN ignorables EPAREN    { $$=strdup("()"); free($2); }
-	| OPAREN arguments EPAREN     { $$=strdup3("(",$2,")"); }
+	| OPAREN arguments EPAREN     { $$=strdup3("(",$2,")"); free($2); }
 	;
 
 arguments
@@ -1506,12 +1554,12 @@ arguments
 	{ $$=strdup3($1,$2,$4); free($1); free($3); free($4);  }
 
 	| arguments COMMA ignorables argument ignorables
-	{ $$=strdup3($1,$2,$4); free($1); free($3); free($4);  }
+	{ $$=strdup3($1,$2,$4); free($1); free($3); free($4); free($5);  }
 	;
 
 pointers
 	: ASTERISK
-	| pointers ASTERISK	{ $$=strdup2($1,$2); free($1); free($2); }
+	| pointers ASTERISK	{ $$=strdup2($1,$2); free($1); }
 	| ignorable
 	| pointers ignorable	{ $$=strdup2($1,$2); free($1); free($2); }
 	;
@@ -1565,6 +1613,7 @@ override_mode
 		modifier_mode = MODIFIER_OVERRIDE;
 		record_line_number();
 		if (virtual_base_name) { free(virtual_base_name); } virtual_base_name=$3; 
+		free($4);
 	}
 
 	| OVERRIDE OPAREN ignorables WORD EPAREN
@@ -1572,6 +1621,7 @@ override_mode
 		modifier_mode = MODIFIER_OVERRIDE;
 		record_line_number();
 		if (virtual_base_name) { free(virtual_base_name); } virtual_base_name=$4; 
+		free($3);
 	}
 
 	| OVERRIDE OPAREN ignorables WORD ignorables EPAREN
@@ -1579,6 +1629,8 @@ override_mode
 		modifier_mode = MODIFIER_OVERRIDE;
 		record_line_number();
 		if (virtual_base_name) { free(virtual_base_name); } virtual_base_name=$4; 
+		free($3);
+		free($5);
 	}
 
 	| OVERRIDE ignorables OPAREN WORD EPAREN
@@ -1586,6 +1638,7 @@ override_mode
 		modifier_mode = MODIFIER_OVERRIDE;
 		record_line_number();
 		if (virtual_base_name) { free(virtual_base_name); } virtual_base_name=$4; 
+		free($2);
 	}
 
 	| OVERRIDE ignorables OPAREN WORD ignorables EPAREN
@@ -1593,6 +1646,8 @@ override_mode
 		modifier_mode = MODIFIER_OVERRIDE;
 		record_line_number();
 		if (virtual_base_name) { free(virtual_base_name); } virtual_base_name=$4; 
+		free($2);
+		free($5);
 	}
 
 	| OVERRIDE ignorables OPAREN ignorables WORD EPAREN
@@ -1600,6 +1655,8 @@ override_mode
 		modifier_mode = MODIFIER_OVERRIDE;
 		record_line_number();
 		if (virtual_base_name) { free(virtual_base_name); } virtual_base_name=$5; 
+		free($2);
+		free($4);
 	}
 
 	| OVERRIDE ignorables OPAREN ignorables WORD ignorables EPAREN
@@ -1607,6 +1664,9 @@ override_mode
 		modifier_mode = MODIFIER_OVERRIDE;
 		record_line_number();
 		if (virtual_base_name) { free(virtual_base_name); } virtual_base_name=$5; 
+		free($2);
+		free($4);
+		free($6);
 	}
 	;
 
@@ -1656,14 +1716,14 @@ class_object
 	{ add_data_member(access_mode, type_name, symbol_name); free($2); }
 
 	| access_specifier ignorables type_name symbol_name ignorables SEMICOLON
-	{ add_data_member(access_mode, type_name, symbol_name); free($2); free($6); }
+	{ add_data_member(access_mode, type_name, symbol_name); free($2); free($5); free($6); }
 
 	/* virtual data members */
 	| access_specifier ignorables virtual_mode ignorables type_name symbol_name SEMICOLON
-	{ add_virtual_data_member(access_mode, type_name, symbol_name); free($2); }
+	{ add_virtual_data_member(access_mode, type_name, symbol_name); free($2); free($4); }
 
 	| access_specifier ignorables virtual_mode ignorables type_name symbol_name ignorables SEMICOLON
-	{ add_virtual_data_member(access_mode, type_name, symbol_name); free($2); free($6); }
+	{ add_virtual_data_member(access_mode, type_name, symbol_name); free($2); free($4); free($6); free($7); }
 
 	/* virtual member functions */
 	| access_specifier ignorables virtual_mode ignorables type_name symbol_name argument_list ccodes_block
@@ -1722,7 +1782,7 @@ class_object
 	{ signal_decl(type_name, $4, $6); free($2); free($6); }
 
 	| access_specifier ignorables type_name symbol_name BANG ignorables argument_list SEMICOLON
-	{ signal_decl(type_name, $4, $7); free($2); free($5); free($7); }
+	{ signal_decl(type_name, $4, $7); free($2); free($5); free($6); free($7); }
 
 	| access_specifier ignorables type_name symbol_name BANG argument_list ignorables SEMICOLON
 	{ signal_decl(type_name, $4, $6); free($2); free($6); free($7); }
@@ -1751,6 +1811,7 @@ class_object
 			free(temp);
 		}
 		free($2);
+		free($5);
 	}
 
 	/* attached properties */
@@ -1774,6 +1835,7 @@ class_object
 			free(temp);
 		}
 		free($2);
+		free($6);
 	}
 	;
 
@@ -1783,7 +1845,7 @@ hash
 
 property_objects
 	: property_object 
-	| property_objects property_object     { $$=strdup2($1,$2); }
+	| property_objects property_object 
 	| ignorable                            { free($1); }
 	| property_objects ignorable           { free($2); }
 	;
@@ -1797,10 +1859,10 @@ set_keyword
 	;
 
 property_object
-	: get_keyword ccodes_block		{ property_decl($1,$2); }
-	| get_keyword ignorables ccodes_block	{ property_decl($1,$3); free($2); }
-	| set_keyword ccodes_block		{ property_decl($1,$2); }
-	| set_keyword ignorables ccodes_block	{ property_decl($1,$3); free($2); }
+	: get_keyword ccodes_block		{ property_decl($1,$2); free($2); }
+	| get_keyword ignorables ccodes_block	{ property_decl($1,$3); free($2); free($3); }
+	| set_keyword ccodes_block		{ property_decl($1,$2); free($2); }
+	| set_keyword ignorables ccodes_block	{ property_decl($1,$3); free($2); free($3); }
 	;
 
 ignorables
@@ -1921,6 +1983,7 @@ int main(int argc, char **argv)
 	/* open the output source file for writing */
 	filename[base_length+1] = 'c';
 	source_file = fopen(filename, "w");
+	free(filename);
 
 	/* use input .zco file as standard input */
 	if (freopen(argv[1], "r", stdin) == NULL) {
@@ -1938,6 +2001,20 @@ int main(int argc, char **argv)
 
 	fclose(header_file);
 	fclose(source_file);
+
+	zco_context_destroy(&context);
+
+	if (type_name) {
+		free(type_name);
+	}
+
+	if (current_class_name_pascal) {
+		free(current_class_name_pascal);
+	}
+
+	if (symbol_name) {
+		free(symbol_name);
+	}
 
 	return rc;
 }

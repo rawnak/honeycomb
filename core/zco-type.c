@@ -35,10 +35,34 @@ void zco_context_init(struct zco_context_t *ctx)
 
 void zco_context_destroy(struct zco_context_t *ctx)
 {
+	int i;
+
 	if (ctx->marshal) {
 		z_object_unref((ZObject *) ctx->marshal);
 		ctx->marshal = NULL;
 	}
+
+	for (i=0; i < ctx->type_count; ++i) {
+		struct ZObjectGlobal *global = ctx->types[i];
+
+		if (global)
+			z_object_unref((ZObject *) global->method_map);
+	}
+
+	for (i=0; i < ctx->type_count; ++i) {
+		struct ZObjectGlobal *global = ctx->types[i];
+
+		if (global) {
+			free(global->_class);
+			free(global->vtable_off_list);
+			free(global);
+		}
+	}
+
+
+	free(ctx->types);
+	ctx->types = NULL;
+	ctx->type_count = 0;
 }
 
 void zco_context_set_marshal(struct zco_context_t *ctx, void *marshal)

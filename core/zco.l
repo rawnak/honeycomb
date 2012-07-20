@@ -58,7 +58,7 @@
 ")"                     { yylval=")";                          return EPAREN;           }
 ";"                     { yylval=";";                          return SEMICOLON;        }
 "..."                   { yylval="...";                        return VAR_ARGS;         }
-"*"                     { yylval=strdup("*");                  return ASTERISK;         }
+"*"                     { yylval="*";                          return ASTERISK;         }
 "!"                     { yylval="!";                          return BANG;             }
 "#"                     { yylval="#";                          return HASH;             }
 "global"                { yylval="global";                     return GLOBAL;           }
