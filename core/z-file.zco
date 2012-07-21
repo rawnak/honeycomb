@@ -1,0 +1,94 @@
+/* ZCO - Cross-platform Application Framework
+ * Copyright (C) 2014  Syeda Sultana
+ *
+ * z-file.zco: File handle wrapper
+ * This file is part of ZCO.
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZCO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+%h{
+#include <z-object.h>
+#include <stdio.h>
+%}
+
+%{
+#include <z-string.h>
+%}
+
+class ZFile : ZObject
+{
+	private FILE * file;
+
+	init(Self *self)
+	{
+		selfp->file = NULL;
+	}
+
+	public Self *new(struct zco_context_t *ctx)
+	{
+		Self *self = GET_NEW(ctx);
+		return self;
+	}
+
+	public int open(Self *self, const char *filename, const char *mode)
+	{
+		selfp->file = fopen(filename, mode);
+		return selfp->file? 0 : -1;
+	}
+
+	public int close(Self *self)
+	{
+		if (selfp->file) {
+			fclose(selfp->file);
+			selfp->file = NULL;
+			return 0;
+		}
+
+		return -1;
+	}
+
+	public void write(Self *self, const char *str)
+	{
+		fputs(str, selfp->file);
+	}
+
+	public int write_vformat(Self *self, const char *fmt, va_list ap)
+	{
+		ZString *temp = z_string_new(CTX);
+		
+		/* create a formatted string */
+		z_string_append_vformat(temp, fmt, ap);
+
+		/* write string to the file */
+		z_string_validate(temp);
+		char *s = z_string_get_cstring(temp, Z_STRING_ENCODING_UTF8);
+		fputs(s, selfp->file);
+		free(s);
+		
+		/* release temporary string */
+		z_object_unref(Z_OBJECT(temp));
+	}
+
+	public void write_format(Self *self, const char *fmt, ...)
+	{
+		va_list ap;
+
+		va_start(ap, fmt);
+		write_vformat(self, fmt, ap);
+		va_end(ap);
+	}
+
+}
+

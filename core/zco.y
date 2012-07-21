@@ -20,14 +20,18 @@
 
 %{
 
+#include <z-string.h>
+#include <z-file.h>
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <z-string.h>
+
 
 #define YYSTYPE char *
 
-FILE *header_file, *source_file;
+ZFile *source_file, *header_file;
+
 char *type_name, *symbol_name, *virtual_base_name;
 char *header_filename;
 char *zco_filename;
@@ -936,23 +940,22 @@ external_declaration
 	int i;
 
 	/* includes in header file */
-	fprintf(header_file, "#include <zco-type.h>\n");
+	z_file_write(header_file, "#include <zco-type.h>\n");
 
 	/* includes in the source file */
-	fprintf(source_file,
+	z_file_write(source_file,
          "#include <z-map.h>\n"
          "#include <string.h>\n");
 
 	/* head macros in header file */
-	dump_string(h_macros_head, header_file);
-	fprintf(header_file, "\n");
+	z_file_write_format(header_file, "%S\n", h_macros_head);
 
 	z_object_unref(Z_OBJECT(h_macros_head));
 	h_macros_head = NULL;
 
 
 	/* forward declarations of data structures */
-	fprintf(header_file,
+	z_file_write_format(header_file,
 			"struct %sPrivate;\n"
 			"struct %sProtected;\n"
 			"struct %sGlobal;\n"
@@ -965,7 +968,7 @@ external_declaration
 			current_class_name_pascal);
 
 	/* create typedefs */
-	fprintf(header_file,
+	z_file_write_format(header_file,
 			"typedef struct %sPrivate %sPrivate;\n"
 			"typedef struct %sProtected %sProtected;\n"
 			"typedef struct %sGlobal %sGlobal;\n"
@@ -978,63 +981,56 @@ external_declaration
 			current_class_name_pascal, current_class_name_pascal);
 
 	/* private data members */
-	dump_string(private_data, header_file);
-	fprintf(header_file, "};\n\n");
+	z_file_write_format(header_file, "%S};\n\n", private_data);
 
 	z_object_unref(Z_OBJECT(private_data));
 	private_data = NULL;
 
 	/* protected data members */
-	dump_string(protected_data, header_file);
-	fprintf(header_file, "};\n\n");
+	z_file_write_format(header_file, "%S};\n\n", protected_data);
 
 	z_object_unref(Z_OBJECT(protected_data));
 	protected_data = NULL;
 
 	/* global data members */
-	dump_string(global_data, header_file);
-	fprintf(header_file, "};\n\n");
+	z_file_write_format(header_file, "%S};\n\n", global_data);
 
 	z_object_unref(Z_OBJECT(global_data));
 	global_data = NULL;
 
 	/* klass data members */
-	dump_string(class_data, header_file);
-	fprintf(header_file, "};\n\n");
+	z_file_write_format(header_file, "%S};\n\n", class_data);
 
 	z_object_unref(Z_OBJECT(class_data));
 	class_data = NULL;
 
 	/* public data members */
-	dump_string(public_data, header_file);
-	fprintf(header_file, "};\n");
+	z_file_write_format(header_file, "%S};\n", public_data);
 
 	z_object_unref(Z_OBJECT(public_data));
 	public_data = NULL;
 
 	/* extern variables */
-	fprintf(header_file, "extern int %s_type_id;\n", current_class_name_lowercase);
+	z_file_write_format(header_file, "extern int %s_type_id;\n", current_class_name_lowercase);
 
 	/* function prototypes in header file */
-	fprintf(header_file, "%sGlobal * %s_get_type(struct zco_context_t *ctx);\n", current_class_name_pascal, current_class_name_lowercase);
-	fprintf(header_file, "void __%s_init(struct zco_context_t *ctx, %s *self);\n", current_class_name_lowercase, current_class_name_pascal);
-	fprintf(header_file, "void __%s_class_init(struct zco_context_t *ctx, %sClass *_class);\n", current_class_name_lowercase, current_class_name_pascal);
-	dump_string(function_prototypes_h, header_file);
-	fprintf(header_file, "\n");
+	z_file_write_format(header_file, "%sGlobal * %s_get_type(struct zco_context_t *ctx);\n", current_class_name_pascal, current_class_name_lowercase);
+	z_file_write_format(header_file, "void __%s_init(struct zco_context_t *ctx, %s *self);\n", current_class_name_lowercase, current_class_name_pascal);
+	z_file_write_format(header_file, "void __%s_class_init(struct zco_context_t *ctx, %sClass *_class);\n", current_class_name_lowercase, current_class_name_pascal);
+	z_file_write_format(header_file, "%S\n", function_prototypes_h);
 
 	z_object_unref(Z_OBJECT(function_prototypes_h));
 	function_prototypes_h = NULL;
 
 
 	/* tail macros in header file */
-	dump_string(h_macros_tail, header_file);
-	fprintf(header_file, "\n");
+	z_file_write_format(header_file, "%S\n", h_macros_tail);
 
 	z_object_unref(Z_OBJECT(h_macros_tail));
 	h_macros_tail = NULL;
 
 	/* includes in source file */
-	fprintf(source_file,
+	z_file_write_format(source_file,
 			"#include <%s>\n"
 			"#include <zco-type.h>\n"
 			"#include <stdlib.h>\n",
@@ -1042,33 +1038,31 @@ external_declaration
 
 	if (class_needs_vector) {
 		class_needs_vector = 0;
-		fprintf(source_file, "#include <z-vector.h>\n");
+		z_file_write(source_file, "#include <z-vector.h>\n");
 	}
 
 	if (class_needs_map) {
 		class_needs_map = 0;
-		fprintf(source_file, "#include <z-map.h>\n");
+		z_file_write(source_file, "#include <z-map.h>\n");
 	}
 
 	if (class_needs_zvalue) {
 		class_needs_zvalue = 0;
-		fprintf(source_file, "#include <z-value.h>\n");
+		z_file_write(source_file, "#include <z-value.h>\n");
 	}
 
 	/* macros in source file */
-	dump_string(c_macros, source_file);
-	fprintf(source_file, "\n");
+	z_file_write_format(source_file, "%S\n", c_macros);
 
 	z_object_unref(Z_OBJECT(c_macros));
 	c_macros = NULL;
 
 
 	/* declare the global variables */
-	fprintf(source_file, "int %s_type_id = -1;\n", current_class_name_lowercase);
-	fprintf(source_file, "\n");
+	z_file_write_format(source_file, "int %s_type_id = -1;\n\n", current_class_name_lowercase);
 
 	/* function prototypes in source file */
-	fprintf(source_file,
+	z_file_write_format(source_file,
 			"static Self *__%s_new(struct zco_context_t *ctx)\n"
 			"{\n"
 			"\tSelf *self = (Self *) malloc(sizeof(Self));\n"
@@ -1083,15 +1077,14 @@ external_declaration
 			current_class_name_lowercase,
 			current_class_name_lowercase);
 
-	dump_string(function_prototypes_c, source_file);
-	fprintf(source_file, "\n");
+	z_file_write_format(source_file, "%S\n", function_prototypes_c);
 
 	z_object_unref(Z_OBJECT(function_prototypes_c));
 	function_prototypes_c = NULL;
 
 
 	/* define cleanup_signal_arg */
-	fprintf(source_file, "static void cleanup_signal_arg(void *item, void *userdata)\n"
+	z_file_write(source_file, "static void cleanup_signal_arg(void *item, void *userdata)\n"
 			"{\n"
 			"\tZObject **obj = (ZObject **) item;\n"
 			"\tz_object_unref(*obj);\n"
@@ -1099,7 +1092,7 @@ external_declaration
 
 
 	/* define get_type */
-	fprintf(source_file, "%sGlobal * %s_get_type(struct zco_context_t *ctx)\n"
+	z_file_write_format(source_file, "%sGlobal * %s_get_type(struct zco_context_t *ctx)\n"
 			"{\n"
 			"\tvoid **global_ptr = NULL;\n"
 			"\tif (%s_type_id != -1) {\n"
@@ -1128,7 +1121,7 @@ external_declaration
 
 	/* inherit the vtable from the parent class */
 	for (i=0; i < parent_class_count; ++i) {
-		fprintf(source_file,
+		z_file_write_format(source_file,
 				"\t\t{\n"
 				"\t\t\tstruct %sGlobal *p_class = %s_get_type(ctx);\n"
 				"\t\t\tzco_inherit_vtable(\n"
@@ -1142,16 +1135,15 @@ external_declaration
 				parent_class_name_lowercase[i],
 				parent_class_name_lowercase[i]);
 
-		fprintf(source_file,
+		z_file_write_format(source_file,
 				"\t\t\tunsigned long offset = global->vtable_off_list[%s_type_id];\n"
-				"\t\t\tmemcpy((char *) global->_class + offset, p_class->_class, sizeof(struct %sClass));\n",
+				"\t\t\tmemcpy((char *) global->_class + offset, p_class->_class, sizeof(struct %sClass));\n"
+				"\t\t}\n",
 				parent_class_name_lowercase[i],
 				parent_class_name_pascal[i]);
-
-		fprintf(source_file, "\t\t}\n");
 	}
 
-	fprintf(source_file,
+	z_file_write_format(source_file,
 			"\t\tif (%s_type_id == -1)\n"
 			"\t\t\t%s_type_id = zco_allocate_type_id();\n"
 			"\t\tglobal->id = %s_type_id;\n"
@@ -1166,9 +1158,9 @@ external_declaration
 			current_class_name_lowercase);
 
 	/* assign the virtual function pointers */
-	dump_string(virtual_function_ptr_inits, source_file);
+	z_file_write_format(source_file, "%S", virtual_function_ptr_inits);
 
-	fprintf(source_file,
+	z_file_write_format(source_file,
 			"\t\t__%s_class_init(ctx, (%sClass *) global->_class);\n",
 			current_class_name_lowercase,
 			current_class_name_pascal);
@@ -1178,18 +1170,18 @@ external_declaration
 
 
 	/* register methods */
-	fprintf(source_file,
+	z_file_write(source_file,
 		 "\t\tglobal->method_map = z_map_new(ctx);\n"
 		 "\t\tz_map_set_compare(global->method_map, __map_compare);\n"
 		 "\t\tz_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);\n");
 
-	dump_string(function_registrations, source_file);
+	z_file_write_format(source_file, "%S", function_registrations);
 
 	z_object_unref(Z_OBJECT(function_registrations));
 	function_registrations = NULL;
 
 
-	fprintf(source_file,
+	z_file_write_format(source_file,
 			"\t\t#ifdef GLOBAL_INIT_EXISTS\n"
 			"\t\t\tglobal_init((%sGlobal *) global);\n"
 			"\t\t#endif\n",
@@ -1198,7 +1190,7 @@ external_declaration
 	/* It's important to return global inside the if-block because the value of *global_ptr can become invalid
 	   due to memory reallocation inside zco-type.c. Since we cannot dereference global_ptr if the if-block
 	   runs, we might as well just return the previously dereferenced value */
-	fprintf(source_file,
+	z_file_write_format(source_file,
 			"\t\treturn global;\n"
 			"\t}\n"
 			"\treturn (%sGlobal *) *global_ptr;\n"
@@ -1206,30 +1198,28 @@ external_declaration
 			current_class_name_pascal);
 
 	/* define *_class_init */
-	fprintf(source_file,
+	z_file_write_format(source_file,
 			"void __%s_class_init(struct zco_context_t *ctx, %sClass *_class)\n"
 			"{\n",
 			current_class_name_lowercase,
 			current_class_name_pascal);
 
 	for (i=0; i < parent_class_count; ++i) {
-		fprintf(source_file,
+		z_file_write_format(source_file,
 				"\t__%s_class_init(ctx, (%sClass *) _class);\n",
 				parent_class_name_lowercase[i],
 				parent_class_name_pascal[i]);
 	}
 
 	/* call user defined class_init() */
-	fprintf(source_file,
+	z_file_write(source_file,
 			"\t#ifdef CLASS_INIT_EXISTS\n"
 			"\t\tclass_init(ctx, _class);\n"
-			"\t#endif\n");
-
-	fprintf(source_file,
+			"\t#endif\n"
 			"}\n");
 
 	/* define *_init */
-	fprintf(source_file,
+	z_file_write_format(source_file,
 			"void __%s_init(struct zco_context_t *ctx, Self *self)\n"
 			"{\n"
 			"\tstruct %sGlobal *_global = %s_get_type(ctx);\n"
@@ -1247,14 +1237,14 @@ external_declaration
 	   the current class has only one parent.
 	 */
 	if (parent_class_count == 1) {
-		fprintf(source_file,
+		z_file_write_format(source_file,
 				"\t__%s_init(ctx, (%s *) (self));\n",
 				parent_class_name_lowercase[0],
 				parent_class_name_pascal[0]);
 
 	} else {
 		for (i=0; i < parent_class_count; ++i) {
-			fprintf(source_file,
+			z_file_write_format(source_file,
 					"\t__%s_init(ctx, %s(self));\n",
 					parent_class_name_lowercase[i],
 					parent_class_name_uppercase[i]);
@@ -1263,28 +1253,27 @@ external_declaration
 	}
 
 	/* assign current class as the active class */
-	fprintf(source_file,
+	z_file_write(source_file,
 			"\t((ZObject *) self)->class_base = (void *) _global->_class;\n"
 			"\t((ZObject *) self)->global_base = (void *) _global;\n"
 			"\t((ZObject *) self)->vtable = _global->vtable_off_list;\n");
 
-	dump_string(signal_registrations, source_file);
+	z_file_write_format(source_file, "%S", signal_registrations);
 
 	z_object_unref(Z_OBJECT(signal_registrations));
 	signal_registrations = NULL;
 
 
 	/* call user defined init() */
-	fprintf(source_file,
+	z_file_write(source_file,
 			"\t#ifdef INIT_EXISTS\n"
 			"\t\tinit(self);\n"
 			"\t#endif\n");
 
 	/* close the system defined init() definition */
-	fprintf(source_file, "}\n");
+	z_file_write(source_file, "}\n");
 
-	dump_string(function_definitions, source_file);
-	fprintf(source_file, "\n");
+	z_file_write_format(source_file, "%S\n", function_definitions);
 
 	z_object_unref(Z_OBJECT(function_definitions));
 	function_definitions = NULL;
@@ -1319,7 +1308,7 @@ source_block_start
 header_block
 	: header_block_start ccodes FILE_BLK_END
 	{
-		fprintf(header_file, "%s\n", $2);
+		z_file_write_format(header_file, "%s\n", $2);
 		free($2);
 	}
 	;
@@ -1327,7 +1316,7 @@ header_block
 source_block
 	: source_block_start ccodes FILE_BLK_END
 	{
-		fprintf(source_file, "%s\n", $2);
+		z_file_write_format(source_file, "%s\n", $2);
 		free($2);
 	}
 	;
@@ -1938,6 +1927,7 @@ static char *macro_safe(const char *s)
 		}
 	}
 
+	res[length] = 0;
 	return res;
 }
 
@@ -1969,7 +1959,10 @@ int main(int argc, char **argv)
 	filename[base_length+1] = 'h';
 	filename[base_length+2] = 0;
 	header_filename = strdup(filename);
-	if ((header_file = fopen(header_filename, "w")) == NULL) {
+
+	header_file = z_file_new(&context);
+
+	if (z_file_open(header_file, header_filename, "w") != 0) {
 		fputs("zco: ", stderr);
 		perror(header_filename);
 		return -1;
@@ -1977,12 +1970,21 @@ int main(int argc, char **argv)
 
 	/* write the include guard in the header file */
 	char *temp = macro_safe(header_filename);
-	fprintf(header_file, "#ifndef _%s_\n#define _%s_\n", temp, temp);
+	z_file_write_format(header_file, "#ifndef _%s_\n#define _%s_\n", temp, temp);
 	free(temp);
 
 	/* open the output source file for writing */
 	filename[base_length+1] = 'c';
-	source_file = fopen(filename, "w");
+
+
+	source_file = z_file_new(&context);
+
+	if (z_file_open(source_file, filename, "w") != 0) {
+		fputs("zco: ", stderr);
+		perror(filename);
+		return -1;
+	}
+
 	free(filename);
 
 	/* use input .zco file as standard input */
@@ -1996,11 +1998,14 @@ int main(int argc, char **argv)
 
 	free(header_filename);
 
-	fprintf(header_file, "\n#endif\n");
-	fprintf(source_file, "\n\n");
+	z_file_write(header_file, "\n#endif\n");
+	z_file_write(source_file, "\n\n");
 
-	fclose(header_file);
-	fclose(source_file);
+	z_file_close(header_file);
+	z_file_close(source_file);
+
+	z_object_unref(Z_OBJECT(header_file));
+	z_object_unref(Z_OBJECT(source_file));
 
 	zco_context_destroy(&context);
 
@@ -2014,6 +2019,10 @@ int main(int argc, char **argv)
 
 	if (symbol_name) {
 		free(symbol_name);
+	}
+
+	if (virtual_base_name) {
+		free(virtual_base_name);
 	}
 
 	return rc;

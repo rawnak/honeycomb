@@ -33,6 +33,7 @@ add_executable(
       bootstrap/z-vector.c
       bootstrap/z-vector-iter.c
       bootstrap/z-object.c
+      bootstrap/z-file.c
 )
 
 target_link_libraries(bootstrap m)
@@ -152,6 +153,13 @@ add_custom_command(
       DEPENDS core/z-test-object.zco
       )
 
+add_custom_command(
+      OUTPUT z-file.h z-file.c
+      COMMAND ln -sf ${CMAKE_CURRENT_SOURCE_DIR}/core/z-file.zco ${CMAKE_CURRENT_BINARY_DIR}/
+      COMMAND ./zco z-file.zco
+      DEPENDS core/z-file.zco
+      )
+
 add_library(zclib SHARED
       core/zco-type.c
       z-object.c
@@ -166,5 +174,6 @@ add_library(zclib SHARED
       z-closure.c
       z-closure-marshal.c
       z-c-closure-marshal.c
+      z-file.c
       )
 
