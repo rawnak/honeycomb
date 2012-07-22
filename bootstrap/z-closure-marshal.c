@@ -122,5 +122,6 @@ static int  z_closure_marshal_virtual_invoke(Self *self,ZObject *target,ZObjectS
  return 0; /* not handled */
  }
 
+#line 15 "z-closure-marshal.zco"
 
 

@@ -367,5 +367,6 @@ static int  z_object_map_compare(ZMap *map,const void *a,const void *b)
  return strcmp(a, b);
  }
 
+#line 231 "z-object.zco"
 
 

@@ -217,5 +217,6 @@ int  z_string_iter_is_gte(Self *self,Self *other)
  return selfp->index >= get_index(other);
  }
 
+#line 72 "z-string-iter.zco"
 
 

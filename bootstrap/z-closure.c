@@ -239,5 +239,6 @@ int  z_closure_invoke(Self *self,ZVector *args)
  return z_closure_marshal_invoke(selfp->marshal, selfp->target, selfp->handler, args, selfp->userdata);
  }
 
+#line 106 "z-closure.zco"
 
 

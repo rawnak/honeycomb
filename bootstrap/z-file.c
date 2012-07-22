@@ -206,5 +206,6 @@ void  z_file_write_format(Self *self,const char *fmt,...)
  va_end(ap);
  }
 
+#line 73 "z-file.zco"
 
 

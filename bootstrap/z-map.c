@@ -685,5 +685,6 @@ void z_map_set_compare(Self *self, ZMapCompareFunc  value)
  selfp->compare = value;
  }
 
+#line 500 "z-map.zco"
 
 

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+spawn-fcgi -n -p 1234 -- build/apps/gateway/zco-gateway
+

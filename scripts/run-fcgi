@@ -1,4 +1,0 @@
-#!/bin/bash
-
-spawn-fcgi -n -p 1234 -- build/zco-fastcgi
-

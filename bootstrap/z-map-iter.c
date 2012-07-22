@@ -217,5 +217,6 @@ int  z_map_iter_is_gte(Self *self,Self *other)
  return selfp->index >= get_index(other);
  }
 
+#line 72 "z-map-iter.zco"
 
 

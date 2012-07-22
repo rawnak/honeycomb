@@ -623,5 +623,6 @@ void  z_vector_clear(Self *self)
  set_size(self, 0);
  }
 
+#line 511 "z-vector.zco"
 
 

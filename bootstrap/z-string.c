@@ -1976,5 +1976,6 @@ int  z_string_token_next(Self *self,ZString *separator,ZStringIter *first,ZStrin
 
  }
 
+#line 1709 "z-string.zco"
 
 
