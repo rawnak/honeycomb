@@ -181,6 +181,12 @@ static void print_line_number(ZString *str)
 	z_string_append_format(str, "#line %d \"%s\"\n", real_lineno, zco_filename);
 }
 
+static void print_line_number_on_file(ZFile *file)
+{
+	z_file_write_format(file, "#line %d \"%s\"\n", real_lineno, zco_filename);
+}
+
+
 static void special_member_function_decl(const char *symbol, const char *arglist, const char *code)
 {
 	if (!strcmp(symbol, "class_init"))
@@ -1294,6 +1300,10 @@ external_declaration
 	}
 
 	parent_class_count = 0;
+
+	/* record line number of the end of the class */
+	record_line_number();
+	print_line_number_on_file(source_file);
 }
 ;
 

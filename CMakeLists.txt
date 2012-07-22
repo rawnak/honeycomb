@@ -62,6 +62,14 @@ add_executable(
 
 target_link_libraries(zco-test zclib m ffi)
 
+# FastCGI application
+add_executable(
+   zco-gateway
+   z-gateway-application.c
+   )
+
+target_link_libraries(zco-gateway zclib m ffi fcgi)
+
 # zclib
 add_custom_command(
       OUTPUT z-object.h z-object.c
@@ -158,6 +166,13 @@ add_custom_command(
       COMMAND ln -sf ${CMAKE_CURRENT_SOURCE_DIR}/core/z-file.zco ${CMAKE_CURRENT_BINARY_DIR}/
       COMMAND ./zco z-file.zco
       DEPENDS core/z-file.zco
+      )
+
+add_custom_command(
+      OUTPUT z-gateway-application.h z-gateway-application.c
+      COMMAND ln -sf ${CMAKE_CURRENT_SOURCE_DIR}/apps/gateway/z-gateway-application.zco ${CMAKE_CURRENT_BINARY_DIR}/
+      COMMAND ./zco z-gateway-application.zco
+      DEPENDS apps/gateway/z-gateway-application.zco
       )
 
 add_library(zclib SHARED
