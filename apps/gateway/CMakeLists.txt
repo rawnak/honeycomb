@@ -27,6 +27,7 @@ parse_zco(z-gateway-application)
 add_executable(
    zco-gateway
    z-gateway-application.c
+   main.c
    )
 
 target_link_libraries(zco-gateway zclib m ffi fcgi)
