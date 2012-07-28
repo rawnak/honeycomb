@@ -30,6 +30,7 @@ add_executable(
       z-vector-iter.c
       z-object.c
       z-file.c
+      z-zco-source-generator.c
 )
 
 target_link_libraries(bootstrap m)

@@ -30,5 +30,5 @@ add_executable(
    main.c
    )
 
-target_link_libraries(zco-gateway zclib m ffi fcgi)
+target_link_libraries(zco-gateway zclib-core m ffi fcgi)
 

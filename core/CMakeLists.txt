@@ -16,16 +16,6 @@ bison_target(ZCO_PARSER zco.y ${CMAKE_CURRENT_BINARY_DIR}/zco.tab.c)
 flex_target(ZCO_SCANNER zco.l ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.c)
 add_flex_bison_dependency(ZCO_SCANNER ZCO_PARSER)
 
-# zco compiler
-add_executable(
-      zco
-      ${BISON_ZCO_PARSER_OUTPUTS}
-      ${FLEX_ZCO_SCANNER_OUTPUTS}
-)
-
-target_link_libraries(zco m zclib ffi)
-
-# zclib
 if (EXISTS ${CMAKE_CURRENT_BINARY_DIR}/zco)
 	macro(parse_zco OBJECT_NAME)
 		add_custom_command(
@@ -48,6 +38,20 @@ else (EXISTS ${CMAKE_CURRENT_BINARY_DIR}/zco)
 
 endif (EXISTS ${CMAKE_CURRENT_BINARY_DIR}/zco)
 
+
+
+# zco compiler
+parse_zco(z-zco-source-generator)
+add_executable(
+      zco
+      ${BISON_ZCO_PARSER_OUTPUTS}
+      ${FLEX_ZCO_SCANNER_OUTPUTS}
+      z-zco-source-generator.c
+)
+
+target_link_libraries(zco m zclib-core ffi)
+
+# zclib
 parse_zco(z-object)
 parse_zco(z-vector-iter)
 parse_zco(z-vector)
@@ -62,7 +66,8 @@ parse_zco(z-closure-marshal)
 parse_zco(z-c-closure-marshal)
 parse_zco(z-file)
 
-add_library(zclib SHARED
+add_library(
+      zclib-core SHARED
       zco-type.c
       z-object.c
       z-vector-iter.c

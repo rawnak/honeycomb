@@ -51,6 +51,7 @@
 "unsigned"              { yylval="unsigned";                   return UNSIGNED;         }
 "signed"                { yylval="signed";                     return SIGNED;           }
 "class"                 { yylval="class";                      return CLASS;            }
+"interface"             { yylval="interface";                  return INTERFACE;        }
 ":"                     { yylval=":";                          return COLON;            }
 "{"                     { yylval="{";                          return OBRACE;           }
 "}"                     { yylval="}";                          return EBRACE;           }
