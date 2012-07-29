@@ -1,0 +1,27 @@
+%h{
+#include <z-object.h>
+#include <z-string.h>
+%}
+
+%{
+#include <stdio.h>
+%}
+
+class ZWindow : ZObject
+{
+	init(Self *self)
+	{
+	}
+
+	public Self *new(struct zco_context_t *ctx)
+	{
+		Self *self = GET_NEW(ctx);
+		return self;
+	}
+
+	public virtual void draw(Self *self, ZString *output)
+	{
+		z_string_format(output, "<html><body>HEY %x</body></html>\n", self);
+	}
+}
+

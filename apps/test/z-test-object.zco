@@ -20,6 +20,7 @@
 
 %h{
 #include <z-object.h>
+#include <z-string.h>
 %}
 
 %{
@@ -38,21 +39,25 @@ class ZTestObject : ZObject
 		return self;
 	}
 
-	public Self *clicked!(Self *self);
+	public void clicked!(Self *self, char *message);
 
-	public void click_it(Self *self)
+	public void click_it(Self *self, char *message)
 	{
-		clicked(self);
+		clicked(self, message);
 	}
 
-	public void close1(Self *self)
+	public void close1(Self *self, ZString *message)
 	{
-		fprintf(stderr, "close1 called!!\n");
+		char *s = z_string_get_cstring(message, Z_STRING_ENCODING_UTF8);
+		fprintf(stderr, "close1 called!!  message = %s\n", s);
+		free(s);
 	}
 
-	public void close2(Self *self)
+	public void close2(Self *self, ZString *message)
 	{
-		fprintf(stderr, "close2 called!!\n");
+		char *s = z_string_get_cstring(message, Z_STRING_ENCODING_UTF8);
+		fprintf(stderr, "close2 called!! message = %s\n", s);
+		free(s);
 	}
 
 }

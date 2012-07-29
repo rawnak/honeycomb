@@ -20,6 +20,7 @@
 
 #ifndef _Z_FILE_H_
 #define _Z_FILE_H_
+#line 4 "z-file.zco"
 
 #include <z-object.h>
 #include <stdio.h>

@@ -20,6 +20,7 @@
 
 #ifndef _Z_STRING_ITER_H_
 #define _Z_STRING_ITER_H_
+#line 3 "z-string-iter.zco"
 
 #include <z-object.h>
 

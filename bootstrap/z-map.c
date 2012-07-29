@@ -18,6 +18,7 @@
  * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#line 21 "z-map.zco"
 
 #include <stdarg.h>
 #include <stdio.h>

@@ -18,6 +18,7 @@
  * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#line 7 "z-closure-marshal.zco"
 
 
 #include <z-map.h>
@@ -103,9 +104,6 @@ void __z_closure_marshal_init(struct zco_context_t *ctx, Self *self)
 {
 	struct ZClosureMarshalGlobal *_global = z_closure_marshal_get_type(ctx);
 	self->_global = _global;
-	((ZObject *) self)->class_base = (void *) _global->_class;
-	((ZObject *) self)->global_base = (void *) _global;
-	((ZObject *) self)->vtable = _global->vtable_off_list;
 	#ifdef INIT_EXISTS
 		init(self);
 	#endif

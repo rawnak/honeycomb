@@ -37,7 +37,7 @@ static void case1(void)
 
 	z_object_connect(Z_OBJECT(test_object), "clicked", Z_OBJECT(test_object), "close1", NULL);
 	z_object_connect(Z_OBJECT(test_object), "clicked", Z_OBJECT(test_object), "close2", NULL);
-	z_test_object_click_it(test_object);
+	z_test_object_click_it(test_object, "CLICK IT!!");
 	z_object_unref(Z_OBJECT(test_object));
 }
 

@@ -20,6 +20,7 @@
 
 #ifndef _Z_STRING_H_
 #define _Z_STRING_H_
+#line 18 "z-string.zco"
 
 #include <stdint.h>
 #include <stdarg.h>

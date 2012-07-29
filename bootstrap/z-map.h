@@ -20,6 +20,7 @@
 
 #ifndef _Z_MAP_H_
 #define _Z_MAP_H_
+#line 11 "z-map.zco"
 
 #include <stdint.h>
 #include <z-object.h>

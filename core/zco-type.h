@@ -25,7 +25,8 @@
 struct zco_context_t {
 	void **types;
 	int type_count;
-	void *marshal;			/* pointer to the marshaller (must implement ZClosureMarshal interface) */
+	void *marshal;    /* ZClosureMarshal object */
+	void *eventloop;  /* ZEventLoop object */
 };
 
 void    zco_context_init(struct zco_context_t *ctx);
@@ -35,6 +36,7 @@ void ** zco_get_ctx_type(struct zco_context_t *ctx, int type_id);
 int     zco_allocate_type_id();
 void    zco_inherit_vtable(int **list, int *size, int *src_list, int src_size, void *base, void *target);
 void    zco_add_to_vtable(int **list, int *size, int type_id);
+void *  zco_context_get_event_loop(struct zco_context_t *ctx);
 
 #endif
 

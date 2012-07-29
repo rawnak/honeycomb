@@ -18,6 +18,7 @@
  * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#line 13 "z-vector.zco"
 
 #include <string.h>
 #include <stdio.h>

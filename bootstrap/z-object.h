@@ -20,6 +20,7 @@
 
 #ifndef _Z_OBJECT_H_
 #define _Z_OBJECT_H_
+#line 7 "z-object.zco"
 
 #define likely(x) __builtin_expect((x),1)
 #define unlikely(x) __builtin_expect((x),0)

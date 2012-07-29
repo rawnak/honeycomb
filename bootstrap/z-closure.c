@@ -18,6 +18,7 @@
  * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#line 10 "z-closure.zco"
 
 #include <assert.h>
 

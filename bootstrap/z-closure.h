@@ -20,6 +20,7 @@
 
 #ifndef _Z_CLOSURE_H_
 #define _Z_CLOSURE_H_
+#line 6 "z-closure.zco"
 
 #include <z-object.h>
 #include <z-vector.h>

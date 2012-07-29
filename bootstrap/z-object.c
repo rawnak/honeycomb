@@ -18,6 +18,7 @@
  * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#line 17 "z-object.zco"
 
 #include <assert.h>
 #include <z-map.h>
@@ -260,7 +261,7 @@ void *  z_object_connect(Self *self,char *name,ZObject *target,char *method_name
  assert(selfp->signal_map != NULL);
 
  /* lookup handler from method_name */
- handler = lookup_method(self, method_name);
+ handler = lookup_method(target, method_name);
  assert(handler != NULL);
 
  /* create a closure */

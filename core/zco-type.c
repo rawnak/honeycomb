@@ -19,10 +19,11 @@
  */
 
 #include <zco-type.h>
+#include <z-object.h>
+#include <z-event-loop.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <z-object.h>
 
 static int next_id = -1;
 
@@ -31,11 +32,14 @@ void zco_context_init(struct zco_context_t *ctx)
 	ctx->type_count = 0;
 	ctx->types = 0;
 	ctx->marshal = NULL;
+	ctx->eventloop = z_event_loop_new(ctx);
 }
 
 void zco_context_destroy(struct zco_context_t *ctx)
 {
 	int i;
+
+	z_object_unref((ZObject *) ctx->eventloop);
 
 	if (ctx->marshal) {
 		z_object_unref((ZObject *) ctx->marshal);
@@ -142,59 +146,8 @@ void zco_add_to_vtable(int **list, int *size, int type_id)
 	(*list)[type_id] = 0;
 }
 
-#if 0
-static struct zco_context_t *contexts = 0;
-static struct zco_context_t **free_contexts = 0;
-static int context_count = 0;
-static int free_context_count = 0;
-static int max_free_context_count = 0;
-
-struct zco_context_t * zco_allocate_ctx()
+void * zco_context_get_event_loop(struct zco_context_t *ctx)
 {
-   struct zco_context_t *ctx;
-
-   if (free_context_count > 0) {
-      /* if there are contexts in the free list, pop the latest one */
-      --free_context_count;
-      ctx = free_contexts[free_context_count];
-
-   } else {
-      /* if no contexts are in the free list, allocate a new one */
-      ++context_count;
-      contexts = realloc(contexts, sizeof(struct zco_context_t) * context_count);
-      ctx = contexts + (context_count-1);
-   }
-
-   ctx->types = NULL;
-   ctx->type_count = 0;
-
-   return ctx;
+	return ctx->eventloop;
 }
-
-void zco_free_ctx(struct zco_context_t *ctx)
-{
-   /* increase the size of the free context list */
-   ++free_context_count;
-
-   if (max_free_context_count < free_context_count) {
-      max_free_context_count = free_context_count;
-      free_contexts = realloc(free_contexts, sizeof(struct zco_context_t *) * max_free_context_count);
-   }
-
-
-void zco_free_ctx(struct zco_context_t *ctx)
-{
-   /* increase the size of the free context list */
-   ++free_context_count;
-
-   if (max_free_context_count < free_context_count) {
-      max_free_context_count = free_context_count;
-      free_contexts = realloc(free_contexts, sizeof(struct zco_context_t *) * max_free_context_count);
-   }
-
-   /* add the given context ID into the free list */
-   free_contexts[free_countext_count-1] = ctx;
-}
-
-#endif
 

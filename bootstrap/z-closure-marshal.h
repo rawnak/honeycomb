@@ -20,6 +20,7 @@
 
 #ifndef _Z_CLOSURE_MARSHAL_H_
 #define _Z_CLOSURE_MARSHAL_H_
+#line 4 "z-closure-marshal.zco"
 
 #include <z-object.h>
 #include <z-vector.h>

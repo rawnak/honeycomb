@@ -1,0 +1,25 @@
+%h{
+#include <z-object.h>
+#include <z-string.h>
+%}
+
+%{
+%}
+
+class ZEventLoop : ZObject
+{
+	init(Self *self)
+	{
+	}
+
+	public Self *new(struct zco_context_t *ctx)
+	{
+		Self *self = GET_NEW(ctx);
+		return self;
+	}
+
+	/* event signals */
+	public void draw_event!(Self *self, ZString *output);
+	public void io_event!(Self *self);
+}
+

@@ -18,6 +18,7 @@
  * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#line 6 "z-vector-iter.zco"
 
 
 #include <z-map.h>

@@ -20,6 +20,8 @@
 
 %h{
 #include <z-object.h>
+#include <z-vector.h>
+#include <z-c-closure-marshal.h>
 #include <fcgi_config.h>
 #include <fcgiapp.h>
 #include <time.h>
@@ -35,6 +37,9 @@ union guid_t
 %}
 
 %{
+#include <zco-type.h>
+#include <z-event-loop.h>
+#include <z-window.h>
 %}
 
 class ZGatewayApplication : ZObject
@@ -42,12 +47,30 @@ class ZGatewayApplication : ZObject
 	private char *remote_address;
 	private int is_expired;
 	private time_t last_wakeup;
+	private ZVector *toplevels;
+	private ZCClosureMarshal *marshal;
 
 	init(Self *self)
 	{
 		selfp->remote_address = NULL;
 		selfp->is_expired = 0;
 		selfp->last_wakeup = 0;
+
+		/* set a default marshaller for the current context */
+		selfp->marshal = z_c_closure_marshal_new(CTX);
+		zco_context_set_marshal(CTX, selfp->marshal);
+
+		/* create a vector to hold on to the top level windows */
+		selfp->toplevels = z_vector_new(CTX, 0);
+		z_vector_set_item_destruct(selfp->toplevels, (ZVectorItemCallback) z_object_unref);
+
+		/* create the main window */
+		ZWindow *main_window = z_window_new(CTX);
+		z_vector_push_back(selfp->toplevels, main_window);
+
+		/* connect the event loop's draw_event signal to the window's draw method */
+		ZEventLoop *event_loop = (ZEventLoop *) zco_context_get_event_loop(CTX);
+		z_object_connect(Z_OBJECT(event_loop), "draw_event", Z_OBJECT(main_window), "draw", NULL);
 	}
 
 	public Self *new(struct zco_context_t *ctx)
@@ -62,6 +85,9 @@ class ZGatewayApplication : ZObject
 
 		if (selfp->remote_address)
 			free(selfp->remote_address);
+
+		z_object_unref(Z_OBJECT(selfp->toplevels));
+		z_object_unref(Z_OBJECT(selfp->marshal));
 
 		PARENT_HANDLER(object);
 	}
@@ -95,36 +121,6 @@ class ZGatewayApplication : ZObject
 		FCGX_FPrintF(out, "</pre><p>\n");
 	}
 
-	private void print_message(FCGX_Stream *out)
-	{
-#if 0
-		char *content_length;
-		int length;
-
-		if (NULL == (content_length = FCGX_GetParam("CONTENT_LENGTH", envp)))
-			continue;
-
-
-		length = (content_length)? atoi(content_length) : 0;
-
-		/* print remote address */
-
-
-
-		/* get data */
-		if (length == 0) {
-			FCGX_FPrintF(out, "No data from input\n\n");
-		} else {
-
-		}
-#endif
-
-
-		FCGX_FPrintF(out, 
-				"<title>FastCGI echo</title>"
-				"<h1>FastCGI echo</h1><p>\n");
-	}
-
 	public void process_request(Self *self, FCGX_Stream *in, FCGX_Stream *out, FCGX_ParamArray envp)
 	{
 		/* Verify that remote address hasn't changed since the beginning of the session.
@@ -154,8 +150,18 @@ class ZGatewayApplication : ZObject
 		/* Start the HTTP body */
 		FCGX_FPrintF(out, "\r\n");
 
-		print_message(out);
-		print_env(out, "Request environment", envp);
+		/* Raise the 'draw_event' signal */
+		ZString *message = z_string_new(CTX);
+		ZEventLoop *event_loop = (ZEventLoop *) zco_context_get_event_loop(CTX);
+		z_event_loop_draw_event(event_loop, message);
+
+		/* Send message to the client */
+		char *msg = z_string_get_cstring(message, Z_STRING_ENCODING_UTF8);
+		FCGX_FPrintF(out, "%s", msg);
+		free(msg);
+		z_object_unref(Z_OBJECT(message));
+
+		//print_env(out, "Request environment", envp);
 	}
 }
 

@@ -20,6 +20,7 @@ add_executable(
       ${BISON_ZCO_PARSER_OUTPUTS}
       ${FLEX_ZCO_SCANNER_OUTPUTS}
       ${CMAKE_SOURCE_DIR}/core/zco-type.c
+      z-zco-source-generator.c
       z-closure.c
       z-closure-marshal.c
       z-map.c
@@ -31,6 +32,8 @@ add_executable(
       z-object.c
       z-file.c
       z-zco-source-generator.c
+      z-value.c
+      z-event-loop.c
 )
 
 target_link_libraries(bootstrap m)

@@ -32,5 +32,6 @@ void z_vector_test(int);
 void z_string_test(int);
 void z_map_test(int);
 void signal_test(int);
+void z_gateway_application_test(int);
 
 #endif

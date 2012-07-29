@@ -72,7 +72,7 @@ source_block_start
 header_block
 	: header_block_start ccodes FILE_BLK_END
 	{
-		z_zco_source_generator_header_block(source_generator, $2);
+		z_zco_source_generator_write_header_block(source_generator, $2);
 		free($2);
 	}
 	;
@@ -80,7 +80,7 @@ header_block
 source_block
 	: source_block_start ccodes FILE_BLK_END
 	{
-		z_zco_source_generator_source_block(source_generator, $2);
+		z_zco_source_generator_write_source_block(source_generator, $2);
 		free($2);
 	}
 	;
@@ -240,19 +240,19 @@ ccodes
 	{ $$=z_zco_source_generator_strdup2(source_generator,$1,$2); free($1); free($2); }
 	;
 
-subclass_declaration
+class_declaration
 	: CLASS ignorables WORD 
 	{
-		z_zco_source_generator_subclass_declaration(source_generator);
+		z_zco_source_generator_class_declaration(source_generator);
 		$$=$3;
 		free($2);
 	}
 	;
 
-subinterface_declaration
+interface_declaration
 	: INTERFACE ignorables WORD 
 	{
-		z_zco_source_generator_subinterface_declaration(source_generator);
+		z_zco_source_generator_interface_declaration(source_generator);
 		$$=$3;
 		free($2);
 	}
@@ -279,29 +279,29 @@ parent_declaration
 
 /* $1 should not be freed because it will be pointed to by current_class_name_pascal */
 full_class_declaration
-	: subclass_declaration
-	{ z_zco_source_generator_finalize_class(source_generator, $1); }
+	: class_declaration
+	{ z_zco_source_generator_prepare_class(source_generator, $1); }
 
-	| subclass_declaration ignorables
-	{ z_zco_source_generator_finalize_class(source_generator, $1); free($2); }
+	| class_declaration ignorables
+	{ z_zco_source_generator_prepare_class(source_generator, $1); free($2); }
 
-	| subclass_declaration ignorables COLON ignorables parent_declaration
-	{ z_zco_source_generator_finalize_class(source_generator, $1); free($2); free($4); }
+	| class_declaration ignorables COLON ignorables parent_declaration
+	{ z_zco_source_generator_prepare_class(source_generator, $1); free($2); free($4); }
 
-	| subclass_declaration ignorables COLON ignorables parent_declaration ignorables
-	{ z_zco_source_generator_finalize_class(source_generator, $1); free($2); free($4); free($6); }
+	| class_declaration ignorables COLON ignorables parent_declaration ignorables
+	{ z_zco_source_generator_prepare_class(source_generator, $1); free($2); free($4); free($6); }
 
-	| subinterface_declaration
-	{ z_zco_source_generator_finalize_interface(source_generator, $1); }
+	| interface_declaration
+	{ z_zco_source_generator_prepare_interface(source_generator, $1); }
 
-	| subinterface_declaration ignorables
-	{ z_zco_source_generator_finalize_interface(source_generator, $1); free($2); }
+	| interface_declaration ignorables
+	{ z_zco_source_generator_prepare_interface(source_generator, $1); free($2); }
 
-	| subinterface_declaration ignorables COLON ignorables parent_declaration
-	{ z_zco_source_generator_finalize_interface(source_generator, $1); free($2); free($4); }
+	| interface_declaration ignorables COLON ignorables parent_declaration
+	{ z_zco_source_generator_prepare_interface(source_generator, $1); free($2); free($4); }
 
-	| subinterface_declaration ignorables COLON ignorables parent_declaration ignorables
-	{ z_zco_source_generator_finalize_interface(source_generator, $1); free($2); free($4); free($6); }
+	| interface_declaration ignorables COLON ignorables parent_declaration ignorables
+	{ z_zco_source_generator_prepare_interface(source_generator, $1); free($2); free($4); free($6); }
 
 	;
 
@@ -372,58 +372,58 @@ argument
 virtual_mode
 	: VIRTUAL
 	{
-		z_zco_source_generator_virtual_mode(source_generator);
+		z_zco_source_generator_enable_virtual_mode(source_generator);
 	}
 	;
 
 override_mode
 	: OVERRIDE OPAREN WORD EPAREN
 	{
-		z_zco_source_generator_override_mode(source_generator, $3);
+		z_zco_source_generator_enable_override_mode(source_generator, $3);
 	}
 
 	| OVERRIDE OPAREN WORD ignorables EPAREN
 	{
-		z_zco_source_generator_override_mode(source_generator, $3);
+		z_zco_source_generator_enable_override_mode(source_generator, $3);
 		free($4);
 	}
 
 	| OVERRIDE OPAREN ignorables WORD EPAREN
 	{
-		z_zco_source_generator_override_mode(source_generator, $4);
+		z_zco_source_generator_enable_override_mode(source_generator, $4);
 		free($3);
 	}
 
 	| OVERRIDE OPAREN ignorables WORD ignorables EPAREN
 	{
-		z_zco_source_generator_override_mode(source_generator, $4);
+		z_zco_source_generator_enable_override_mode(source_generator, $4);
 		free($3);
 		free($5);
 	}
 
 	| OVERRIDE ignorables OPAREN WORD EPAREN
 	{
-		z_zco_source_generator_override_mode(source_generator, $4);
+		z_zco_source_generator_enable_override_mode(source_generator, $4);
 		free($2);
 	}
 
 	| OVERRIDE ignorables OPAREN WORD ignorables EPAREN
 	{
-		z_zco_source_generator_override_mode(source_generator, $4);
+		z_zco_source_generator_enable_override_mode(source_generator, $4);
 		free($2);
 		free($5);
 	}
 
 	| OVERRIDE ignorables OPAREN ignorables WORD EPAREN
 	{
-		z_zco_source_generator_override_mode(source_generator, $5);
+		z_zco_source_generator_enable_override_mode(source_generator, $5);
 		free($2);
 		free($4);
 	}
 
 	| OVERRIDE ignorables OPAREN ignorables WORD ignorables EPAREN
 	{
-		z_zco_source_generator_override_mode(source_generator, $5);
+		z_zco_source_generator_enable_override_mode(source_generator, $5);
 		free($2);
 		free($4);
 		free($6);
@@ -458,9 +458,7 @@ type_name
 
 symbol_name
 	: WORD
-	{
-		z_zco_source_generator_set_symbol_name(source_generator, $1);
-	}
+	{ z_zco_source_generator_set_symbol_name(source_generator, $1); }
 	;
 
 class_object
@@ -546,13 +544,13 @@ class_object
 	/* properties */
 	| access_specifier ignorables type_name symbol_name OBRACE property_objects EBRACE
 	{ 
-		z_zco_source_generator_add_property(source_generator);
+		z_zco_source_generator_finalize_property(source_generator);
 		free($2);
 	}
 
 	| access_specifier ignorables type_name symbol_name ignorables OBRACE property_objects EBRACE
 	{ 
-		z_zco_source_generator_add_property(source_generator);
+		z_zco_source_generator_finalize_property(source_generator);
 		free($2);
 		free($5);
 	}
@@ -560,13 +558,13 @@ class_object
 	/* attached properties */
 	| access_specifier ignorables type_name symbol_name hash OBRACE property_objects EBRACE
 	{ 
-		z_zco_source_generator_add_property(source_generator);
+		z_zco_source_generator_finalize_property(source_generator);
 		free($2);
 	}
 
 	| access_specifier ignorables type_name symbol_name hash ignorables OBRACE property_objects EBRACE
 	{ 
-		z_zco_source_generator_add_property(source_generator);
+		z_zco_source_generator_finalize_property(source_generator);
 		free($2);
 		free($6);
 	}
@@ -628,15 +626,14 @@ int main(int argc, char **argv)
 	zco_context_init(&context);
 
 	source_generator = z_zco_source_generator_new(&context);
-
 	int rc = z_zco_source_generator_setup(source_generator, argc, argv);
+
 	if (rc != 0)
 		return rc;
 
 	rc = yyparse();
 
-	z_zco_source_generator_cleanup(source_generator);
-
+	z_object_unref(Z_OBJECT(source_generator));
 	zco_context_destroy(&context);
 
 	return rc;

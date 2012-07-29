@@ -18,6 +18,7 @@
  * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#line 8 "z-file.zco"
 
 #include <z-string.h>
 

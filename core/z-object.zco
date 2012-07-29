@@ -140,7 +140,7 @@ class ZObject
 		assert(selfp->signal_map != NULL);
 
 		/* lookup handler from method_name */
-		handler = lookup_method(self, method_name);
+		handler = lookup_method(target, method_name);
 		assert(handler != NULL);
 
 		/* create a closure */

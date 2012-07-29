@@ -20,6 +20,7 @@
 
 #ifndef _Z_VECTOR_ITER_H_
 #define _Z_VECTOR_ITER_H_
+#line 3 "z-vector-iter.zco"
 
 #include <z-object.h>
 
