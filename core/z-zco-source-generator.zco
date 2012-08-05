@@ -855,8 +855,9 @@ class ZZcoSourceGenerator : ZObject
                 z_string_append_format(vcode, 
                                 "\x7b\n"
                                 "\tZObject *obj = (ZObject *) self;\n"
-                                "\t((%sClass *) ((char *) obj->class_base + obj->vtable[%s_type_id]))->__%s(",
-                                selfp->current_class_name_pascal, selfp->current_class_name_lowercase, symbol);
+				"\tunsigned long offset = ((ZObjectClass *) obj->class_base)->class_off_list[%s_type_id];\n"
+                                "\t((%sClass *) ((char *) obj->class_base + offset))->__%s(",
+				selfp->current_class_name_lowercase, selfp->current_class_name_pascal, symbol);
 
                 strip_out_types(vcode, arglist);
                 z_string_append_cstring(vcode, ");\n\x7d", Z_STRING_ENCODING_UTF8);
@@ -912,8 +913,8 @@ class ZZcoSourceGenerator : ZObject
 
                 /* create a pointer to the parent class's dispatch object */
                 print_line_number(self, selfp->virtual_function_ptr_inits);
-                z_string_append_format(selfp->virtual_function_ptr_inits, "\t\t\t%sClass *p_class = (%sClass *) ((char *) global->_class + global->vtable_off_list[%s_type_id]);\n",
-                                selfp->virtual_base_name, selfp->virtual_base_name, base_name_lowercase);
+                z_string_append_format(selfp->virtual_function_ptr_inits, "\t\t\t%sClass *p_class = &global->_class->parent_%s;\n",
+                                selfp->virtual_base_name, base_name_lowercase);
 
                 /* backup the existing virtual function pointer for the PARENT_HANDLER macro */
                 print_line_number(self, selfp->virtual_function_ptr_inits);
@@ -987,6 +988,7 @@ class ZZcoSourceGenerator : ZObject
                                 "struct %sGlobal \x7b\n"
                                 "\tint *vtable_off_list;\n"
                                 "\tint vtable_off_size;\n"
+				"\tint is_object;\n"
                                 "\tstruct %sClass *_class;\n"
                                 "\tstruct zco_context_t *ctx;\n"
                                 "\tconst char *name;\n"
@@ -1085,6 +1087,7 @@ class ZZcoSourceGenerator : ZObject
                                 "struct %sGlobal \x7b\n"
                                 "\tint *vtable_off_list;\n"
                                 "\tint vtable_off_size;\n"
+				"\tint is_object;\n"
                                 "\tstruct %sClass *_class;\n"
                                 "\tstruct zco_context_t *ctx;\n"
                                 "\tconst char *name;\n"
@@ -1176,8 +1179,17 @@ class ZZcoSourceGenerator : ZObject
                 return res;
         }
 
+        public void finalize_class_definition(Self *self)
+	{
+		external_definition(self, 1);
+	}
 
-        public void external_declaration(Self *self)
+        public void finalize_interface_definition(Self *self)
+	{
+		external_definition(self, 0);
+	}
+
+        private void external_definition(Self *self, int is_object)
         {
                 int i;
 
@@ -1353,8 +1365,11 @@ class ZZcoSourceGenerator : ZObject
                                 "\t\tglobal->name = \"%s\";\n"
                                 "\t\tglobal->vtable_off_list = NULL;\n"
                                 "\t\tglobal->vtable_off_size = 0;\n"
+				"\t\tglobal->is_object = %d;\n"
                                 "\n"
                                 "\t\tstruct %s temp;\n"
+				"\t\tunsigned long offset = 0;\n"
+				"\t\tunsigned long class_off_size = 0;\n"
                                 "\n",
                                 selfp->current_class_name_pascal, selfp->current_class_name_lowercase,
                                 selfp->current_class_name_lowercase,
@@ -1364,6 +1379,7 @@ class ZZcoSourceGenerator : ZObject
                                 selfp->current_class_name_pascal,
                                 selfp->current_class_name_pascal,
                                 selfp->current_class_name_pascal,
+				is_object,
                                 selfp->current_class_name_pascal);
 
                 /* inherit the vtable from the parent class */
@@ -1383,10 +1399,18 @@ class ZZcoSourceGenerator : ZObject
                                         selfp->parent_class_name_lowercase[i]);
 
                         z_file_write_format(selfp->source_file,
-                                        "\t\t\tunsigned long offset = global->vtable_off_list[%s_type_id];\n"
                                         "\t\t\tmemcpy((char *) global->_class + offset, p_class->_class, sizeof(struct %sClass));\n"
+					"\t\t\tif (0 == class_off_size) {\n"
+					"\t\t\t\tclass_off_size = p_class->id + 1;\n"
+					"\t\t\t\t((ZObjectClass *) global->_class)->class_off_list = malloc(sizeof(unsigned long) * class_off_size);\n"
+					"\t\t\t} else if (p_class->id >= class_off_size) {\n"
+					"\t\t\t\tclass_off_size = p_class->id + 1;\n"
+					"\t\t\t\t((ZObjectClass *) global->_class)->class_off_list = realloc(((ZObjectClass *) global->_class)->class_off_list, sizeof(unsigned long) * class_off_size);\n"
+					"\t\t\t}\n"
+					"\t\t\t((ZObjectClass *) global->_class)->class_off_list[p_class->id] = offset;\n"
+					"\t\t\toffset += sizeof(struct %sClass);\n"
                                         "\t\t\x7d\n",
-                                        selfp->parent_class_name_lowercase[i],
+                                        selfp->parent_class_name_pascal[i],
                                         selfp->parent_class_name_pascal[i]);
                 }
 
@@ -1503,8 +1527,7 @@ class ZZcoSourceGenerator : ZObject
                 if (!selfp->is_interface) {
                         z_file_write(selfp->source_file,
                                         "\t((ZObject *) self)->class_base = (void *) _global->_class;\n"
-                                        "\t((ZObject *) self)->global_base = (void *) _global;\n"
-                                        "\t((ZObject *) self)->vtable = _global->vtable_off_list;\n");
+					"\t((ZObjectClass *) _global->_class)->real_global = (void *) _global;\n");
                 }
 
                 z_file_write_format(selfp->source_file, "%S", selfp->signal_registrations);

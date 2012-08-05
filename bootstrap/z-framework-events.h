@@ -51,6 +51,7 @@ struct ZFrameworkEventsProtected {
 struct ZFrameworkEventsGlobal {
 	int *vtable_off_list;
 	int vtable_off_size;
+	int is_object;
 	struct ZFrameworkEventsClass *_class;
 	struct zco_context_t *ctx;
 	const char *name;
@@ -75,8 +76,10 @@ void __z_framework_events_class_init(struct zco_context_t *ctx, ZFrameworkEvents
 #line 15 "z-framework-events.zco"
 Self * z_framework_events_new(struct zco_context_t *ctx);
 #line 22 "z-framework-events.zco"
-void  z_framework_events_draw_event(Self *self,ZString *output);
+void  z_framework_events_resize_event(Self *self,ZString *output);
 #line 23 "z-framework-events.zco"
+void  z_framework_events_draw_event(Self *self,ZString *output);
+#line 24 "z-framework-events.zco"
 void  z_framework_events_io_event(Self *self);
 
 #undef Self

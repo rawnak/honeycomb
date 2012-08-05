@@ -39,6 +39,7 @@ class ZFrameworkEvents : ZObject
 	}
 
 	/* event signals */
+	public void resize_event!(Self *self, ZString *output);
 	public void draw_event!(Self *self, ZString *output);
 	public void io_event!(Self *self);
 }

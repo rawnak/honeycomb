@@ -48,17 +48,17 @@
 #define unref z_object_unref
 #line 84 "z-object.zco"
 #define lookup_method z_object_lookup_method
-#line 115 "z-object.zco"
+#line 119 "z-object.zco"
 #define connect z_object_connect
-#line 144 "z-object.zco"
+#line 150 "z-object.zco"
 #define disconnect z_object_disconnect
-#line 169 "z-object.zco"
+#line 179 "z-object.zco"
 #define register_signal z_object_register_signal
-#line 191 "z-object.zco"
+#line 201 "z-object.zco"
 #define emit_signal z_object_emit_signal
-#line 218 "z-object.zco"
+#line 231 "z-object.zco"
 #define add_attached_property_map z_object_add_attached_property_map
-#line 227 "z-object.zco"
+#line 240 "z-object.zco"
 #define map_compare z_object_map_compare
 
 int z_object_type_id = -1;
@@ -80,7 +80,7 @@ static void z_object_init(Self *self);
 static void  z_object_virtual_dispose(Self *self);
 #line 84 "z-object.zco"
 static ZObjectSignalHandler  z_object_lookup_method(Self *self,char *method_name);
-#line 227 "z-object.zco"
+#line 240 "z-object.zco"
 static int  z_object_map_compare(ZMap *map,const void *a,const void *b);
 
 static void cleanup_signal_arg(void *item, void *userdata)
@@ -102,8 +102,11 @@ ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
 		global->name = "ZObject";
 		global->vtable_off_list = NULL;
 		global->vtable_off_size = 0;
+		global->is_object = 1;
 
 		struct ZObject temp;
+		unsigned long offset = 0;
+		unsigned long class_off_size = 0;
 
 		if (z_object_type_id == -1)
 			z_object_type_id = zco_allocate_type_id();
@@ -124,15 +127,15 @@ ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
 		z_map_insert((ZMap *) global->method_map, strdup("ref"), (ZObjectSignalHandler) ref);
 #line 77 "z-object.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("unref"), (ZObjectSignalHandler) unref);
-#line 115 "z-object.zco"
+#line 119 "z-object.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("connect"), (ZObjectSignalHandler) connect);
-#line 144 "z-object.zco"
+#line 150 "z-object.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("disconnect"), (ZObjectSignalHandler) disconnect);
-#line 169 "z-object.zco"
+#line 179 "z-object.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("register_signal"), (ZObjectSignalHandler) register_signal);
-#line 191 "z-object.zco"
+#line 201 "z-object.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("emit_signal"), (ZObjectSignalHandler) emit_signal);
-#line 218 "z-object.zco"
+#line 231 "z-object.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("add_attached_property_map"), (ZObjectSignalHandler) add_attached_property_map);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZObjectGlobal *) global);
@@ -153,8 +156,7 @@ void __z_object_init(struct zco_context_t *ctx, Self *self)
 	struct ZObjectGlobal *_global = z_object_get_type(ctx);
 	self->_global = _global;
 	((ZObject *) self)->class_base = (void *) _global->_class;
-	((ZObject *) self)->global_base = (void *) _global;
-	((ZObject *) self)->vtable = _global->vtable_off_list;
+	((ZObjectClass *) _global->_class)->real_global = (void *) _global;
 	#ifdef INIT_EXISTS
 		init(self);
 	#endif
@@ -170,7 +172,8 @@ static void z_object_init(Self *self)
 void  z_object_dispose(Self *self)
 {
 	ZObject *obj = (ZObject *) self;
-	((ZObjectClass *) ((char *) obj->class_base + obj->vtable[z_object_type_id]))->__dispose(self);
+	unsigned long offset = ((ZObjectClass *) obj->class_base)->class_off_list[z_object_type_id];
+	((ZObjectClass *) ((char *) obj->class_base + offset))->__dispose(self);
 }
 #line 35 "z-object.zco"
 static void  z_object_virtual_dispose(Self *self)
@@ -228,7 +231,9 @@ static ZObjectSignalHandler  z_object_lookup_method(Self *self,char *method_name
 		   are common between the source (unknown) *Global type and
 		   ZObjectGlobal. Since we are interested in the vtable information,
 		   we can perform the cast */
- ZObjectGlobal *gbl = (ZObjectGlobal *) self->global_base;
+ ZObjectGlobal *gbl = ((ZObjectClass *) self->class_base)->real_global;
+
+
  int *vtable_off_list = gbl->vtable_off_list;
  int vtable_off_size = gbl->vtable_off_size;
  int i;
@@ -246,13 +251,15 @@ static ZObjectSignalHandler  z_object_lookup_method(Self *self,char *method_name
  ZMapIter *it = z_map_find(method_map, method_name);
 
  if (it) {
- return z_map_get_value(method_map, it);
+ ZObjectSignalHandler handler = z_map_get_value(method_map, it);
+ z_object_unref(Z_OBJECT(it));
+ return handler;
  }
  }
 
  return NULL;
  }
-#line 115 "z-object.zco"
+#line 119 "z-object.zco"
 void *  z_object_connect(Self *self,char *name,ZObject *target,char *method_name,void *userdata)
 {
  ZClosure *closure;
@@ -266,6 +273,7 @@ void *  z_object_connect(Self *self,char *name,ZObject *target,char *method_name
 
  /* create a closure */
  closure = z_closure_new(CTX);
+
  z_closure_set_marshal(closure, (ZClosureMarshal *) CTX->marshal);
  z_closure_set_target(closure, target);
  z_closure_set_handler(closure, handler);
@@ -275,13 +283,14 @@ void *  z_object_connect(Self *self,char *name,ZObject *target,char *method_name
  ZMapIter *it = z_map_find(selfp->signal_map, name);
  assert(it != NULL);
  ZVector *closure_list = z_map_get_value(selfp->signal_map, it);
+ z_object_unref(Z_OBJECT(it));
 
  /* add new closure into the signal */
  z_vector_push_back(closure_list, closure);
 
  return closure;
  }
-#line 144 "z-object.zco"
+#line 150 "z-object.zco"
 void  z_object_disconnect(Self *self,char *name,void *key)
 {
  assert(selfp->signal_map != NULL);
@@ -290,6 +299,7 @@ void  z_object_disconnect(Self *self,char *name,void *key)
  ZMapIter *map_iter = z_map_find(selfp->signal_map, name);
  assert(map_iter != NULL);
  ZVector *closure_list = z_map_get_value(selfp->signal_map, map_iter);
+ z_object_unref(Z_OBJECT(map_iter));
 
  /* remove the closure from the list */
  ZVectorIter *it = z_vector_get_begin(closure_list);
@@ -305,8 +315,11 @@ void  z_object_disconnect(Self *self,char *name,void *key)
  z_vector_iter_increment(it);
  }
  }
+
+ z_object_unref(Z_OBJECT(end));
+ z_object_unref(Z_OBJECT(it));
  }
-#line 169 "z-object.zco"
+#line 179 "z-object.zco"
 void  z_object_register_signal(Self *self,char *name)
 {
  /* create signal map (if necessary) */
@@ -326,7 +339,7 @@ void  z_object_register_signal(Self *self,char *name)
  z_map_insert(selfp->signal_map, strdup(name), closure_list);
  }
  }
-#line 191 "z-object.zco"
+#line 201 "z-object.zco"
 int  z_object_emit_signal(Self *self,char *name,void *argv)
 {
  assert(selfp->signal_map != NULL);
@@ -335,6 +348,7 @@ int  z_object_emit_signal(Self *self,char *name,void *argv)
  ZMapIter *map_iter = z_map_find(selfp->signal_map, name);
  assert(map_iter != NULL);
  ZVector *closure_list = z_map_get_value(selfp->signal_map, map_iter);
+ z_object_unref(Z_OBJECT(map_iter));
 
  /* remove the closure from the list */
  ZVectorIter *it = z_vector_get_begin(closure_list);
@@ -351,9 +365,11 @@ int  z_object_emit_signal(Self *self,char *name,void *argv)
  z_vector_iter_increment(it);
  }
 
+ z_object_unref(Z_OBJECT(end));
+ z_object_unref(Z_OBJECT(it));
  return rc;
  }
-#line 218 "z-object.zco"
+#line 231 "z-object.zco"
 void  z_object_add_attached_property_map(Self *self,void *map)
 {
  if (selfp->attached_properties == 0)
@@ -362,12 +378,12 @@ void  z_object_add_attached_property_map(Self *self,void *map)
  /* keep note of the maps that has a pointer to 'self' */
  z_vector_push_back((ZVector *) selfp->attached_properties, map);
  }
-#line 227 "z-object.zco"
+#line 240 "z-object.zco"
 static int  z_object_map_compare(ZMap *map,const void *a,const void *b)
 {
  return strcmp(a, b);
  }
 
-#line 231 "z-object.zco"
+#line 244 "z-object.zco"
 
 

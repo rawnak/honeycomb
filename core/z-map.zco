@@ -367,6 +367,7 @@ class ZMap : ZObject
 					}
 
 					z_object_unref(Z_OBJECT(prev_ptr));
+					z_object_unref(Z_OBJECT(it));
 					return -1;
 				}
 			}
@@ -409,9 +410,13 @@ class ZMap : ZObject
 
 		if (first == NULL)
 			first = get_begin(self);
+		else
+			z_object_ref(Z_OBJECT(first));
 
 		if (last == NULL)
 			last = get_end(self);
+		else
+			z_object_ref(Z_OBJECT(last));
 
 
 		p1 = z_vector_iter_new(CTX);
@@ -424,6 +429,9 @@ class ZMap : ZObject
 
 		z_object_unref(Z_OBJECT(p1));
 		z_object_unref(Z_OBJECT(p2));
+
+		z_object_unref(Z_OBJECT(last));
+		z_object_unref(Z_OBJECT(first));
 	}
 
 	public void erase1(Self *self, ZMapIter *it)

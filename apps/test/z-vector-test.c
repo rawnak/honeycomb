@@ -446,6 +446,8 @@ static void case14(void)
 
 	z_vector_iter_advance(end, 3);
 	z_vector_erase(vec, start, end);
+	z_object_unref(Z_OBJECT(start));
+	z_object_unref(Z_OBJECT(end));
 
 	printf("vec contains:");
 	it = z_vector_iter_new(&context);
@@ -539,5 +541,7 @@ void z_vector_test(int id)
 	DEFINE_TEST(10, case13);
 	DEFINE_TEST(11, case14);
 	DEFINE_TEST(12, case16);
+
+	zco_context_destroy(&context);
 }
 

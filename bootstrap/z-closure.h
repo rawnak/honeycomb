@@ -61,6 +61,7 @@ struct ZClosureProtected {
 struct ZClosureGlobal {
 	int *vtable_off_list;
 	int vtable_off_size;
+	int is_object;
 	struct ZClosureClass *_class;
 	struct zco_context_t *ctx;
 	const char *name;
@@ -84,23 +85,23 @@ extern int z_closure_type_id;
 ZClosureGlobal * z_closure_get_type(struct zco_context_t *ctx);
 void __z_closure_init(struct zco_context_t *ctx, ZClosure *self);
 void __z_closure_class_init(struct zco_context_t *ctx, ZClosureClass *_class);
-#line 42 "z-closure.zco"
+#line 44 "z-closure.zco"
 Self * z_closure_new(struct zco_context_t *ctx);
-#line 48 "z-closure.zco"
+#line 50 "z-closure.zco"
 Self * z_closure_dup(ZClosure *src);
-#line 56 "z-closure.zco"
+#line 58 "z-closure.zco"
 ZObjectSignalHandler  z_closure_get_handler(Self *self);
-#line 60 "z-closure.zco"
+#line 62 "z-closure.zco"
 void z_closure_set_handler(Self *self, ZObjectSignalHandler  value);
-#line 68 "z-closure.zco"
+#line 70 "z-closure.zco"
 void *  z_closure_get_userdata(Self *self);
-#line 72 "z-closure.zco"
+#line 74 "z-closure.zco"
 void z_closure_set_userdata(Self *self, void *  value);
-#line 80 "z-closure.zco"
+#line 82 "z-closure.zco"
 void z_closure_set_marshal(Self *self, ZClosureMarshal *  value);
-#line 92 "z-closure.zco"
+#line 94 "z-closure.zco"
 void z_closure_set_target(Self *self, ZObject *  value);
-#line 102 "z-closure.zco"
+#line 104 "z-closure.zco"
 int  z_closure_invoke(Self *self,ZVector *args);
 
 #undef Self

@@ -39,11 +39,11 @@ typedef void(*ZObjectSignalHandler)(struct ZObject *self, ...);
 class ZObject 
 {
 	public void *class_base;
-	public void *global_base;
-	public int *vtable;
 	private unsigned int ref_count;
 	private void *attached_properties;
 	private void *signal_map;
+	public virtual unsigned long *class_off_list;
+	public virtual void *real_global;
 
 	init(Self *self)
 	{
@@ -107,7 +107,9 @@ class ZObject
 		   are common between the source (unknown) *Global type and
 		   ZObjectGlobal. Since we are interested in the vtable information,
 		   we can perform the cast */
-		ZObjectGlobal *gbl = (ZObjectGlobal *) self->global_base;
+		ZObjectGlobal *gbl = ((ZObjectClass *) self->class_base)->real_global;
+
+
 		int *vtable_off_list = gbl->vtable_off_list;
 		int vtable_off_size = gbl->vtable_off_size;
 		int i;
@@ -125,7 +127,9 @@ class ZObject
 			ZMapIter *it = z_map_find(method_map, method_name);
 
 			if (it) {
-				return z_map_get_value(method_map, it);
+				ZObjectSignalHandler handler = z_map_get_value(method_map, it);
+				z_object_unref(Z_OBJECT(it));
+				return handler;
 			}
 		}
 
@@ -145,6 +149,7 @@ class ZObject
 
 		/* create a closure */
 		closure = z_closure_new(CTX);
+
 		z_closure_set_marshal(closure, (ZClosureMarshal *) CTX->marshal);
 		z_closure_set_target(closure, target);
 		z_closure_set_handler(closure, handler);
@@ -154,6 +159,7 @@ class ZObject
 		ZMapIter *it = z_map_find(selfp->signal_map, name);
 		assert(it != NULL);
 		ZVector *closure_list = z_map_get_value(selfp->signal_map, it);
+		z_object_unref(Z_OBJECT(it));
 
 		/* add new closure into the signal */
 		z_vector_push_back(closure_list, closure);
@@ -169,6 +175,7 @@ class ZObject
 		ZMapIter *map_iter = z_map_find(selfp->signal_map, name);
 		assert(map_iter != NULL);
 		ZVector *closure_list = z_map_get_value(selfp->signal_map, map_iter);
+		z_object_unref(Z_OBJECT(map_iter));
 
 		/* remove the closure from the list */
 		ZVectorIter *it = z_vector_get_begin(closure_list);
@@ -184,6 +191,9 @@ class ZObject
 				z_vector_iter_increment(it);
 			}
 		}
+
+		z_object_unref(Z_OBJECT(end));
+		z_object_unref(Z_OBJECT(it));
 	}
 
 	public void register_signal(Self *self, char *name)
@@ -216,6 +226,7 @@ class ZObject
 		ZMapIter *map_iter = z_map_find(selfp->signal_map, name);
 		assert(map_iter != NULL);
 		ZVector *closure_list = z_map_get_value(selfp->signal_map, map_iter);
+		z_object_unref(Z_OBJECT(map_iter));
 
 		/* remove the closure from the list */
 		ZVectorIter *it = z_vector_get_begin(closure_list);
@@ -232,6 +243,8 @@ class ZObject
 			z_vector_iter_increment(it);
 		}
 
+		z_object_unref(Z_OBJECT(end));
+		z_object_unref(Z_OBJECT(it));
 		return rc;
 	}
 

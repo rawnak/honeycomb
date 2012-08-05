@@ -52,6 +52,7 @@ struct ZStringIterProtected {
 struct ZStringIterGlobal {
 	int *vtable_off_list;
 	int vtable_off_size;
+	int is_object;
 	struct ZStringIterClass *_class;
 	struct zco_context_t *ctx;
 	const char *name;

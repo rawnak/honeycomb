@@ -80,6 +80,8 @@ static void case1(void)
 	}
 
 	printf("\n\n");
+	z_object_unref(Z_OBJECT(end));
+	z_object_unref(Z_OBJECT(it));
 	z_object_unref(Z_OBJECT(mymap));
 }
 
@@ -145,8 +147,14 @@ static void case2(void)
 		assert(value == test_value[i]);
 
 		z_map_erase(mymap, first, second);
+		z_object_unref(Z_OBJECT(second));
+		z_object_unref(Z_OBJECT(first));
 		++i;
 	}
+
+	z_object_unref(Z_OBJECT(test_key[2]));
+	z_object_unref(Z_OBJECT(test_key[1]));
+	z_object_unref(Z_OBJECT(test_key[0]));
 
 	printf("\n\n");
 	z_object_unref(Z_OBJECT(mymap));
@@ -329,6 +337,7 @@ static void case5(void)
 	key = z_string_new(&context);
 	z_string_set_cstring(key, "z", Z_STRING_ENCODING_UTF8);
 	assert(z_map_insert(mymap, key, INT_TO_PTR(500)) == -1);
+	z_object_unref(Z_OBJECT(key));
 
 	key = z_string_new(&context);
 	z_string_set_cstring(key, "b", Z_STRING_ENCODING_UTF8);
@@ -575,6 +584,8 @@ void z_map_test(int id)
 	DEFINE_TEST(6, case6);
 	DEFINE_TEST(7, case7);
 	DEFINE_TEST(8, case8);
+
+	zco_context_destroy(&context);
 }
 
 

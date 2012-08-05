@@ -40,6 +40,8 @@ class ZTestObject : ZObject
 	}
 
 	public void clicked!(Self *self, char *message);
+	public void clicked2!(Self *self, char *message);
+	public void clicked3!(Self *self, char *message);
 
 	public void click_it(Self *self, char *message)
 	{

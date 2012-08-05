@@ -46,20 +46,18 @@ int yylex(void);
 %%
 
 translation_unit
-: external_declaration
-| translation_unit external_declaration 
-| ignorable                      { free($1); }
-| translation_unit ignorable     { free($2); }
-;
+	: external_declaration
+	| translation_unit external_declaration 
+	| ignorable                      { free($1); }
+	| translation_unit ignorable     { free($2); }
+	;
 
 external_declaration
-: header_block
-| source_block
-| class_definition
-{
-	z_zco_source_generator_external_declaration(source_generator);
-}
-;
+	: header_block
+	| source_block
+	| class_definition
+	| interface_definition
+	;
 
 header_block_start
 	: HEADER_BLK_START 
@@ -290,8 +288,10 @@ full_class_declaration
 
 	| class_declaration ignorables COLON ignorables parent_declaration ignorables
 	{ z_zco_source_generator_prepare_class(source_generator, $1); free($2); free($4); free($6); }
+	;
 
-	| interface_declaration
+full_interface_declaration
+	: interface_declaration
 	{ z_zco_source_generator_prepare_interface(source_generator, $1); }
 
 	| interface_declaration ignorables
@@ -302,11 +302,16 @@ full_class_declaration
 
 	| interface_declaration ignorables COLON ignorables parent_declaration ignorables
 	{ z_zco_source_generator_prepare_interface(source_generator, $1); free($2); free($4); free($6); }
-
 	;
 
 class_definition
 	: full_class_declaration OBRACE class_objects EBRACE
+	{ z_zco_source_generator_finalize_class_definition(source_generator); }
+	;
+
+interface_definition
+	: full_interface_declaration OBRACE class_objects EBRACE
+	{ z_zco_source_generator_finalize_interface_definition(source_generator); }
 	;
 
 class_objects

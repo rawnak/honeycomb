@@ -68,8 +68,11 @@ ZClosureMarshalGlobal * z_closure_marshal_get_type(struct zco_context_t *ctx)
 		global->name = "ZClosureMarshal";
 		global->vtable_off_list = NULL;
 		global->vtable_off_size = 0;
+		global->is_object = 0;
 
 		struct ZClosureMarshal temp;
+		unsigned long offset = 0;
+		unsigned long class_off_size = 0;
 
 		if (z_closure_marshal_type_id == -1)
 			z_closure_marshal_type_id = zco_allocate_type_id();
@@ -112,7 +115,8 @@ void __z_closure_marshal_init(struct zco_context_t *ctx, Self *self)
 int  z_closure_marshal_invoke(Self *self,ZObject *target,ZObjectSignalHandler handler,ZVector *args,void *userdata)
 {
 	ZObject *obj = (ZObject *) self;
-	((ZClosureMarshalClass *) ((char *) obj->class_base + obj->vtable[z_closure_marshal_type_id]))->__invoke(self,target,handler,args,userdata);
+	unsigned long offset = ((ZObjectClass *) obj->class_base)->class_off_list[z_closure_marshal_type_id];
+	((ZClosureMarshalClass *) ((char *) obj->class_base + offset))->__invoke(self,target,handler,args,userdata);
 }
 #line 11 "z-closure-marshal.zco"
 static int  z_closure_marshal_virtual_invoke(Self *self,ZObject *target,ZObjectSignalHandler handler,ZVector *args,void *userdata)

@@ -57,6 +57,8 @@ class ZClosure : ZObject
 		z_object_unref(Z_OBJECT(selfp->target));
 		selfp->target = 0;
 	}
+
+	PARENT_HANDLER(object);
    }
 
    public Self *new(struct zco_context_t *ctx)

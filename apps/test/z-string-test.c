@@ -204,6 +204,7 @@ static void case4(void)
 	assert(length == 0);
 
 	z_string_append(str1, str2, NULL, NULL);
+	z_object_unref(Z_OBJECT(str2));
 
 	printf("string contains (after appending first string): ");
 
@@ -229,6 +230,7 @@ static void case4(void)
 	assert(length == sizeof(test_string1) - 1);
 
 	z_string_append(str1, str3, NULL, NULL);
+	z_object_unref(Z_OBJECT(str3));
 
 	printf("string contains (after appending both strings): ");
 
@@ -635,6 +637,7 @@ static void case11(void)
 		assert(buffer[i] == test_string[i]);
 	}
 
+	free(buffer);
 	z_object_unref(Z_OBJECT(str));
 
 	printf("\n\n");
@@ -962,6 +965,8 @@ void z_string_test(int id)
 	DEFINE_TEST(15, case15);
 	DEFINE_TEST(16, case16);
 	DEFINE_TEST(17, case17);
+
+	zco_context_destroy(&context);
 }
 
 

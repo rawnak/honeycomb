@@ -57,6 +57,9 @@ void zco_context_destroy(struct zco_context_t *ctx)
 		struct ZObjectGlobal *global = ctx->types[i];
 
 		if (global) {
+			if (global->is_object) {
+				free(global->_class->class_off_list);
+			}
 			free(global->_class);
 			free(global->vtable_off_list);
 			free(global);

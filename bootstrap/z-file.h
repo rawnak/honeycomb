@@ -53,6 +53,7 @@ struct ZFileProtected {
 struct ZFileGlobal {
 	int *vtable_off_list;
 	int vtable_off_size;
+	int is_object;
 	struct ZFileClass *_class;
 	struct zco_context_t *ctx;
 	const char *name;

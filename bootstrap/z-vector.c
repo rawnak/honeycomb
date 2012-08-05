@@ -127,8 +127,11 @@ ZVectorGlobal * z_vector_get_type(struct zco_context_t *ctx)
 		global->name = "ZVector";
 		global->vtable_off_list = NULL;
 		global->vtable_off_size = 0;
+		global->is_object = 1;
 
 		struct ZVector temp;
+		unsigned long offset = 0;
+		unsigned long class_off_size = 0;
 
 		{
 			struct ZObjectGlobal *p_class = z_object_get_type(ctx);
@@ -139,8 +142,16 @@ ZVectorGlobal * z_vector_get_type(struct zco_context_t *ctx)
 				p_class->vtable_off_size,
 				&temp,
 				&temp.parent_z_object);
-			unsigned long offset = global->vtable_off_list[z_object_type_id];
 			memcpy((char *) global->_class + offset, p_class->_class, sizeof(struct ZObjectClass));
+			if (0 == class_off_size) {
+				class_off_size = p_class->id + 1;
+				((ZObjectClass *) global->_class)->class_off_list = malloc(sizeof(unsigned long) * class_off_size);
+			} else if (p_class->id >= class_off_size) {
+				class_off_size = p_class->id + 1;
+				((ZObjectClass *) global->_class)->class_off_list = realloc(((ZObjectClass *) global->_class)->class_off_list, sizeof(unsigned long) * class_off_size);
+			}
+			((ZObjectClass *) global->_class)->class_off_list[p_class->id] = offset;
+			offset += sizeof(struct ZObjectClass);
 		}
 		if (z_vector_type_id == -1)
 			z_vector_type_id = zco_allocate_type_id();
@@ -152,7 +163,7 @@ ZVectorGlobal * z_vector_get_type(struct zco_context_t *ctx)
 #line 37 "z-vector.zco"
 		{
 #line 37 "z-vector.zco"
-			ZObjectClass *p_class = (ZObjectClass *) ((char *) global->_class + global->vtable_off_list[z_object_type_id]);
+			ZObjectClass *p_class = &global->_class->parent_z_object;
 #line 37 "z-vector.zco"
 			global->__parent_dispose = p_class->__dispose;
 #line 37 "z-vector.zco"
@@ -208,8 +219,7 @@ void __z_vector_init(struct zco_context_t *ctx, Self *self)
 	self->_global = _global;
 	__z_object_init(ctx, (ZObject *) (self));
 	((ZObject *) self)->class_base = (void *) _global->_class;
-	((ZObject *) self)->global_base = (void *) _global;
-	((ZObject *) self)->vtable = _global->vtable_off_list;
+	((ZObjectClass *) _global->_class)->real_global = (void *) _global;
 	#ifdef INIT_EXISTS
 		init(self);
 	#endif

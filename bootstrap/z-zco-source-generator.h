@@ -156,6 +156,7 @@ struct ZZcoSourceGeneratorProtected {
 struct ZZcoSourceGeneratorGlobal {
 	int *vtable_off_list;
 	int vtable_off_size;
+	int is_object;
 	struct ZZcoSourceGeneratorClass *_class;
 	struct zco_context_t *ctx;
 	const char *name;
@@ -199,49 +200,51 @@ void  z_zco_source_generator_special_member_function_decl(Self *self,const char 
 void  z_zco_source_generator_property_decl(Self *self,const char *get_or_set,const char *code);
 #line 763 "z-zco-source-generator.zco"
 void  z_zco_source_generator_add_parent(Self *self,char *name_in_pascal);
-#line 863 "z-zco-source-generator.zco"
+#line 864 "z-zco-source-generator.zco"
 void  z_zco_source_generator_record_line_number(Self *self);
-#line 915 "z-zco-source-generator.zco"
+#line 916 "z-zco-source-generator.zco"
 void  z_zco_source_generator_prepare_class(Self *self,char *class_name);
-#line 1013 "z-zco-source-generator.zco"
+#line 1015 "z-zco-source-generator.zco"
 void  z_zco_source_generator_prepare_interface(Self *self,char *interface_name);
-#line 1160 "z-zco-source-generator.zco"
-void  z_zco_source_generator_external_declaration(Self *self);
-#line 1532 "z-zco-source-generator.zco"
+#line 1162 "z-zco-source-generator.zco"
+void  z_zco_source_generator_finalize_class_definition(Self *self);
+#line 1167 "z-zco-source-generator.zco"
+void  z_zco_source_generator_finalize_interface_definition(Self *self);
+#line 1555 "z-zco-source-generator.zco"
 void  z_zco_source_generator_write_header_block(Self *self,char *s);
-#line 1540 "z-zco-source-generator.zco"
+#line 1563 "z-zco-source-generator.zco"
 void  z_zco_source_generator_write_source_block(Self *self,char *s);
-#line 1548 "z-zco-source-generator.zco"
+#line 1571 "z-zco-source-generator.zco"
 void  z_zco_source_generator_class_declaration(Self *self);
-#line 1557 "z-zco-source-generator.zco"
+#line 1580 "z-zco-source-generator.zco"
 void  z_zco_source_generator_interface_declaration(Self *self);
-#line 1566 "z-zco-source-generator.zco"
+#line 1589 "z-zco-source-generator.zco"
 void  z_zco_source_generator_enable_virtual_mode(Self *self);
-#line 1572 "z-zco-source-generator.zco"
+#line 1595 "z-zco-source-generator.zco"
 void  z_zco_source_generator_enable_override_mode(Self *self,char *s);
-#line 1579 "z-zco-source-generator.zco"
+#line 1602 "z-zco-source-generator.zco"
 void  z_zco_source_generator_set_access_mode(Self *self,int mode);
-#line 1584 "z-zco-source-generator.zco"
+#line 1607 "z-zco-source-generator.zco"
 void  z_zco_source_generator_set_type_name(Self *self,char *s);
-#line 1592 "z-zco-source-generator.zco"
+#line 1615 "z-zco-source-generator.zco"
 void  z_zco_source_generator_set_symbol_name(Self *self,char *s);
-#line 1604 "z-zco-source-generator.zco"
+#line 1627 "z-zco-source-generator.zco"
 void  z_zco_source_generator_add_class_data_member(Self *self);
-#line 1609 "z-zco-source-generator.zco"
+#line 1632 "z-zco-source-generator.zco"
 void  z_zco_source_generator_add_class_virtual_data_member(Self *self);
-#line 1614 "z-zco-source-generator.zco"
+#line 1637 "z-zco-source-generator.zco"
 void  z_zco_source_generator_class_virtual_member_function_decl(Self *self,char *s1,char *s2,char *s3);
-#line 1619 "z-zco-source-generator.zco"
+#line 1642 "z-zco-source-generator.zco"
 void  z_zco_source_generator_class_override_member_function_decl(Self *self,char *s1,char *s2,char *s3);
-#line 1624 "z-zco-source-generator.zco"
+#line 1647 "z-zco-source-generator.zco"
 void  z_zco_source_generator_class_member_function_decl(Self *self,char *s1,char *s2,char *s3);
-#line 1629 "z-zco-source-generator.zco"
+#line 1652 "z-zco-source-generator.zco"
 void  z_zco_source_generator_class_signal_decl(Self *self,char *s1,char *s2);
-#line 1634 "z-zco-source-generator.zco"
+#line 1657 "z-zco-source-generator.zco"
 void  z_zco_source_generator_finalize_property(Self *self);
-#line 1644 "z-zco-source-generator.zco"
+#line 1667 "z-zco-source-generator.zco"
 void  z_zco_source_generator_enable_attached_property(Self *self);
-#line 1649 "z-zco-source-generator.zco"
+#line 1672 "z-zco-source-generator.zco"
 int  z_zco_source_generator_setup(Self *self,int argc,char **argv);
 
 #undef Self

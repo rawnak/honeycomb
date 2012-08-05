@@ -68,6 +68,7 @@ struct ZMapProtected {
 struct ZMapGlobal {
 	int *vtable_off_list;
 	int vtable_off_size;
+	int is_object;
 	struct ZMapClass *_class;
 	struct zco_context_t *ctx;
 	const char *name;
@@ -115,21 +116,21 @@ ZMapIter * z_map_find(Self *self,const void *key);
 void * z_map_get_key(Self *self,ZMapIter *it);
 #line 293 "z-map.zco"
 void * z_map_get_value(Self *self,ZMapIter *it);
-#line 376 "z-map.zco"
+#line 377 "z-map.zco"
 int  z_map_assign(Self *self,void *key,void *value);
-#line 381 "z-map.zco"
+#line 382 "z-map.zco"
 int  z_map_insert(Self *self,void *key,void *value);
-#line 386 "z-map.zco"
+#line 387 "z-map.zco"
 void  z_map_erase(Self *self,ZMapIter *first,ZMapIter *last);
-#line 409 "z-map.zco"
+#line 417 "z-map.zco"
 void  z_map_erase1(Self *self,ZMapIter *it);
-#line 419 "z-map.zco"
+#line 427 "z-map.zco"
 void  z_map_erase1_inc(Self *self,ZMapIter **it);
-#line 439 "z-map.zco"
+#line 447 "z-map.zco"
 ZMapIter * z_map_lower_bound(Self *self,void *key);
-#line 457 "z-map.zco"
+#line 465 "z-map.zco"
 ZMapIter * z_map_upper_bound(Self *self,void *key);
-#line 495 "z-map.zco"
+#line 503 "z-map.zco"
 void z_map_set_compare(Self *self, ZMapCompareFunc  value);
 
 #undef Self
