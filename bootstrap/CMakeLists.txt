@@ -33,7 +33,7 @@ add_executable(
       z-file.c
       z-zco-source-generator.c
       z-value.c
-      z-event-loop.c
+      z-framework-events.c
 )
 
 target_link_libraries(bootstrap m)

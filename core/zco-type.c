@@ -20,7 +20,7 @@
 
 #include <zco-type.h>
 #include <z-object.h>
-#include <z-event-loop.h>
+#include <z-framework-events.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -32,14 +32,14 @@ void zco_context_init(struct zco_context_t *ctx)
 	ctx->type_count = 0;
 	ctx->types = 0;
 	ctx->marshal = NULL;
-	ctx->eventloop = z_event_loop_new(ctx);
+	ctx->framework_events = z_framework_events_new(ctx);
 }
 
 void zco_context_destroy(struct zco_context_t *ctx)
 {
 	int i;
 
-	z_object_unref((ZObject *) ctx->eventloop);
+	z_object_unref((ZObject *) ctx->framework_events);
 
 	if (ctx->marshal) {
 		z_object_unref((ZObject *) ctx->marshal);
@@ -146,8 +146,8 @@ void zco_add_to_vtable(int **list, int *size, int type_id)
 	(*list)[type_id] = 0;
 }
 
-void * zco_context_get_event_loop(struct zco_context_t *ctx)
+void * zco_context_get_framework_events(struct zco_context_t *ctx)
 {
-	return ctx->eventloop;
+	return ctx->framework_events;
 }
 

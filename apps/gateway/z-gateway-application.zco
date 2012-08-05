@@ -38,7 +38,7 @@ union guid_t
 
 %{
 #include <zco-type.h>
-#include <z-event-loop.h>
+#include <z-framework-events.h>
 #include <z-window.h>
 %}
 
@@ -68,9 +68,9 @@ class ZGatewayApplication : ZObject
 		ZWindow *main_window = z_window_new(CTX);
 		z_vector_push_back(selfp->toplevels, main_window);
 
-		/* connect the event loop's draw_event signal to the window's draw method */
-		ZEventLoop *event_loop = (ZEventLoop *) zco_context_get_event_loop(CTX);
-		z_object_connect(Z_OBJECT(event_loop), "draw_event", Z_OBJECT(main_window), "draw", NULL);
+		/* connect the framework draw_event signal to the window's draw method */
+		ZFrameworkEvents *framework_events = (ZFrameworkEvents *) zco_context_get_framework_events(CTX);
+		z_object_connect(Z_OBJECT(framework_events), "draw_event", Z_OBJECT(main_window), "draw", NULL);
 	}
 
 	public Self *new(struct zco_context_t *ctx)
@@ -152,8 +152,8 @@ class ZGatewayApplication : ZObject
 
 		/* Raise the 'draw_event' signal */
 		ZString *message = z_string_new(CTX);
-		ZEventLoop *event_loop = (ZEventLoop *) zco_context_get_event_loop(CTX);
-		z_event_loop_draw_event(event_loop, message);
+		ZFrameworkEvents *framework_events = (ZFrameworkEvents *) zco_context_get_framework_events(CTX);
+		z_framework_events_draw_event(framework_events, message);
 
 		/* Send message to the client */
 		char *msg = z_string_get_cstring(message, Z_STRING_ENCODING_UTF8);

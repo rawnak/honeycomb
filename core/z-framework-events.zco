@@ -1,0 +1,45 @@
+/* ZCO - Cross-platform Application Framework
+ * Copyright (C) 2014  Rawnak Jahan Syeda
+ *
+ * z-framework-events.zco: Framework events
+ * This file is part of ZCO.
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZCO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+%h{
+#include <z-object.h>
+#include <z-string.h>
+%}
+
+%{
+%}
+
+class ZFrameworkEvents : ZObject
+{
+	init(Self *self)
+	{
+	}
+
+	public Self *new(struct zco_context_t *ctx)
+	{
+		Self *self = GET_NEW(ctx);
+		return self;
+	}
+
+	/* event signals */
+	public void draw_event!(Self *self, ZString *output);
+	public void io_event!(Self *self);
+}
+

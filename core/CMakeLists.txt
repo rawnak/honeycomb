@@ -65,7 +65,7 @@ parse_zco(z-closure)
 parse_zco(z-closure-marshal)
 parse_zco(z-c-closure-marshal)
 parse_zco(z-file)
-parse_zco(z-event-loop)
+parse_zco(z-framework-events)
 
 add_library(
       zclib-core SHARED
@@ -83,6 +83,6 @@ add_library(
       z-closure-marshal.c
       z-c-closure-marshal.c
       z-file.c
-      z-event-loop.c
+      z-framework-events.c
       )
 
