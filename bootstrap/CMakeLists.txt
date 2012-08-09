@@ -17,6 +17,7 @@ add_flex_bison_dependency(ZCO_SCANNER ZCO_PARSER)
 # bootstrapped zco compiler
 add_executable(
       bootstrap
+      EXCLUDE_FROM_ALL
       ${BISON_ZCO_PARSER_OUTPUTS}
       ${FLEX_ZCO_SCANNER_OUTPUTS}
       ${CMAKE_SOURCE_DIR}/core/zco-type.c
