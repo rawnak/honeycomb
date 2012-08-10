@@ -154,8 +154,16 @@ ZMapGlobal * z_map_get_type(struct zco_context_t *ctx)
 
 		struct ZMap temp;
 		unsigned long offset = 0;
+
+		unsigned long *class_off_list;
 		unsigned long class_off_size = 0;
 
+		{
+			struct ZObjectGlobal *p_class = z_object_get_type(ctx);
+			if (p_class->id > class_off_size)
+				class_off_size = p_class->id;
+		}
+		class_off_list = malloc(sizeof(unsigned long) * (class_off_size+1));
 		{
 			struct ZObjectGlobal *p_class = z_object_get_type(ctx);
 			zco_inherit_vtable(
@@ -166,16 +174,10 @@ ZMapGlobal * z_map_get_type(struct zco_context_t *ctx)
 				&temp,
 				&temp.parent_z_object);
 			memcpy((char *) global->_class + offset, p_class->_class, sizeof(struct ZObjectClass));
-			if (0 == class_off_size) {
-				class_off_size = p_class->id + 1;
-				((ZObjectClass *) global->_class)->class_off_list = malloc(sizeof(unsigned long) * class_off_size);
-			} else if (p_class->id >= class_off_size) {
-				class_off_size = p_class->id + 1;
-				((ZObjectClass *) global->_class)->class_off_list = realloc(((ZObjectClass *) global->_class)->class_off_list, sizeof(unsigned long) * class_off_size);
-			}
-			((ZObjectClass *) global->_class)->class_off_list[p_class->id] = offset;
+			class_off_list[p_class->id] = offset;
 			offset += sizeof(struct ZObjectClass);
 		}
+		((ZObjectClass *) global->_class)->class_off_list = class_off_list;
 		if (z_map_type_id == -1)
 			z_map_type_id = zco_allocate_type_id();
 		global->id = z_map_type_id;

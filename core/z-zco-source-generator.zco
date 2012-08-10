@@ -988,7 +988,7 @@ class ZZcoSourceGenerator : ZObject
                                 "struct %sGlobal \x7b\n"
                                 "\tint *vtable_off_list;\n"
                                 "\tint vtable_off_size;\n"
-				"\tint is_object;\n"
+                                "\tint is_object;\n"
                                 "\tstruct %sClass *_class;\n"
                                 "\tstruct zco_context_t *ctx;\n"
                                 "\tconst char *name;\n"
@@ -1087,7 +1087,7 @@ class ZZcoSourceGenerator : ZObject
                                 "struct %sGlobal \x7b\n"
                                 "\tint *vtable_off_list;\n"
                                 "\tint vtable_off_size;\n"
-				"\tint is_object;\n"
+                                "\tint is_object;\n"
                                 "\tstruct %sClass *_class;\n"
                                 "\tstruct zco_context_t *ctx;\n"
                                 "\tconst char *name;\n"
@@ -1365,11 +1365,10 @@ class ZZcoSourceGenerator : ZObject
                                 "\t\tglobal->name = \"%s\";\n"
                                 "\t\tglobal->vtable_off_list = NULL;\n"
                                 "\t\tglobal->vtable_off_size = 0;\n"
-				"\t\tglobal->is_object = %d;\n"
+                                "\t\tglobal->is_object = %d;\n"
                                 "\n"
                                 "\t\tstruct %s temp;\n"
 				"\t\tunsigned long offset = 0;\n"
-				"\t\tunsigned long class_off_size = 0;\n"
                                 "\n",
                                 selfp->current_class_name_pascal, selfp->current_class_name_lowercase,
                                 selfp->current_class_name_lowercase,
@@ -1379,8 +1378,29 @@ class ZZcoSourceGenerator : ZObject
                                 selfp->current_class_name_pascal,
                                 selfp->current_class_name_pascal,
                                 selfp->current_class_name_pascal,
-				is_object,
+                                is_object,
                                 selfp->current_class_name_pascal);
+
+		if (is_object) {
+			z_file_write_format(selfp->source_file,
+					"\t\tunsigned long *class_off_list;\n"
+					"\t\tunsigned long class_off_size = 0;\n"
+					"\n");
+
+			/* calculate the final size of the class offset lookup table */
+			for (i=0; i < selfp->parent_class_count; ++i) {
+				z_file_write_format(selfp->source_file,
+						"\t\t\x7b\n"
+						"\t\t\tstruct %sGlobal *p_class = %s_get_type(ctx);\n"
+						"\t\t\tif (p_class->id > class_off_size)\n"
+						"\t\t\t\tclass_off_size = p_class->id;\n"
+						"\t\t\x7d\n",
+						selfp->parent_class_name_pascal[i],
+						selfp->parent_class_name_lowercase[i]);
+			}
+
+			z_file_write_format(selfp->source_file, "\t\tclass_off_list = malloc(sizeof(unsigned long) * (class_off_size+1));\n");
+		}
 
                 /* inherit the vtable from the parent class */
                 for (i=0; i < selfp->parent_class_count; ++i) {
@@ -1398,21 +1418,25 @@ class ZZcoSourceGenerator : ZObject
                                         selfp->parent_class_name_lowercase[i],
                                         selfp->parent_class_name_lowercase[i]);
 
+			z_file_write_format(selfp->source_file,
+					"\t\t\tmemcpy((char *) global->_class + offset, p_class->_class, sizeof(struct %sClass));\n",
+					selfp->parent_class_name_pascal[i]);
+
+			if (is_object) {
+				z_file_write_format(selfp->source_file,
+						"\t\t\tclass_off_list[p_class->id] = offset;\n");
+			}
+
                         z_file_write_format(selfp->source_file,
-                                        "\t\t\tmemcpy((char *) global->_class + offset, p_class->_class, sizeof(struct %sClass));\n"
-					"\t\t\tif (0 == class_off_size) {\n"
-					"\t\t\t\tclass_off_size = p_class->id + 1;\n"
-					"\t\t\t\t((ZObjectClass *) global->_class)->class_off_list = malloc(sizeof(unsigned long) * class_off_size);\n"
-					"\t\t\t} else if (p_class->id >= class_off_size) {\n"
-					"\t\t\t\tclass_off_size = p_class->id + 1;\n"
-					"\t\t\t\t((ZObjectClass *) global->_class)->class_off_list = realloc(((ZObjectClass *) global->_class)->class_off_list, sizeof(unsigned long) * class_off_size);\n"
-					"\t\t\t}\n"
-					"\t\t\t((ZObjectClass *) global->_class)->class_off_list[p_class->id] = offset;\n"
 					"\t\t\toffset += sizeof(struct %sClass);\n"
-                                        "\t\t\x7d\n",
-                                        selfp->parent_class_name_pascal[i],
+					"\t\t\x7d\n",
                                         selfp->parent_class_name_pascal[i]);
                 }
+		
+		if (is_object) {
+			z_file_write_format(selfp->source_file,
+					"\t\t((ZObjectClass *) global->_class)->class_off_list = class_off_list;\n");
+		}
 
                 z_file_write_format(selfp->source_file,
                                 "\t\tif (%s_type_id == -1)\n"

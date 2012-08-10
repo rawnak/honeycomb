@@ -72,7 +72,6 @@ ZClosureMarshalGlobal * z_closure_marshal_get_type(struct zco_context_t *ctx)
 
 		struct ZClosureMarshal temp;
 		unsigned long offset = 0;
-		unsigned long class_off_size = 0;
 
 		if (z_closure_marshal_type_id == -1)
 			z_closure_marshal_type_id = zco_allocate_type_id();

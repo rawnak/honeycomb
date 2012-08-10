@@ -82,3 +82,13 @@ ffcall
 
 
 
+class_off_list:
+We have to store a full list of possible class offset (the offset within the *Class struct) in every class. It may seem that
+we should be able to store just the offset number in the corresponding *Global struct but that would not be possible for an
+interface. Suppose there are two interfaces X and Y. If class A implements interface X, Y and class B implements
+interface Y, X,  the interface X will have a different offset for both classes so we cannot have just a single constant
+within the interface's Global struct.
+
+
+
+

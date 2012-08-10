@@ -106,8 +106,12 @@ ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
 
 		struct ZObject temp;
 		unsigned long offset = 0;
+
+		unsigned long *class_off_list;
 		unsigned long class_off_size = 0;
 
+		class_off_list = malloc(sizeof(unsigned long) * (class_off_size+1));
+		((ZObjectClass *) global->_class)->class_off_list = class_off_list;
 		if (z_object_type_id == -1)
 			z_object_type_id = zco_allocate_type_id();
 		global->id = z_object_type_id;
