@@ -19,62 +19,71 @@
  */
 
 %{
-#define YYSTYPE char *
+#define YYSTYPE ZString *
 
+#include <z-string.h>
+#include "zco.tab.h"
+#include <z-zco-source-generator.h>
 #include <stdio.h>
 #include <string.h>
-#include "zco.tab.h"
+
+extern ZZcoSourceGenerator *source_generator;
+
+static ZString *to_zstring(char *s)
+{
+	return z_zco_source_generator_new_string(source_generator, s);
+}
+
 %}
 
 %x IN_COMMENT
 
 %%
 
-"\%h{"       { yylval="%h{";        return HEADER_BLK_START;      }
-"\%{"        { yylval="%{";        return SOURCE_BLK_START;       }
-"\%}"        { yylval="%}";        return FILE_BLK_END;           }
+"\%h{" { yylval=NULL;  return HEADER_BLK_START; }
+"\%{"  { yylval=NULL;  return SOURCE_BLK_START; }
+"\%}"  { yylval=NULL;  return FILE_BLK_END;     }
 
 <INITIAL>{
-   "/*"     yylval=strdup(yytext);  BEGIN(IN_COMMENT);   return COMMENT;
+   "/*"     yylval=to_zstring(yytext);  BEGIN(IN_COMMENT);  return COMMENT;
 }
 <IN_COMMENT>{
-   "*/"     yylval=strdup(yytext);  BEGIN(INITIAL);      return COMMENT;
-   [^*\n]+  yylval=strdup(yytext);                       return COMMENT;   /* eat comment in chunks */
-   "*"      yylval=strdup(yytext);                       return COMMENT;   /* eat the lone star */
-   \n       yylval=strdup(yytext);  ++yylineno;          return COMMENT;
+   "*/"     yylval=to_zstring(yytext);  BEGIN(INITIAL); return COMMENT;
+   [^*\n]+  yylval=to_zstring(yytext);                  return COMMENT;   /* eat comment in chunks */
+   "*"      yylval=to_zstring(yytext);                  return COMMENT;   /* eat the lone star */
+   \n       yylval=to_zstring(yytext);  ++yylineno;     return COMMENT;
 }
 
-\/\/.*$                 { yylval=strdup(yytext);               return COMMENT;          }
-"struct"                { yylval="struct";                     return STRUCT;           }
-"union"                 { yylval="union";                      return STRUCT;           }
-"const"                 { yylval="const";                      return CONST;            }
-"unsigned"              { yylval="unsigned";                   return UNSIGNED;         }
-"signed"                { yylval="signed";                     return SIGNED;           }
-"class"                 { yylval="class";                      return CLASS;            }
-"interface"             { yylval="interface";                  return INTERFACE;        }
-":"                     { yylval=":";                          return COLON;            }
-"{"                     { yylval="{";                          return OBRACE;           }
-"}"                     { yylval="}";                          return EBRACE;           }
-"("                     { yylval="(";                          return OPAREN;           }
-")"                     { yylval=")";                          return EPAREN;           }
-";"                     { yylval=";";                          return SEMICOLON;        }
-"..."                   { yylval="...";                        return VAR_ARGS;         }
-"*"                     { yylval="*";                          return ASTERISK;         }
-"!"                     { yylval="!";                          return BANG;             }
-"#"                     { yylval="#";                          return HASH;             }
-"global"                { yylval="global";                     return GLOBAL;           }
-"public"                { yylval="public";                     return PUBLIC;           }
-"private"               { yylval="private";                    return PRIVATE;          }
-"property"              { yylval="property";                   return PROPERTY;         }
-"get"                   { yylval="get";                        return GET;              }
-"set"                   { yylval="set";                        return SET;              }
-"override"              { yylval="override";                   return OVERRIDE;         }
-"virtual"               { yylval="virtual";                    return VIRTUAL;          }
-","                     { yylval=",";                          return COMMA;            }
-[a-zA-Z_][a-zA-Z0-9_]*  { yylval=strdup(yytext);               return WORD;             }
-\n                      { yylval=strdup(yytext);   ++yylineno; return SPACE;            }
-[ \t\v\f]*              { yylval=strdup(yytext);               return SPACE;            }
-.                       { yylval=strdup(yytext);               return CODE;             }
+\/\/.*$                 { yylval=to_zstring(yytext );               return COMMENT;    }
+"struct"                { yylval=to_zstring("struct");              return STRUCT;     }
+"union"                 { yylval=to_zstring("union");               return UNION;      }
+"const"                 { yylval=to_zstring("const");               return CONST;      }
+"unsigned"              { yylval=to_zstring("unsigned");            return UNSIGNED;   }
+"signed"                { yylval=to_zstring("signed");              return SIGNED;     }
+"class"                 { yylval=to_zstring("class");               return CLASS;      }
+"interface"             { yylval=to_zstring("interface");           return INTERFACE;  }
+":"                     { yylval=to_zstring(":");                   return COLON;      }
+"{"                     { yylval=to_zstring("{");                   return OBRACE;     }
+"}"                     { yylval=to_zstring("}");                   return EBRACE;     }
+"("                     { yylval=to_zstring("(");                   return OPAREN;     }
+")"                     { yylval=to_zstring(")");                   return EPAREN;     }
+";"                     { yylval=to_zstring(";");                   return SEMICOLON;  }
+"..."                   { yylval=to_zstring("...");                 return VAR_ARGS;   }
+"*"                     { yylval=to_zstring("*");                   return ASTERISK;   }
+"!"                     { yylval=to_zstring("!");                   return BANG;       }
+"#"                     { yylval=to_zstring("#");                   return HASH;       }
+"global"                { yylval=to_zstring("global");              return GLOBAL;     }
+"public"                { yylval=to_zstring("public");              return PUBLIC;     }
+"private"               { yylval=to_zstring("private");             return PRIVATE;    }
+"get"                   { yylval=to_zstring("get");                 return GET;        }
+"set"                   { yylval=to_zstring("set");                 return SET;        }
+"override"              { yylval=to_zstring("override");            return OVERRIDE;   }
+"virtual"               { yylval=to_zstring("virtual");             return VIRTUAL;    }
+","                     { yylval=to_zstring(",");                   return COMMA;      }
+[a-zA-Z_][a-zA-Z0-9_]*  { yylval=to_zstring(yytext);                return WORD;       }
+\n                      { yylval=to_zstring(yytext);   ++yylineno;  return SPACE;      }
+[ \t\v\f]*              { yylval=to_zstring(yytext);                return SPACE;      }
+.                       { yylval=to_zstring(yytext);                return CODE;       }
 
 %%
 
