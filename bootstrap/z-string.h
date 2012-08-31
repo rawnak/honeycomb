@@ -57,11 +57,11 @@ typedef struct ZStringClass ZStringClass;
 typedef struct ZString ZString;
 
 struct ZStringPrivate {
-#line 31 "z-string.zco"
-	ZVector *data;
 #line 32 "z-string.zco"
-	int length;
+	ZVector *data;
 #line 33 "z-string.zco"
+	int length;
+#line 34 "z-string.zco"
 	ZStringIter *token_it;
 };
 
@@ -77,7 +77,7 @@ struct ZStringGlobal {
 	const char *name;
 	int id;
 	void *method_map;
-#line 42 "z-string.zco"
+#line 43 "z-string.zco"
 	void  (*__parent_dispose)(ZObject *object);
 };
 
@@ -95,73 +95,73 @@ extern int z_string_type_id;
 ZStringGlobal * z_string_get_type(struct zco_context_t *ctx);
 void __z_string_init(struct zco_context_t *ctx, ZString *self);
 void __z_string_class_init(struct zco_context_t *ctx, ZStringClass *_class);
-#line 54 "z-string.zco"
+#line 55 "z-string.zco"
 Self * z_string_new(struct zco_context_t *ctx);
-#line 60 "z-string.zco"
+#line 61 "z-string.zco"
 Self * z_string_dup(Self *src);
-#line 67 "z-string.zco"
+#line 68 "z-string.zco"
 int  z_string_is_in_bound(Self *self,ZStringIter *it);
-#line 73 "z-string.zco"
+#line 74 "z-string.zco"
 int  z_string_validate(Self *self);
-#line 117 "z-string.zco"
+#line 118 "z-string.zco"
 uint32_t  z_string_get_char(Self *self,ZStringIter *it);
-#line 126 "z-string.zco"
+#line 127 "z-string.zco"
 void  z_string_set_char(Self *self,ZStringIter *it,uint32_t ch);
-#line 190 "z-string.zco"
+#line 191 "z-string.zco"
 void  z_string_set_cstring(Self *self,const char *s,int encoding);
-#line 228 "z-string.zco"
+#line 229 "z-string.zco"
 char * z_string_get_cstring(Self *self,int encoding);
-#line 282 "z-string.zco"
+#line 283 "z-string.zco"
 void  z_string_append(Self *self,ZString *src,ZStringIter *first,ZStringIter *last);
-#line 289 "z-string.zco"
+#line 290 "z-string.zco"
 void  z_string_insert(Self *self,ZStringIter *it,ZString *src,ZStringIter *first,ZStringIter *last);
-#line 322 "z-string.zco"
+#line 323 "z-string.zco"
 void  z_string_erase(Self *self,ZStringIter *first,ZStringIter *last);
-#line 347 "z-string.zco"
+#line 348 "z-string.zco"
 void  z_string_replace_with_chars(Self *self,ZStringIter *first,ZStringIter *last,int count,uint32_t ch);
-#line 353 "z-string.zco"
+#line 354 "z-string.zco"
 void  z_string_replace(Self *self,ZStringIter *first,ZStringIter *last,ZString *src,ZStringIter *src_first,ZStringIter *src_last);
-#line 359 "z-string.zco"
+#line 360 "z-string.zco"
 void  z_string_append_cstring(Self *self,const char *s,int encoding);
-#line 885 "z-string.zco"
+#line 886 "z-string.zco"
 void  z_string_push_back(Self *self,uint32_t ch);
-#line 903 "z-string.zco"
+#line 905 "z-string.zco"
 void  z_string_insert_char(Self *self,ZStringIter *it,int count,uint32_t ch);
-#line 936 "z-string.zco"
-int  z_string_compare(Self *self,ZStringIter *it,ZString *other,ZStringIter *other_iter,int flags,unsigned int count);
-#line 985 "z-string.zco"
+#line 939 "z-string.zco"
+int  z_string_compare(Self *self,ZStringIter *it,ZString *other,ZStringIter *other_iter,int flags,int64_t count);
+#line 992 "z-string.zco"
 int  z_string_get_length(Self *self);
-#line 993 "z-string.zco"
+#line 1000 "z-string.zco"
 ZStringIter *  z_string_get_begin(Self *self);
-#line 1002 "z-string.zco"
+#line 1009 "z-string.zco"
 ZStringIter *  z_string_get_end(Self *self);
-#line 1010 "z-string.zco"
+#line 1017 "z-string.zco"
 void  z_string_clear(Self *self);
-#line 1018 "z-string.zco"
+#line 1025 "z-string.zco"
 int  z_string_get_is_empty(Self *self);
-#line 1024 "z-string.zco"
+#line 1031 "z-string.zco"
 int  z_string_find(Self *self,ZStringIter *it,ZString *needle,int flags);
-#line 1070 "z-string.zco"
+#line 1077 "z-string.zco"
 int  z_string_find_char(Self *self,ZStringIter *it,uint32_t ch,int flags);
-#line 1124 "z-string.zco"
+#line 1131 "z-string.zco"
 int  z_string_find_any_char(Self *self,ZStringIter *it,ZString *list,int flags);
-#line 1171 "z-string.zco"
+#line 1178 "z-string.zco"
 double  z_string_get_real64(Self *self,ZStringIter *first,ZStringIter *last);
-#line 1252 "z-string.zco"
+#line 1259 "z-string.zco"
 int64_t  z_string_get_int64(Self *self,ZStringIter *first,ZStringIter *last,int base);
-#line 1352 "z-string.zco"
+#line 1359 "z-string.zco"
 uint64_t  z_string_get_uint64(Self *self,ZStringIter *first,ZStringIter *last,int base);
-#line 1589 "z-string.zco"
+#line 1596 "z-string.zco"
 int  z_string_append_vformat(Self *self,const char *fmt,va_list ap);
-#line 1657 "z-string.zco"
-int  z_string_vformat(Self *self,const char *fmt,va_list ap);
 #line 1663 "z-string.zco"
+int  z_string_vformat(Self *self,const char *fmt,va_list ap);
+#line 1669 "z-string.zco"
 void  z_string_append_format(Self *self,const char *fmt,...);
-#line 1672 "z-string.zco"
+#line 1678 "z-string.zco"
 void  z_string_format(Self *self,const char *fmt,...);
-#line 1681 "z-string.zco"
+#line 1687 "z-string.zco"
 void  z_string_token_start(Self *self);
-#line 1689 "z-string.zco"
+#line 1695 "z-string.zco"
 int  z_string_token_next(Self *self,ZString *separator,ZStringIter *first,ZStringIter *last);
 
 #undef Self

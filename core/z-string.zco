@@ -43,6 +43,7 @@ enum ZStringEncoding
 #include <errno.h>
 #include <assert.h>
 #include <math.h>
+#include <limits.h>
 
 %}
 
@@ -907,6 +908,7 @@ class ZString : ZObject
 		uint8_t buffer[6];
 		unsigned int i, length;
 
+		assert(ch != 0);
 		length = encode(ch, buffer);
 
 		if (length == 0) {
@@ -926,6 +928,7 @@ class ZString : ZObject
 		int size, i, j;
 		uint8_t b[6];
 
+		assert(ch != 0);
 		size = encode(ch, b);
 		pos = get_char_ref(self, it);
 
@@ -953,14 +956,18 @@ class ZString : ZObject
 		return ch;
 	}
 
-	public int compare(Self *self, ZStringIter *it, ZString *other, ZStringIter *other_iter, int flags, unsigned int count)
+	public int compare(Self *self, ZStringIter *it, ZString *other, ZStringIter *other_iter, int flags, int64_t count)
 	{
 		ZVectorIter *it1, *it2;
-		uint32_t x1, x2, i;
+		uint32_t x1, x2;
+		int64_t i;
 
 		if (count == 0)
 			/* special case that is not covered in the do-while loop below */
 			return 0;
+
+		if (count == -1)
+			count = LONG_MAX;
 
 		/* get the vector iterators that point to the characters we want to compare */
 		if (it)
@@ -1666,9 +1673,8 @@ class ZString : ZObject
 					z_vector_push_back(selfp->data, (void *) (p+i));
 
 				p += char_size;
+				++selfp->length;
 			}
-
-			++selfp->length;
 		}
 
 		return 0;
