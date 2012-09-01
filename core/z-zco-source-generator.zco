@@ -57,6 +57,12 @@ typedef enum modifier_mode_t modifier_mode_t;
 %}
 
 %{
+
+#include <z-string.h>
+
+struct ZZcoSourceGenerator;
+
+typedef void(*CallbackFunc)(struct ZZcoSourceGenerator *self, int is_first, ZString *token, ZString *output);
 %}
 
 class ZZcoSourceGenerator : ZObject
@@ -107,15 +113,133 @@ class ZZcoSourceGenerator : ZObject
 	private access_mode_t access_mode;
 	private modifier_mode_t modifier_mode;
 
+        private ZString *str_class_init;
+        private ZString *str_global_init;
+        private ZString *str_init;
+        private ZString *str_get;
+        private ZString *str_set;
+        private ZString *str_comma;
+        private ZString *str_zvalue;
+        private ZString *str_self;
+        private ZString *str_z;
+        private ZString *str_char;
+        private ZString *str_int8_t;
+        private ZString *str_unsigned_char;
+        private ZString *str_uint8_t;
+        private ZString *str_short;
+        private ZString *str_int16_t;
+        private ZString *str_int;
+        private ZString *str_int32_t;
+        private ZString *str_long;
+        private ZString *str_long_long;
+        private ZString *str_int64_t;
+        private ZString *str_unsigned_short;
+        private ZString *str_uint16_t;
+        private ZString *str_unsigned_int;
+        private ZString *str_uint32_t;
+        private ZString *str_unsigned_long;
+        private ZString *str_unsigned_long_long;
+        private ZString *str_uint64_t;
+        private ZString *str_float;
+        private ZString *str_double;
 
 
         init(Self *self)
         {
+           selfp->str_class_init = z_string_new(CTX);
+           selfp->str_global_init = z_string_new(CTX);
+           selfp->str_init = z_string_new(CTX);
+           selfp->str_get = z_string_new(CTX);
+           selfp->str_set = z_string_new(CTX);
+           selfp->str_comma = z_string_new(CTX);
+           selfp->str_zvalue = z_string_new(CTX);
+           selfp->str_self = z_string_new(CTX);
+           selfp->str_z = z_string_new(CTX);
+           selfp->str_char = z_string_new(CTX);
+           selfp->str_int8_t = z_string_new(CTX);
+           selfp->str_unsigned_char = z_string_new(CTX);
+           selfp->str_uint8_t = z_string_new(CTX);
+           selfp->str_short = z_string_new(CTX);
+           selfp->str_int16_t = z_string_new(CTX);
+           selfp->str_int = z_string_new(CTX);
+           selfp->str_int32_t = z_string_new(CTX);
+           selfp->str_long = z_string_new(CTX);
+           selfp->str_long_long = z_string_new(CTX);
+           selfp->str_int64_t = z_string_new(CTX);
+           selfp->str_unsigned_short = z_string_new(CTX);
+           selfp->str_uint16_t = z_string_new(CTX);
+           selfp->str_unsigned_int = z_string_new(CTX);
+           selfp->str_uint32_t = z_string_new(CTX);
+           selfp->str_unsigned_long = z_string_new(CTX);
+           selfp->str_unsigned_long_long = z_string_new(CTX);
+           selfp->str_uint64_t = z_string_new(CTX);
+           selfp->str_float = z_string_new(CTX);
+           selfp->str_double = z_string_new(CTX);
+
+           z_string_set_cstring(selfp->str_class_init, "class_init", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_global_init, "global_init", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_init, "init", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_get, "get", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_set, "set", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_comma, ",", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_zvalue, "ZValue", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_self, "Self", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_z, "Z", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_char, "char", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_int8_t, "int8_t", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_unsigned_char, "unsigned char", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_uint8_t, "uint8_t", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_short, "short", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_int16_t, "int16_t", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_int, "int", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_int32_t, "int32_t", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_long, "long", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_long_long, "long long", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_int64_t, "int64_t", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_unsigned_short, "unsigned short", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_uint16_t, "uint16_t", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_unsigned_int, "unsigned int", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_uint32_t, "uint32_t", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_unsigned_long, "unsigned long", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_unsigned_long_long, "unsigned long long", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_uint64_t, "uint64_t", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_float, "float", Z_STRING_ENCODING_UTF8);
+           z_string_set_cstring(selfp->str_double, "double", Z_STRING_ENCODING_UTF8);
         }
 
 	override(ZObject) void dispose(ZObject *object)
 	{
 		Self *self = (Self *) object;
+
+                z_object_unref(Z_OBJECT(selfp->str_class_init));
+                z_object_unref(Z_OBJECT(selfp->str_global_init));
+                z_object_unref(Z_OBJECT(selfp->str_init));
+                z_object_unref(Z_OBJECT(selfp->str_get));
+                z_object_unref(Z_OBJECT(selfp->str_set));
+                z_object_unref(Z_OBJECT(selfp->str_comma));
+                z_object_unref(Z_OBJECT(selfp->str_zvalue));
+                z_object_unref(Z_OBJECT(selfp->str_self));
+                z_object_unref(Z_OBJECT(selfp->str_z));
+                z_object_unref(Z_OBJECT(selfp->str_char));
+                z_object_unref(Z_OBJECT(selfp->str_int8_t));
+                z_object_unref(Z_OBJECT(selfp->str_unsigned_char));
+                z_object_unref(Z_OBJECT(selfp->str_uint8_t));
+                z_object_unref(Z_OBJECT(selfp->str_short));
+                z_object_unref(Z_OBJECT(selfp->str_int16_t));
+                z_object_unref(Z_OBJECT(selfp->str_int));
+                z_object_unref(Z_OBJECT(selfp->str_int32_t));
+                z_object_unref(Z_OBJECT(selfp->str_long));
+                z_object_unref(Z_OBJECT(selfp->str_long_long));
+                z_object_unref(Z_OBJECT(selfp->str_int64_t));
+                z_object_unref(Z_OBJECT(selfp->str_unsigned_short));
+                z_object_unref(Z_OBJECT(selfp->str_uint16_t));
+                z_object_unref(Z_OBJECT(selfp->str_unsigned_int));
+                z_object_unref(Z_OBJECT(selfp->str_uint32_t));
+                z_object_unref(Z_OBJECT(selfp->str_unsigned_long));
+                z_object_unref(Z_OBJECT(selfp->str_unsigned_long_long));
+                z_object_unref(Z_OBJECT(selfp->str_uint64_t));
+                z_object_unref(Z_OBJECT(selfp->str_float));
+                z_object_unref(Z_OBJECT(selfp->str_double));
 
                 free(selfp->header_filename);
 
@@ -162,16 +286,6 @@ class ZZcoSourceGenerator : ZObject
 		return str;
 	}
 
-        private void dump_string(ZString *str, FILE *file)
-        {
-                z_string_validate(str);
-                char *s = z_string_get_cstring(str, Z_STRING_ENCODING_UTF8);
-                fputs(s, file);
-                free(s);
-                z_string_clear(str);
-        }
-
-
         private void print_line_number(Self *self, ZString *str)
         {
                 z_string_append_format(str, "#line %d \"%s\"\n", selfp->real_lineno, selfp->zco_filename);
@@ -184,18 +298,15 @@ class ZZcoSourceGenerator : ZObject
 
         public void special_member_function_decl(Self *self, ZString *symbol, ZString *arglist, ZString *code)
         {
-		char *sym = z_string_get_cstring(symbol, Z_STRING_ENCODING_UTF8);
-
-                if (!strcmp(sym, "class_init"))
+		if (!z_string_compare(symbol, NULL, selfp->str_class_init, NULL, 0, -1))
                         z_string_append_cstring(selfp->c_macros, "#define CLASS_INIT_EXISTS\n", Z_STRING_ENCODING_UTF8);
 
-                else if (!strcmp(sym, "global_init"))
+		else if (!z_string_compare(symbol, NULL, selfp->str_global_init, NULL, 0, -1))
                         z_string_append_cstring(selfp->c_macros, "#define GLOBAL_INIT_EXISTS\n", Z_STRING_ENCODING_UTF8);
 
-                else if (!strcmp(sym, "init"))
+		else if (!z_string_compare(symbol, NULL, selfp->str_init, NULL, 0, -1))
                         z_string_append_cstring(selfp->c_macros, "#define INIT_EXISTS\n", Z_STRING_ENCODING_UTF8);
 
-		free(sym);
                 print_line_number(self, selfp->c_macros);
                 z_string_append_format(selfp->c_macros, "#define %S %S_%S\n", symbol, selfp->current_class_name_lowercase, symbol);
 
@@ -222,27 +333,47 @@ class ZZcoSourceGenerator : ZObject
                 return str;
         }
 
-        private void extract_argument(char *arg, char **arg_type, char **arg_name)
+        private void extract_argument(ZString *arg, ZString *arg_type, ZString *arg_name)
         {
-                int i, length = strlen(arg);
-                int j;
+		int length = z_string_get_length(arg);
+		ZStringIter *it, *begin;
 
-                for (i=length-1; i>=0; --i) {
-                        if (arg[i] == ' ' || arg[i] == '*') {
-                                /* trim the spaces from the arg_type string and copy it */
-                                for (j=i; arg[j] == ' '; --j);
-                                *arg_type = self_strndup(arg, j+1);
+		it = z_string_get_end(arg);
+		begin = z_string_get_begin(arg);
 
-                                /* copy the argument name */
-                                *arg_name = strdup(arg + (i+1));
-                                return;
-                        }
-                }
+		z_string_iter_decrement(it);
+		z_string_iter_decrement(begin);
 
-                *arg_type = strdup("");
-                *arg_name = strdup(arg);
+		for (; !z_string_iter_is_equal(it, begin); z_string_iter_decrement(it)) {
+			uint32_t ch = z_string_get_char(arg, it);
+
+			if (ch == ' ' || ch == '*') {
+				/* copy the argument name (starting after the ' ' or '*') */
+                                z_string_iter_increment(it);
+                                z_string_append(arg_name, arg, it, NULL);
+                                z_string_iter_decrement(it);
+
+				/* trim the spaces from the arg_type string and copy it */
+                                while (!z_string_iter_is_equal(it, begin) && ch == ' ') {
+					ch = z_string_get_char(arg, it);
+                                        z_string_iter_decrement(it);
+                                }
+
+				z_string_iter_increment(it);
+				z_string_append(arg_type, arg, NULL, it);
+
+                                z_object_unref(Z_OBJECT(it));
+                                z_object_unref(Z_OBJECT(begin));
+				return;
+			}
+		}
+
+		z_string_clear(arg_type);
+                z_string_append(arg_name, arg, NULL, NULL);
+
+		z_object_unref(Z_OBJECT(begin));
+		z_object_unref(Z_OBJECT(it));
         }
-
 
         private void signal_decl(Self *self, ZString *type, ZString *symbol, ZString *arglist)
         {
@@ -288,165 +419,7 @@ class ZZcoSourceGenerator : ZObject
                 print_line_number(self, selfp->function_definitions);
                 z_string_append_format(selfp->function_definitions, "\tz_vector_set_item_destruct(args, (ZVectorItemCallback) z_object_unref);\n");
 
-		char *arglist_no_paren = z_string_get_cstring(arglist, Z_STRING_ENCODING_UTF8) + 1;
-                char *p;
-
-                arglist_no_paren[strlen(arglist_no_paren)-1] = 0;
-
-                p = strtok(arglist_no_paren, ",");
-
-		/* always skip the first argument */
-		p = strtok(NULL, ",");
-
-                while (p)
-                {
-                        char *arg_type, *arg_name, *temp;
-                        int is_pointer, length;
-
-                        extract_argument(p, &arg_type, &arg_name);
-                        p = strtok(NULL, ",");
-
-                        /* create the ZValue object */
-			print_line_number(self, selfp->function_definitions);
-                        z_string_append_format(selfp->function_definitions, "\t\x7b\n");
-
-                        /* check if the parameter has pointers */
-                        length = strlen(arg_type);
-                        temp = strchr(arg_type, '*');
-                        is_pointer = temp != NULL;
-
-                        /* set the value into the ZValue */
-			if (is_pointer) {
-				/* make sure there is at most one '*' character */
-				if (temp != arg_type + (length-1)) {
-					print_line_number(self, selfp->function_definitions);
-					z_string_append_format(selfp->function_definitions, "\t\t#error \"Invalid signal parameter type %s - cannot have multipointer types\"\n", arg_type);
-
-				/* if the value is already a ZValue, use it directly */
-				} else if (!strncmp(arg_type, "ZValue", 6)) {
-					print_line_number(self, selfp->function_definitions);
-					z_string_append_format(selfp->function_definitions, "\t\tZValue *value = %s;\n");
-
-					print_line_number(self, selfp->function_definitions);
-					z_string_append_format(selfp->function_definitions, "\t\tz_object_ref(Z_OBJECT(value));\n", arg_name);
-
-				/* if the value is derived from ZObject, treat it as an object type */
-				} else if (!strncmp(arg_type, "Self", 4) || arg_type[0] == 'Z') {
-					print_line_number(self, selfp->function_definitions);
-					z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX);\n");
-
-					print_line_number(self, selfp->function_definitions);
-					z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_object(value, Z_OBJECT(%s));\n", arg_name);
-
-				} else if (!strncmp(arg_type, "char", 4) || !strncmp(arg_type, "int8_t", 6) ||
-					   !strncmp(arg_type, "unsigned char", 13) || !strncmp(arg_type, "uint8_t", 7)) {
-					selfp->class_needs_string = 1;
-
-					print_line_number(self, selfp->function_definitions);
-					z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX);\n");
-
-					print_line_number(self, selfp->function_definitions);
-					z_string_append_format(selfp->function_definitions, "\t\tZString *_temp = z_string_new(CTX);\n");
-
-					print_line_number(self, selfp->function_definitions);
-					z_string_append_format(selfp->function_definitions, "\t\tz_string_set_cstring(_temp, %s, Z_STRING_ENCODING_UTF8);\n", arg_name);
-
-					print_line_number(self, selfp->function_definitions);
-					z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_object(value, Z_OBJECT(_temp));\n");
-
-					print_line_number(self, selfp->function_definitions);
-					z_string_append_format(selfp->function_definitions, "\t\tz_object_unref(Z_OBJECT(_temp));\n");
-				}
-
-			} else if (!strcmp(arg_type, "char") || !strcmp(arg_type, "int8_t")) {
-				print_line_number(self, selfp->function_definitions);
-                                z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX);\n");
-
-				print_line_number(self, selfp->function_definitions);
-                                z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_int8(value, %s);\n", arg_name);
-
-                        } else if (!strcmp(arg_type, "short") || !strcmp(arg_type, "int16_t")) {
-				print_line_number(self, selfp->function_definitions);
-                                z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX);\n");
-
-				print_line_number(self, selfp->function_definitions);
-				z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_int16(value, %s);\n", arg_name);
-
-                        } else if (!strcmp(arg_type, "int") || !strcmp(arg_type, "int32_t")) {
-				print_line_number(self, selfp->function_definitions);
-                                z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX);\n");
-
-				print_line_number(self, selfp->function_definitions);
-                                z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_int32(value, %s);\n", arg_name);
-
-                        } else if (!strcmp(arg_type, "long") || !strcmp(arg_type, "long long") || !strcmp(arg_type, "int64_t")) {
-				print_line_number(self, selfp->function_definitions);
-                                z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX);\n");
-				
-				print_line_number(self, selfp->function_definitions);
-                                z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_int64(value, %s);\n", arg_name);
-
-                        } else if (!strcmp(arg_type, "unsigned char") || !strcmp(arg_type, "uint8_t")) {
-				print_line_number(self, selfp->function_definitions);
-                                z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX);\n");
-
-				print_line_number(self, selfp->function_definitions);
-                                z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_uint8(value, %s);\n", arg_name);
-
-                        } else if (!strcmp(arg_type, "unsigned short") || !strcmp(arg_type, "uint16_t")) {
-				print_line_number(self, selfp->function_definitions);
-                                z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX);\n");
-
-				print_line_number(self, selfp->function_definitions);
-                                z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_uint16(value, %s);\n", arg_name);
-
-                        } else if (!strcmp(arg_type, "unsigned int") || !strcmp(arg_type, "uint32_t")) {
-				print_line_number(self, selfp->function_definitions);
-                                z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX);\n");
-
-				print_line_number(self, selfp->function_definitions);
-                                z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_uint32(value, %s);\n", arg_name);
-
-                        } else if (!strcmp(arg_type, "unsigned long") ||
-					!strcmp(arg_type, "unsigned long long") ||
-					!strcmp(arg_type, "uint64_t")) {
-				print_line_number(self, selfp->function_definitions);
-                                z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX);\n");
-
-				print_line_number(self, selfp->function_definitions);
-                                z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_uint64(value, %s);\n", arg_name);
-
-                        } else if (!strcmp(arg_type, "float")) {
-				print_line_number(self, selfp->function_definitions);
-                                z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX);\n");
-
-				print_line_number(self, selfp->function_definitions);
-                                z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_real32(value, %s);\n", arg_name);
-
-                        } else if (!strcmp(arg_type, "double")) {
-				print_line_number(self, selfp->function_definitions);
-                                z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX);\n");
-
-				print_line_number(self, selfp->function_definitions);
-				z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_real64(value, %s);\n", arg_name);
-
-                        } else {
-				print_line_number(self, selfp->function_definitions);
-                                z_string_append_format(selfp->function_definitions, "\t\t#error \"Invalid signal parameter type %s\"\n", arg_type);
-                        }
-
-                        /* add the ZValue into the vector */
-			print_line_number(self, selfp->function_definitions);
-                        z_string_append_format(selfp->function_definitions, "\t\tz_vector_push_back(args, value);\n");
-
-			print_line_number(self, selfp->function_definitions);
-                        z_string_append_format(selfp->function_definitions, "\t\x7d\n");
-
-                        free(arg_type);
-                        free(arg_name);
-                }
-
-                free(arglist_no_paren-1);
+		for_each_arg(self, NULL, arglist, add_signal_arg);
 
                 /* end of function body */
 		print_line_number(self, selfp->function_definitions);
@@ -461,6 +434,186 @@ class ZZcoSourceGenerator : ZObject
                 print_line_number(self, selfp->signal_registrations);
                 z_string_append_format(selfp->signal_registrations, "\tz_object_register_signal(Z_OBJECT(self), \"%S\");\n", symbol);
         }
+
+	private void add_signal_arg(Self *self, int is_first, ZString *token, ZString *output)
+	{
+		ZString *arg_type;
+		ZString *arg_name;
+                ZStringIter *last, *it;
+		char *temp;
+		int is_pointer, length;
+
+		/* always skip the first argument */
+		if (is_first)
+			return;
+
+		arg_type = z_string_new(CTX);
+                arg_name = z_string_new(CTX);
+		extract_argument(token, arg_type, arg_name);
+
+		/* create the ZValue object */
+		print_line_number(self, selfp->function_definitions);
+		z_string_append_format(selfp->function_definitions, "\t\x7b\n");
+
+		/* check if the parameter has pointers */
+		length = z_string_get_length(arg_type);
+
+                it = z_string_get_begin(arg_type);
+
+                last = z_string_get_end(arg_type);
+                z_string_iter_decrement(last);
+
+		is_pointer = z_string_find_char(arg_type, it, '*', 0);
+
+		/* set the value into the ZValue */
+		if (is_pointer) {
+			/* make sure there is at most one '*' character */
+                        if (!z_string_iter_is_equal(it, last)) {
+				print_line_number(self, selfp->function_definitions);
+				z_string_append_format(selfp->function_definitions, "\t\t#error \"Invalid signal parameter type %S - cannot have multipointer types\"\n", arg_type);
+
+				/* if the value is already a ZValue, use it directly */
+                        } else if (!z_string_compare(arg_type, NULL, selfp->str_zvalue, NULL, 0, 6)) {
+				print_line_number(self, selfp->function_definitions);
+				z_string_append_format(selfp->function_definitions, "\t\tZValue *value = %s;\n");
+
+				print_line_number(self, selfp->function_definitions);
+				z_string_append_format(selfp->function_definitions, "\t\tz_object_ref(Z_OBJECT(value));\n");
+
+				/* if the value is derived from ZObject, treat it as an object type */
+                        } else if (!z_string_compare(arg_type, NULL, selfp->str_self, NULL, 0, 4) ||
+                                   !z_string_compare(arg_type, NULL, selfp->str_z, NULL, 0, 1)) {
+				print_line_number(self, selfp->function_definitions);
+				z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX);\n");
+
+				print_line_number(self, selfp->function_definitions);
+				z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_object(value, Z_OBJECT(%S));\n", arg_name);
+
+                        } else if (!z_string_compare(arg_type, NULL, selfp->str_char, NULL, 0, 4) ||
+                                   !z_string_compare(arg_type, NULL, selfp->str_int8_t, NULL, 0, 6) ||
+                                   !z_string_compare(arg_type, NULL, selfp->str_unsigned_char, NULL, 0, 13) ||
+                                   !z_string_compare(arg_type, NULL, selfp->str_uint8_t, NULL, 0, 7)) {
+
+				selfp->class_needs_string = 1;
+
+				print_line_number(self, selfp->function_definitions);
+				z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX);\n");
+
+				print_line_number(self, selfp->function_definitions);
+				z_string_append_format(selfp->function_definitions, "\t\tZString *_temp = z_string_new(CTX);\n");
+
+				print_line_number(self, selfp->function_definitions);
+				z_string_append_format(selfp->function_definitions, "\t\tz_string_set_cstring(_temp, %S, Z_STRING_ENCODING_UTF8);\n", arg_name);
+
+				print_line_number(self, selfp->function_definitions);
+				z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_object(value, Z_OBJECT(_temp));\n");
+
+				print_line_number(self, selfp->function_definitions);
+				z_string_append_format(selfp->function_definitions, "\t\tz_object_unref(Z_OBJECT(_temp));\n");
+			}
+
+                } else if (!z_string_compare(arg_type, NULL, selfp->str_char, NULL, 0, -1) ||
+                           !z_string_compare(arg_type, NULL, selfp->str_int8_t, NULL, 0, -1)) {
+			print_line_number(self, selfp->function_definitions);
+			z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX);\n");
+
+			print_line_number(self, selfp->function_definitions);
+			z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_int8(value, %S);\n", arg_name);
+
+                } else if (!z_string_compare(arg_type, NULL, selfp->str_short, NULL, 0, -1) ||
+                           !z_string_compare(arg_type, NULL, selfp->str_int16_t, NULL, 0, -1)) {
+			print_line_number(self, selfp->function_definitions);
+			z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX);\n");
+
+			print_line_number(self, selfp->function_definitions);
+			z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_int16(value, %S);\n", arg_name);
+
+                } else if (!z_string_compare(arg_type, NULL, selfp->str_int, NULL, 0, -1) ||
+                           !z_string_compare(arg_type, NULL, selfp->str_int32_t, NULL, 0, -1)) {
+
+			print_line_number(self, selfp->function_definitions);
+			z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX);\n");
+
+			print_line_number(self, selfp->function_definitions);
+			z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_int32(value, %S);\n", arg_name);
+
+                } else if (!z_string_compare(arg_type, NULL, selfp->str_long, NULL, 0, -1) ||
+                           !z_string_compare(arg_type, NULL, selfp->str_long_long, NULL, 0, -1) ||
+                           !z_string_compare(arg_type, NULL, selfp->str_int64_t, NULL, 0, -1)) {
+
+			print_line_number(self, selfp->function_definitions);
+			z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX);\n");
+
+			print_line_number(self, selfp->function_definitions);
+			z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_int64(value, %S);\n", arg_name);
+
+                } else if (!z_string_compare(arg_type, NULL, selfp->str_unsigned_char, NULL, 0, -1) ||
+                           !z_string_compare(arg_type, NULL, selfp->str_uint8_t, NULL, 0, -1)) {
+
+			print_line_number(self, selfp->function_definitions);
+			z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX);\n");
+
+			print_line_number(self, selfp->function_definitions);
+			z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_uint8(value, %S);\n", arg_name);
+
+                } else if (!z_string_compare(arg_type, NULL, selfp->str_unsigned_short, NULL, 0, -1) ||
+                           !z_string_compare(arg_type, NULL, selfp->str_uint16_t, NULL, 0, -1)) {
+
+			print_line_number(self, selfp->function_definitions);
+			z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX);\n");
+
+			print_line_number(self, selfp->function_definitions);
+			z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_uint16(value, %S);\n", arg_name);
+
+                } else if (!z_string_compare(arg_type, NULL, selfp->str_unsigned_int, NULL, 0, -1) ||
+                           !z_string_compare(arg_type, NULL, selfp->str_uint32_t, NULL, 0, -1)) {
+
+			print_line_number(self, selfp->function_definitions);
+			z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX);\n");
+
+			print_line_number(self, selfp->function_definitions);
+			z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_uint32(value, %S);\n", arg_name);
+
+                } else if (!z_string_compare(arg_type, NULL, selfp->str_unsigned_long, NULL, 0, -1) ||
+                           !z_string_compare(arg_type, NULL, selfp->str_unsigned_long_long, NULL, 0, -1) ||
+                           !z_string_compare(arg_type, NULL, selfp->str_uint64_t, NULL, 0, -1)) {
+
+			print_line_number(self, selfp->function_definitions);
+			z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX);\n");
+
+			print_line_number(self, selfp->function_definitions);
+			z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_uint64(value, %S);\n", arg_name);
+
+                } else if (!z_string_compare(arg_type, NULL, selfp->str_float, NULL, 0, -1)) {
+
+			print_line_number(self, selfp->function_definitions);
+			z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX);\n");
+
+			print_line_number(self, selfp->function_definitions);
+			z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_real32(value, %S);\n", arg_name);
+
+                } else if (!z_string_compare(arg_type, NULL, selfp->str_double, NULL, 0, -1)) {
+
+			print_line_number(self, selfp->function_definitions);
+			z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX);\n");
+
+			print_line_number(self, selfp->function_definitions);
+			z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_real64(value, %S);\n", arg_name);
+
+		} else {
+			print_line_number(self, selfp->function_definitions);
+			z_string_append_format(selfp->function_definitions, "\t\t#error \"Invalid signal parameter type %S\"\n", arg_type);
+		}
+
+		/* add the ZValue into the vector */
+		print_line_number(self, selfp->function_definitions);
+		z_string_append_format(selfp->function_definitions, "\t\tz_vector_push_back(args, value);\n");
+
+		print_line_number(self, selfp->function_definitions);
+		z_string_append_format(selfp->function_definitions, "\t\x7d\n");
+
+		z_object_unref(Z_OBJECT(arg_name));
+	}
 
         private void member_function_decl(Self *self, ZString *type, ZString *symbol, ZString *arglist, ZString *code, int should_register_method)
         {
@@ -634,27 +787,26 @@ class ZZcoSourceGenerator : ZObject
         {
 		ZString *arglist = z_string_new(CTX);
                 ZString *symbol;
-		char *action = z_string_get_cstring(get_or_set, Z_STRING_ENCODING_UTF8);
 
                 if (selfp->is_attached_property) {
                         /* attached property */
-                        if (!strcmp(action, "get"))
+			if (!z_string_compare(get_or_set, NULL, selfp->str_get, NULL, 0, -1))
                                 define_attached_property_getter(self, selfp->symbol_name, code);
 
-                        else if (!strcmp(action, "set"))
+			else if (!z_string_compare(get_or_set, NULL, selfp->str_set, NULL, 0, -1))
                                 define_attached_property_setter(self, selfp->symbol_name, code);
 
                 } else {
                         /* regular property */
 
-                        if (!strcmp(action, "get")) {
+			if (!z_string_compare(get_or_set, NULL, selfp->str_get, NULL, 0, -1)) {
 				z_string_format(arglist, "(Self *self)");
 				symbol = z_string_new(CTX);
 				z_string_format(symbol, "get_%S", selfp->symbol_name);
                                 member_function_decl(self, selfp->type_name, symbol, arglist, code, 0);
                                 z_object_unref(Z_OBJECT(symbol));
 
-                        } else if (!strcmp(action, "set")) {
+			} else if (!z_string_compare(get_or_set, NULL, selfp->str_set, NULL, 0, -1)) {
 				z_string_format(arglist, "(Self *self, %S value)", selfp->type_name);
 				symbol = z_string_new(CTX);
 				z_string_format(symbol, "set_%S", selfp->symbol_name);
@@ -668,86 +820,79 @@ class ZZcoSourceGenerator : ZObject
                         }
                 }
 
-		free(action);
 		z_object_unref(Z_OBJECT(arglist));
         }
 
         private ZString * pascal_to_uppercase(Self *self, ZString *str, char delimiter)
         {
-		ZString *output;
-		char *input = z_string_get_cstring(str, Z_STRING_ENCODING_UTF8);
-		char *s = input;
-                int first = 1;
-                char *res = malloc(strlen(s) * 2 + 1);
-                char *p = res;
+		ZString *res;
+		ZStringIter *it, *end;
+		int first = 1;
 
-                for (; *s; ++s)
-                {
-                        if (*s >= 'A' && *s <= 'Z') {
+		res = z_string_new(CTX);
+		it = z_string_get_begin(str);
+		end = z_string_get_end(str);
+
+		for (; !z_string_iter_is_equal(it, end); z_string_iter_increment(it)) {
+			uint32_t ch = z_string_get_char(str, it);
+
+                        if (ch >= 'A' && ch <= 'Z') {
                                 if (!first) {
-                                        *p = delimiter;
-                                        ++p;
+					z_string_push_back(res, delimiter);
                                 }
 
-                                *p = *s;
-                                ++p;
-                        } else if (*s >= 'a' && *s <= 'z') {
-                                *p = *s + ('A' - 'a');
-                                ++p;
+				z_string_push_back(res, ch);
+                        } else if (ch >= 'a' && ch <= 'z') {
+                                uint32_t out = ch + ('A' - 'a');
+				z_string_push_back(res, out);
 
+                        } else if (ch > 0) {
+				z_string_push_back(res, ch);
                         } else {
-                                *p = *s;
-                                ++p;
-                        }
+				break;
+			}
 
                         first = 0;
-                }
+		}
 
-                *p = 0;
-		free(input);
-		
-		output = z_string_new(CTX);
-		z_string_append_format(output, "%s", res);
-		free(res);
+		z_object_unref(Z_OBJECT(it));
+		z_object_unref(Z_OBJECT(end));
 
-                return output;
+		return res;
         }
 
         private ZString * pascal_to_lowercase(Self *self, ZString *str, char delimiter)
         {
-		ZString *output;
-		char *input = z_string_get_cstring(str, Z_STRING_ENCODING_UTF8);
-		char *s = input;
-                int first = 1;
-                char *res = malloc(strlen(s) * 2 + 1);
-                char *p = res;
+		ZString *res;
+		ZStringIter *it, *end;
+		int first = 1;
 
-                for (; *s; ++s)
-                {
-                        if (*s >= 'A' && *s <= 'Z') {
-                                if (!first) {
-                                        *p = delimiter;
-                                        ++p;
-                                }
+		res = z_string_new(CTX);
+		it = z_string_get_begin(str);
+		end = z_string_get_end(str);
 
-                                *p = *s + ('a' - 'A');
-                                ++p;
+		for (; !z_string_iter_is_equal(it, end); z_string_iter_increment(it)) {
+			uint32_t ch = z_string_get_char(str, it);
+
+                        if (ch >= 'A' && ch <= 'Z') {
+                                if (!first)
+					z_string_push_back(res, delimiter);
+
+                                uint32_t out = ch + ('a' - 'A');
+				z_string_push_back(res, out);
+                        } else if (ch > 0) {
+				z_string_push_back(res, ch);
                         } else {
-                                *p = *s;
-                                ++p;
-                        }
+				break;
+			}
 
                         first = 0;
-                }
+		}
 
-                *p = 0;
-		free(input);
-		
-		output = z_string_new(CTX);
-		z_string_append_format(output, "%s", res);
-		free(res);
+		z_object_unref(Z_OBJECT(it));
+		z_object_unref(Z_OBJECT(end));
 
-                return output;
+		return res;
         }
 
         public void add_parent(Self *self, ZString *name_in_pascal)
@@ -773,41 +918,95 @@ class ZZcoSourceGenerator : ZObject
                 z_string_append_format(output, "\t%S (*%s%S)%S;\n", _type_name, _symbol_name_prefix, _symbol_name, _arglist);
         }
 
-        private char *strip_out_type(char *arg)
+        private ZString *strip_out_type(Self *self, ZString *arg)
         {
-                int i, length = strlen(arg);
+		ZString *res;
+		ZStringIter *it, *begin;
 
-                for (i=length-1; i>=0; --i) {
-                        if (arg[i] == ' ' || arg[i] == '*')
-                                return arg + (i+1);
-                }
+		it = z_string_get_end(arg);
+		begin = z_string_get_begin(arg);
 
-                return arg;
+		z_string_iter_decrement(it);
+		z_string_iter_decrement(begin);
+
+		for (; !z_string_iter_is_equal(it, begin); z_string_iter_decrement(it)) {
+			uint32_t ch = z_string_get_char(arg, it);
+			if (ch == ' ' || ch == '*') {
+				res = z_string_new(CTX);
+				z_string_iter_increment(it);
+				z_string_append(res, arg, it, NULL);
+
+				z_object_unref(Z_OBJECT(begin));
+				z_object_unref(Z_OBJECT(it));
+
+				return res;
+			}
+		}
+
+
+		res = arg;
+		z_object_ref(Z_OBJECT(res));
+
+		z_object_unref(Z_OBJECT(begin));
+		z_object_unref(Z_OBJECT(it));
+
+		return res;
         }
 
-        private void strip_out_types(ZString *str, ZString *arglist)
+	private void append_stripped_arg(Self *self, int is_first, ZString *token, ZString *output)
+	{
+		/* strip out the type names from the token */
+		ZString *q = strip_out_type(self, token);
+
+		if (!is_first)
+			z_string_push_back(output, ',');
+
+		z_string_append_format(output, "%S", q);
+		z_object_unref(Z_OBJECT(q));
+	}
+
+        private void for_each_arg(Self *self, ZString *output, ZString *arglist, CallbackFunc callback)
         {
-                char *arglist_no_paren = z_string_get_cstring(arglist, Z_STRING_ENCODING_UTF8) + 1;
-                char *p;
                 int is_first = 1;
 
-                arglist_no_paren[strlen(arglist_no_paren)-1] = 0;
+		/* strip out the first parenthesis character */
+		ZString *arglist_no_paren = z_string_new(CTX);
+		ZStringIter *it1 = z_string_get_begin(arglist);
+		ZStringIter *it2 = z_string_get_end(arglist);
+		z_string_iter_increment(it1);
+		z_string_iter_decrement(it2);
+		z_string_append(arglist_no_paren, arglist, it1, it2);
+		z_object_unref(Z_OBJECT(it2));
+		z_object_unref(Z_OBJECT(it1));
 
-                p = strtok(arglist_no_paren, ",");
-                while (p)
-                {
-                        char *q = strip_out_type(p);
-                        p = strtok(NULL, ",");
+		/* start the tokenizer */
+		z_string_token_start(arglist_no_paren);
 
-                        if (!is_first)
-                                z_string_push_back(str, ',');
-                        else
-                                is_first = 0;
+		while (1) {
+			/* extract the token */
+			ZStringIter *first, *last;
 
-                        z_string_append_cstring(str, q, Z_STRING_ENCODING_UTF8);
-                }
+			first = z_string_iter_new(CTX);
+			last = z_string_iter_new(CTX);
 
-                free(arglist_no_paren-1);
+			int rc = z_string_token_next(arglist_no_paren, selfp->str_comma, first, last);
+
+			ZString *token = z_string_new(CTX);
+			z_string_append(token, arglist_no_paren, first, last);
+
+			z_object_unref(Z_OBJECT(last));
+			z_object_unref(Z_OBJECT(first));
+
+			callback(self, is_first, token, output);
+			z_object_unref(Z_OBJECT(token));
+
+			is_first = 0;
+
+			if (rc == 0)
+				break;
+		}
+
+		z_object_unref(Z_OBJECT(arglist_no_paren));
         }
 
         private void virtual_member_function_decl(Self *self, ZString *type, ZString *symbol, ZString *arglist, ZString *code)
@@ -830,7 +1029,7 @@ class ZZcoSourceGenerator : ZObject
                                 "\t((%SClass *) ((char *) obj->class_base + offset))->__%S(",
 				selfp->current_class_name_lowercase, selfp->current_class_name_pascal, symbol);
 
-                strip_out_types(vcode, arglist);
+                for_each_arg(self, vcode, arglist, append_stripped_arg);
                 z_string_append_cstring(vcode, ");\n\x7d", Z_STRING_ENCODING_UTF8);
 
                 member_function_decl(self, type, symbol, arglist, vcode, 1);
