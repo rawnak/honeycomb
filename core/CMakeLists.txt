@@ -66,6 +66,8 @@ parse_zco(z-closure-marshal)
 parse_zco(z-c-closure-marshal)
 parse_zco(z-file)
 parse_zco(z-framework-events)
+parse_zco(z-object-tracker)
+parse_zco(z-default-object-tracker)
 
 add_library(
       zclib-core SHARED
@@ -84,5 +86,7 @@ add_library(
       z-c-closure-marshal.c
       z-file.c
       z-framework-events.c
+      z-object-tracker.c
+      z-default-object-tracker.c
       )
 

@@ -25,8 +25,9 @@
 struct zco_context_t {
 	void **types;
 	int type_count;
-	void *marshal;		/* ZClosureMarshal object */
+	void *marshal;          /* ZClosureMarshal object */
 	void *framework_events; /* ZFrameworkEvents object */
+   void *object_tracker;   /* ZObjectTracker object */
 };
 
 void    zco_context_init(struct zco_context_t *ctx);
@@ -37,6 +38,7 @@ int     zco_allocate_type_id();
 void    zco_inherit_vtable(int **list, int *size, int *src_list, int src_size, void *base, void *target);
 void    zco_add_to_vtable(int **list, int *size, int type_id);
 void *  zco_context_get_framework_events(struct zco_context_t *ctx);
+void *  zco_context_set_object_tracker(struct zco_context_t *ctx, void *object_tracker);
 
 #endif
 

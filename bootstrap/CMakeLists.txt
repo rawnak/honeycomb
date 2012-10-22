@@ -35,6 +35,8 @@ add_executable(
       z-zco-source-generator.c
       z-value.c
       z-framework-events.c
+      z-object-tracker.c
+      z-default-object-tracker.c
 )
 
 target_link_libraries(bootstrap m)

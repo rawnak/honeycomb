@@ -21,6 +21,7 @@
 #include <zco-type.h>
 #include <z-object.h>
 #include <z-framework-events.h>
+#include <z-default-object-tracker.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -32,13 +33,18 @@ void zco_context_init(struct zco_context_t *ctx)
 	ctx->type_count = 0;
 	ctx->types = 0;
 	ctx->marshal = NULL;
+        ctx->object_tracker = NULL;
 	ctx->framework_events = z_framework_events_new(ctx);
+
+        ZDefaultObjectTracker *tracker = z_default_object_tracker_new(ctx);
+        zco_context_set_object_tracker(ctx, (void *) tracker);
 }
 
 void zco_context_destroy(struct zco_context_t *ctx)
 {
 	int i;
 
+	z_object_unref((ZObject *) ctx->object_tracker);
 	z_object_unref((ZObject *) ctx->framework_events);
 
 	if (ctx->marshal) {
@@ -152,5 +158,10 @@ void zco_add_to_vtable(int **list, int *size, int type_id)
 void * zco_context_get_framework_events(struct zco_context_t *ctx)
 {
 	return ctx->framework_events;
+}
+
+void * zco_context_set_object_tracker(struct zco_context_t *ctx, void *object_tracker)
+{
+   ctx->object_tracker = object_tracker;
 }
 

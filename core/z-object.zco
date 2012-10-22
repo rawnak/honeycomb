@@ -33,6 +33,7 @@ typedef void(*ZObjectSignalHandler)(struct ZObject *self, ...);
 #include <z-vector-iter.h>
 #include <z-closure.h>
 #include <z-closure-marshal.h>
+#include <z-object-tracker.h>
 #include <z-string.h>
 %}
 
@@ -97,9 +98,15 @@ class ZObject
 	public void unref(Self *self)
 	{
 		assert(selfp->ref_count > 0);
-		if (--selfp->ref_count == 0)
-			dispose(self);
-	}
+		if (--selfp->ref_count == 0) {
+                        if (CTX->object_tracker) {
+                                ZObjectTracker *object_tracker = (ZObjectTracker *) CTX->object_tracker;
+                                z_object_tracker_destroy(object_tracker, self);
+                        } else {
+                                dispose(self);
+                        }
+                }
+        }
 
 	private ZObjectSignalHandler lookup_method(Self *self, char *method_name)
 	{
