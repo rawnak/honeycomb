@@ -303,7 +303,7 @@ void z_vector_set_size(Self *self, int  value)
  if (selfp->count < value) {
  /* grow the vector */
  if (selfp->capacity < value) {
- set_capacity(self, value);
+ set_capacity(self, value * 2);
  }
 
  if (selfp->item_construct) {
