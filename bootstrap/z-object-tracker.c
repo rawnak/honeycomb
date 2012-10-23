@@ -55,7 +55,7 @@ static ZObject *  z_object_tracker_virtual_create(Self *self,int type_id);
 #line 15 "z-object-tracker.zco"
 static int  z_object_tracker_virtual_destroy(Self *self,ZObject *target);
 #line 20 "z-object-tracker.zco"
-static void  z_object_tracker_virtual_garbage_collect(Self *self);
+static int  z_object_tracker_virtual_garbage_collect(Self *self);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
@@ -151,16 +151,16 @@ static int  z_object_tracker_virtual_destroy(Self *self,ZObject *target)
  return 0; /* not handled */
  }
 #line 20 "z-object-tracker.zco"
-void  z_object_tracker_garbage_collect(Self *self)
+int  z_object_tracker_garbage_collect(Self *self)
 {
 	ZObject *obj = (ZObject *) self;
 	unsigned long offset = ((ZObjectClass *) obj->class_base)->class_off_list[z_object_tracker_type_id];
 	((ZObjectTrackerClass *) ((char *) obj->class_base + offset))->__garbage_collect(self);
 }
 #line 20 "z-object-tracker.zco"
-static void  z_object_tracker_virtual_garbage_collect(Self *self)
+static int  z_object_tracker_virtual_garbage_collect(Self *self)
 {
- return; /* not handled */
+ return 0; /* not handled */
  }
 
 #line 24 "z-object-tracker.zco"

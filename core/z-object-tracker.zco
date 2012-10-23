@@ -27,19 +27,19 @@
 
 interface ZObjectTracker 
 {
-   public virtual ZObject * create(Self *self, int type_id)
-   {
-		return 0; /* not handled */
-   }
+        public virtual ZObject * create(Self *self, int type_id)
+        {
+                return 0; /* not handled */
+        }
 
-	public virtual int destroy(Self *self, ZObject *target)
-	{
-		return 0; /* not handled */
-	}
+        public virtual int destroy(Self *self, ZObject *target)
+        {
+                return 0; /* not handled */
+        }
 
-   public virtual void garbage_collect(Self *self)
-   {
-      return; /* not handled */
-   }
+        public virtual int garbage_collect(Self *self)
+        {
+                return 0; /* not handled */
+        }
 }
 

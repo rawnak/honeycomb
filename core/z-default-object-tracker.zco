@@ -32,8 +32,13 @@
 
 class ZDefaultObjectTracker : ZObject,ZObjectTracker
 {
+        private ZVector *trash;
+        private int suspended;
+
 	init(Self *self)
 	{
+                selfp->trash = z_vector_new(CTX, 0);
+                selfp->suspended = 0;
 	}
 
 	public Self *new(struct zco_context_t *ctx)
@@ -43,21 +48,60 @@ class ZDefaultObjectTracker : ZObject,ZObjectTracker
         }
 
 	override(ZObjectTracker)
-	ZObject * create(ZObjectTracker *self, int type_id)
+	ZObject * create(ZObjectTracker *tracker, int type_id)
         {
 
         }
 
 	override(ZObjectTracker)
-	int destroy(ZObjectTracker *self, ZObject *target)
+	int destroy(ZObjectTracker *tracker, ZObject *target)
         {
-                z_object_dispose(target);
+                Self *self = (Self *) tracker;
+
+                if (selfp->suspended) {
+                        z_object_dispose(target);
+                } else {
+                        selfp->suspended = 1;
+                        z_vector_push_back(selfp->trash, target);
+                        selfp->suspended = 0;
+                }
         }
 
 	override(ZObjectTracker)
-	void garbage_collect(ZObjectTracker *self)
+	int garbage_collect(ZObjectTracker *tracker)
         {
+                Self *self = (Self *) tracker;
+                ZVectorIter *begin, *it, *end;
 
+                begin = z_vector_get_begin(selfp->trash);
+                it = z_vector_iter_dup(begin);
+                end = z_vector_get_end(selfp->trash);
+
+                /* Iterate through the vector in the range of [begin,end). Note that
+                   during this loop iteration, more items may be pushed into the vector.
+                   we will only GC the items that were present at the start of the loop.
+                   Subsequent calls to garbage_collect() will pick up the remaining
+                   garbage objects */
+                while (!z_vector_iter_is_equal(it, end)) {
+                        ZObject *obj = (ZObject *) z_vector_get_item(selfp->trash, it);
+                        z_object_dispose(obj);
+                        z_vector_iter_increment(it);
+                }
+
+                /* Temporarily suspend the garbage collector. We are suspending it since
+                   z_vector_erase internally creates and destroys objects. If we don't
+                   suspend it, this call will push more items into the vector, thus making
+                   it impossible for the vector size to ever be 0. */
+                selfp->suspended = 1;
+                z_vector_erase(selfp->trash, begin, end);
+
+                z_object_unref(Z_OBJECT(it));
+                z_object_unref(Z_OBJECT(begin));
+                z_object_unref(Z_OBJECT(end));
+
+                selfp->suspended = 0;
+
+                return z_vector_get_size(selfp->trash);
         }
 }
 

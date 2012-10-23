@@ -44,6 +44,10 @@ typedef struct ZDefaultObjectTrackerClass ZDefaultObjectTrackerClass;
 typedef struct ZDefaultObjectTracker ZDefaultObjectTracker;
 
 struct ZDefaultObjectTrackerPrivate {
+#line 15 "z-default-object-tracker.zco"
+	ZVector *trash;
+#line 16 "z-default-object-tracker.zco"
+	int suspended;
 };
 
 struct ZDefaultObjectTrackerProtected {
@@ -58,12 +62,12 @@ struct ZDefaultObjectTrackerGlobal {
 	const char *name;
 	int id;
 	void *method_map;
-#line 26 "z-default-object-tracker.zco"
-	ZObject *  (*__parent_create)(ZObjectTracker *self,int type_id);
-#line 32 "z-default-object-tracker.zco"
-	int  (*__parent_destroy)(ZObjectTracker *self,ZObject *target);
-#line 38 "z-default-object-tracker.zco"
-	void  (*__parent_garbage_collect)(ZObjectTracker *self);
+#line 31 "z-default-object-tracker.zco"
+	ZObject *  (*__parent_create)(ZObjectTracker *tracker,int type_id);
+#line 37 "z-default-object-tracker.zco"
+	int  (*__parent_destroy)(ZObjectTracker *tracker,ZObject *target);
+#line 51 "z-default-object-tracker.zco"
+	int  (*__parent_garbage_collect)(ZObjectTracker *tracker);
 };
 
 struct ZDefaultObjectTrackerClass {
@@ -82,7 +86,7 @@ extern int z_default_object_tracker_type_id;
 ZDefaultObjectTrackerGlobal * z_default_object_tracker_get_type(struct zco_context_t *ctx);
 void __z_default_object_tracker_init(struct zco_context_t *ctx, ZDefaultObjectTracker *self);
 void __z_default_object_tracker_class_init(struct zco_context_t *ctx, ZDefaultObjectTrackerClass *_class);
-#line 19 "z-default-object-tracker.zco"
+#line 24 "z-default-object-tracker.zco"
 Self * z_default_object_tracker_new(struct zco_context_t *ctx);
 
 #undef Self

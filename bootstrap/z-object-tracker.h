@@ -64,7 +64,7 @@ struct ZObjectTrackerClass {
 #line 15 "z-object-tracker.zco"
 	int  (*__destroy)(Self *self,ZObject *target);
 #line 20 "z-object-tracker.zco"
-	void  (*__garbage_collect)(Self *self);
+	int  (*__garbage_collect)(Self *self);
 };
 
 struct ZObjectTracker {
@@ -81,7 +81,7 @@ ZObject *  z_object_tracker_create(Self *self,int type_id);
 #line 15 "z-object-tracker.zco"
 int  z_object_tracker_destroy(Self *self,ZObject *target);
 #line 20 "z-object-tracker.zco"
-void  z_object_tracker_garbage_collect(Self *self);
+int  z_object_tracker_garbage_collect(Self *self);
 
 #undef Self
 

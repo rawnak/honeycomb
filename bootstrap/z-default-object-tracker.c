@@ -34,9 +34,9 @@
 #define GET_NEW(ctx) __z_default_object_tracker_new(ctx)
 #define CTX self->_global->ctx
 #define INIT_EXISTS
-#line 15 "z-default-object-tracker.zco"
+#line 18 "z-default-object-tracker.zco"
 #define init z_default_object_tracker_init
-#line 19 "z-default-object-tracker.zco"
+#line 24 "z-default-object-tracker.zco"
 #define new z_default_object_tracker_new
 
 int z_default_object_tracker_type_id = -1;
@@ -52,14 +52,14 @@ static int __map_compare(ZMap *map, const void *a, const void *b)
 {
 	return strcmp(a, b);
 }
-#line 15 "z-default-object-tracker.zco"
+#line 18 "z-default-object-tracker.zco"
 static void z_default_object_tracker_init(Self *self);
-#line 26 "z-default-object-tracker.zco"
-static ZObject *  z_default_object_tracker_create(ZObjectTracker *self,int type_id);
-#line 32 "z-default-object-tracker.zco"
-static int  z_default_object_tracker_destroy(ZObjectTracker *self,ZObject *target);
-#line 38 "z-default-object-tracker.zco"
-static void  z_default_object_tracker_garbage_collect(ZObjectTracker *self);
+#line 31 "z-default-object-tracker.zco"
+static ZObject *  z_default_object_tracker_create(ZObjectTracker *tracker,int type_id);
+#line 37 "z-default-object-tracker.zco"
+static int  z_default_object_tracker_destroy(ZObjectTracker *tracker,ZObject *target);
+#line 51 "z-default-object-tracker.zco"
+static int  z_default_object_tracker_garbage_collect(ZObjectTracker *tracker);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
@@ -133,41 +133,41 @@ ZDefaultObjectTrackerGlobal * z_default_object_tracker_get_type(struct zco_conte
 		global_ptr = zco_get_ctx_type(ctx, z_default_object_tracker_type_id);
 		*global_ptr = global;
 		
-#line 26 "z-default-object-tracker.zco"
+#line 31 "z-default-object-tracker.zco"
 		{
-#line 26 "z-default-object-tracker.zco"
+#line 31 "z-default-object-tracker.zco"
 			ZObjectTrackerClass *p_class = &global->_class->parent_z_object_tracker;
-#line 26 "z-default-object-tracker.zco"
+#line 31 "z-default-object-tracker.zco"
 			global->__parent_create = p_class->__create;
-#line 26 "z-default-object-tracker.zco"
+#line 31 "z-default-object-tracker.zco"
 			p_class->__create = z_default_object_tracker_create;
-#line 26 "z-default-object-tracker.zco"
+#line 31 "z-default-object-tracker.zco"
 		}
-#line 32 "z-default-object-tracker.zco"
+#line 37 "z-default-object-tracker.zco"
 		{
-#line 32 "z-default-object-tracker.zco"
+#line 37 "z-default-object-tracker.zco"
 			ZObjectTrackerClass *p_class = &global->_class->parent_z_object_tracker;
-#line 32 "z-default-object-tracker.zco"
+#line 37 "z-default-object-tracker.zco"
 			global->__parent_destroy = p_class->__destroy;
-#line 32 "z-default-object-tracker.zco"
+#line 37 "z-default-object-tracker.zco"
 			p_class->__destroy = z_default_object_tracker_destroy;
-#line 32 "z-default-object-tracker.zco"
+#line 37 "z-default-object-tracker.zco"
 		}
-#line 38 "z-default-object-tracker.zco"
+#line 51 "z-default-object-tracker.zco"
 		{
-#line 38 "z-default-object-tracker.zco"
+#line 51 "z-default-object-tracker.zco"
 			ZObjectTrackerClass *p_class = &global->_class->parent_z_object_tracker;
-#line 38 "z-default-object-tracker.zco"
+#line 51 "z-default-object-tracker.zco"
 			global->__parent_garbage_collect = p_class->__garbage_collect;
-#line 38 "z-default-object-tracker.zco"
+#line 51 "z-default-object-tracker.zco"
 			p_class->__garbage_collect = z_default_object_tracker_garbage_collect;
-#line 38 "z-default-object-tracker.zco"
+#line 51 "z-default-object-tracker.zco"
 		}
 		__z_default_object_tracker_class_init(ctx, (ZDefaultObjectTrackerClass *) global->_class);
 		global->method_map = z_map_new(ctx);
 		z_map_set_compare(global->method_map, __map_compare);
 		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
-#line 19 "z-default-object-tracker.zco"
+#line 24 "z-default-object-tracker.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("new"), (ZObjectSignalHandler) new);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZDefaultObjectTrackerGlobal *) global);
@@ -197,38 +197,79 @@ void __z_default_object_tracker_init(struct zco_context_t *ctx, Self *self)
 		init(self);
 	#endif
 }
-#line 15 "z-default-object-tracker.zco"
+#line 18 "z-default-object-tracker.zco"
 static void z_default_object_tracker_init(Self *self)
 {
+ selfp->trash = z_vector_new(CTX, 0);
+ selfp->suspended = 0;
  }
-#line 19 "z-default-object-tracker.zco"
+#line 24 "z-default-object-tracker.zco"
 Self * z_default_object_tracker_new(struct zco_context_t *ctx)
 {
  Self *self = GET_NEW(ctx);
  return self;
  }
-#line 26 "z-default-object-tracker.zco"
+#line 31 "z-default-object-tracker.zco"
 #define PARENT_HANDLER self->_global->__parent_create
-static ZObject *  z_default_object_tracker_create(ZObjectTracker *self,int type_id)
+static ZObject *  z_default_object_tracker_create(ZObjectTracker *tracker,int type_id)
 {
 
  }
 #undef PARENT_HANDLER
-#line 32 "z-default-object-tracker.zco"
+#line 37 "z-default-object-tracker.zco"
 #define PARENT_HANDLER self->_global->__parent_destroy
-static int  z_default_object_tracker_destroy(ZObjectTracker *self,ZObject *target)
+static int  z_default_object_tracker_destroy(ZObjectTracker *tracker,ZObject *target)
 {
+ Self *self = (Self *) tracker;
+
+ if (selfp->suspended) {
  z_object_dispose(target);
+ } else {
+ selfp->suspended = 1;
+ z_vector_push_back(selfp->trash, target);
+ selfp->suspended = 0;
+ }
  }
 #undef PARENT_HANDLER
-#line 38 "z-default-object-tracker.zco"
+#line 51 "z-default-object-tracker.zco"
 #define PARENT_HANDLER self->_global->__parent_garbage_collect
-static void  z_default_object_tracker_garbage_collect(ZObjectTracker *self)
+static int  z_default_object_tracker_garbage_collect(ZObjectTracker *tracker)
 {
+ Self *self = (Self *) tracker;
+ ZVectorIter *begin, *it, *end;
 
+ begin = z_vector_get_begin(selfp->trash);
+ it = z_vector_iter_dup(begin);
+ end = z_vector_get_end(selfp->trash);
+
+ /* Iterate through the vector in the range of [begin,end). Note that
+                   during this loop iteration, more items may be pushed into the vector.
+                   we will only GC the items that were present at the start of the loop.
+                   Subsequent calls to garbage_collect() will pick up the remaining
+                   garbage objects */
+ while (!z_vector_iter_is_equal(it, end)) {
+ ZObject *obj = (ZObject *) z_vector_get_item(selfp->trash, it);
+ z_object_dispose(obj);
+ z_vector_iter_increment(it);
+ }
+
+ /* Temporarily suspend the garbage collector. We are suspending it since
+                   z_vector_erase internally creates and destroys objects. If we don't
+                   suspend it, this call will push more items into the vector, thus making
+                   it impossible for the vector size to ever be 0. */
+ selfp->suspended = 1;
+ z_vector_erase(selfp->trash, begin, end);
+
+ z_object_unref(Z_OBJECT(it));
+ z_object_unref(Z_OBJECT(begin));
+ z_object_unref(Z_OBJECT(end));
+
+ selfp->suspended = 0;
+
+ return z_vector_get_size(selfp->trash);
  }
 #undef PARENT_HANDLER
 
-#line 42 "z-default-object-tracker.zco"
+#line 86 "z-default-object-tracker.zco"
 
 
