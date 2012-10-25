@@ -20,6 +20,7 @@
 
 %h{
 #include <z-object-tracker.h>
+#include <z-map.h>
 #include <z-vector.h>
 #include <z-object.h>
 %}
@@ -28,16 +29,22 @@
 #include <z-value.h>
 #include <assert.h>
 #include <stdio.h>
+
+#define INT_TO_PTR(x) ((void *) ((unsigned long) (x)))
+#define PTR_TO_INT(x) ((int64_t) ((long) (x)))
+
 %}
 
 class ZDefaultObjectTracker : ZObject,ZObjectTracker
 {
-        private ZVector *trash;
+        private ZMap *pools;
         private int suspended;
 
 	init(Self *self)
 	{
-                selfp->trash = z_vector_new(CTX, 0);
+                selfp->pools = z_map_new(CTX);
+                z_map_set_compare(selfp->pools, map_compare);
+                z_map_set_value_destruct(selfp->pools, (ZMapItemCallback) z_object_unref);
                 selfp->suspended = 0;
 	}
 
@@ -47,10 +54,21 @@ class ZDefaultObjectTracker : ZObject,ZObjectTracker
                 return self;
         }
 
+        private int map_compare(ZMap *map, const void *a, const void *b)
+        {
+                return PTR_TO_INT(a) - PTR_TO_INT(b);
+        }
+
+        override(ZObject)
+        void dispose(ZObject *object)
+        {
+                Self *self = (Self *) object;
+                z_object_unref(Z_OBJECT(selfp->pools));
+        }
+
 	override(ZObjectTracker)
 	ZObject * create(ZObjectTracker *tracker, int type_id)
         {
-
         }
 
 	override(ZObjectTracker)
@@ -62,20 +80,41 @@ class ZDefaultObjectTracker : ZObject,ZObjectTracker
                         z_object_dispose(target);
                 } else {
                         selfp->suspended = 1;
-                        z_vector_push_back(selfp->trash, target);
+
+                        /* TODO: Accessing data like this is terrible. Come up with a better solution later */
+                        int id = ((ZObjectGlobal *) ((ZObjectClass *) target->class_base)->real_global)->id;
+
+                        ZMapIter *pos;
+                        ZVector *pool;
+
+                        pos = z_map_find(selfp->pools, INT_TO_PTR(id));
+
+                        if (pos) {
+                                pool = z_map_get_value(selfp->pools, pos);
+                                z_object_unref(Z_OBJECT(pos));
+
+                        } else {
+                                /* create the pool for the type */
+                                pool = z_vector_new(CTX, 0);
+
+                                /* insert the pool into the list of pools */
+                                z_map_assign(selfp->pools, INT_TO_PTR(id), pool);
+                        } 
+
+                        /* insert the object into the pool */
+                        z_vector_push_back(pool, target);
+
                         selfp->suspended = 0;
                 }
         }
 
-	override(ZObjectTracker)
-	int garbage_collect(ZObjectTracker *tracker)
+        private int garbage_collect_pool(Self *self, ZVector *pool)
         {
-                Self *self = (Self *) tracker;
                 ZVectorIter *begin, *it, *end;
 
-                begin = z_vector_get_begin(selfp->trash);
+                begin = z_vector_get_begin(pool);
                 it = z_vector_iter_dup(begin);
-                end = z_vector_get_end(selfp->trash);
+                end = z_vector_get_end(pool);
 
                 /* Iterate through the vector in the range of [begin,end). Note that
                    during this loop iteration, more items may be pushed into the vector.
@@ -83,7 +122,7 @@ class ZDefaultObjectTracker : ZObject,ZObjectTracker
                    Subsequent calls to garbage_collect() will pick up the remaining
                    garbage objects */
                 while (!z_vector_iter_is_equal(it, end)) {
-                        ZObject *obj = (ZObject *) z_vector_get_item(selfp->trash, it);
+                        ZObject *obj = (ZObject *) z_vector_get_item(pool, it);
                         z_object_dispose(obj);
                         z_vector_iter_increment(it);
                 }
@@ -93,7 +132,7 @@ class ZDefaultObjectTracker : ZObject,ZObjectTracker
                    suspend it, this call will push more items into the vector, thus making
                    it impossible for the vector size to ever be 0. */
                 selfp->suspended = 1;
-                z_vector_erase(selfp->trash, begin, end);
+                z_vector_erase(pool, begin, end);
 
                 z_object_unref(Z_OBJECT(it));
                 z_object_unref(Z_OBJECT(begin));
@@ -101,7 +140,44 @@ class ZDefaultObjectTracker : ZObject,ZObjectTracker
 
                 selfp->suspended = 0;
 
-                return z_vector_get_size(selfp->trash);
+                return z_vector_get_size(pool);
+        }
+
+	override(ZObjectTracker)
+	int garbage_collect(ZObjectTracker *tracker)
+        {
+                Self *self = (Self *) tracker;
+                ZMapIter *begin, *it, *end;
+                int count = 0;
+
+                begin = z_map_get_begin(selfp->pools);
+                it = z_map_iter_dup(begin);
+                end = z_map_get_end(selfp->pools);
+
+                /* Iterate through the vector in the range of [begin,end). Note that
+                   during this loop iteration, more items may be pushed into the vector.
+                   we will only GC the items that were present at the start of the loop.
+                   Subsequent calls to garbage_collect() will pick up the remaining
+                   garbage objects */
+                while (!z_map_iter_is_equal(it, end)) {
+                        ZVector *pool = (ZVector *) z_map_get_value(selfp->pools, it);
+
+                        if (pool)
+                                count += garbage_collect_pool(self, pool);
+
+                        z_map_iter_increment(it);
+                }
+
+                /* Temporarily suspend the garbage collector. */
+                selfp->suspended = 1;
+
+                z_object_unref(Z_OBJECT(it));
+                z_object_unref(Z_OBJECT(begin));
+                z_object_unref(Z_OBJECT(end));
+
+                selfp->suspended = 0;
+
+                return count;
         }
 }
 
