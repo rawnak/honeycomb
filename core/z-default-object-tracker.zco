@@ -69,6 +69,30 @@ class ZDefaultObjectTracker : ZObject,ZObjectTracker
 	override(ZObjectTracker)
 	ZObject * create(ZObjectTracker *tracker, int type_id)
         {
+                Self *self = (ZDefaultObjectTracker *) tracker;
+                ZMapIter *pos;
+                ZVector *pool;
+                ZObject *object;
+
+                /* look for an object pool of the target type id */
+                pos = z_map_find(selfp->pools, INT_TO_PTR(type_id));
+                if (!pos) {
+                        /* nothing to reclaim */
+                        return NULL;
+                }
+
+                pool = z_map_get_value(selfp->pools, pos);
+                z_object_unref(Z_OBJECT(pos));
+
+                /* nothing to do if pool is empty */
+                if (z_vector_get_is_empty(pool)) {
+                        /* nothing to reclaim */
+                        return NULL;
+                }
+
+                /* pop last item from the pool */
+                z_vector_pop_back(pool, &object);
+                return object;
         }
 
 	override(ZObjectTracker)
