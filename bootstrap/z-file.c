@@ -22,6 +22,7 @@
 
 #include <z-string.h>
 
+#include <z-object-tracker.h>
 #include <z-map.h>
 #include <string.h>
 #include <z-file.h>
@@ -51,7 +52,12 @@ int z_file_type_id = -1;
 
 static Self *__z_file_new(struct zco_context_t *ctx)
 {
-	Self *self = (Self *) malloc(sizeof(Self));
+	Self *self = NULL;
+	ZObjectTracker *object_tracker = (ZObjectTracker *) ctx->object_tracker;
+	if (object_tracker)
+		self = (Self *) z_object_tracker_create(object_tracker, z_file_type_id);
+	if (!self)
+		self = (Self *) malloc(sizeof(Self));
 	__z_file_init(ctx, self);
 	return self;
 }

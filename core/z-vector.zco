@@ -46,6 +46,7 @@ class ZVector : ZObject
 	init(Self *self)
 	{
 		selfp->item_size = 0;
+                selfp->storage_mode = 0;
 		selfp->count = 0;
 		selfp->capacity = 0;
 		selfp->data = 0;
@@ -53,6 +54,24 @@ class ZVector : ZObject
 		selfp->item_construct = 0;
 		selfp->item_destruct = 0;
 	}
+
+        override(ZObject) void reset(ZObject *object)
+        {
+		Self *self = (Self *) object;
+
+		clear(self);
+		set_capacity(self, 0);
+
+		selfp->item_size = 0;
+		selfp->count = 0;
+		selfp->capacity = 0;
+		selfp->data = 0;
+		selfp->userdata = 0;
+		selfp->item_construct = 0;
+		selfp->item_destruct = 0;
+
+                PARENT_HANDLER(object);
+        }
 
 	override(ZObject) void dispose(ZObject *object)
 	{
@@ -64,20 +83,25 @@ class ZVector : ZObject
 		PARENT_HANDLER(object);
 	}
 
-	public Self *new(struct zco_context_t *ctx, int item_size)
+	public Self *new(struct zco_context_t *ctx)
 	{
 		Self *self = GET_NEW(ctx);
-
-		if (item_size == 0) {
-			selfp->storage_mode = 1;
-			selfp->item_size = sizeof(void*);
-		} else {
-			selfp->storage_mode = 0;
-			selfp->item_size = item_size;
-		}
-
 		return self;
 	}
+
+        public int item_size
+        {
+                set
+                {
+                        if (value == 0) {
+                                selfp->storage_mode = 1;
+                                selfp->item_size = sizeof(void*);
+                        } else {
+                                selfp->storage_mode = 0;
+                                selfp->item_size = value;
+                        }
+                }
+        }
 
 	/* A callback function that will be used to construct each element
 	   in the vector. By default, the value is NULL, indicating that

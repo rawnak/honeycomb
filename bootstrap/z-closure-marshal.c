@@ -21,6 +21,7 @@
 #line 7 "z-closure-marshal.zco"
 
 
+#include <z-object-tracker.h>
 #include <z-map.h>
 #include <string.h>
 #include <z-closure-marshal.h>
@@ -37,7 +38,12 @@ int z_closure_marshal_type_id = -1;
 
 static Self *__z_closure_marshal_new(struct zco_context_t *ctx)
 {
-	Self *self = (Self *) malloc(sizeof(Self));
+	Self *self = NULL;
+	ZObjectTracker *object_tracker = (ZObjectTracker *) ctx->object_tracker;
+	if (object_tracker)
+		self = (Self *) z_object_tracker_create(object_tracker, z_closure_marshal_type_id);
+	if (!self)
+		self = (Self *) malloc(sizeof(Self));
 	__z_closure_marshal_init(ctx, self);
 	return self;
 }

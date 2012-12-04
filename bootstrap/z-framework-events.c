@@ -21,6 +21,7 @@
 #line 7 "z-framework-events.zco"
 
 
+#include <z-object-tracker.h>
 #include <z-map.h>
 #include <string.h>
 #include <z-framework-events.h>
@@ -48,7 +49,12 @@ int z_framework_events_type_id = -1;
 
 static Self *__z_framework_events_new(struct zco_context_t *ctx)
 {
-	Self *self = (Self *) malloc(sizeof(Self));
+	Self *self = NULL;
+	ZObjectTracker *object_tracker = (ZObjectTracker *) ctx->object_tracker;
+	if (object_tracker)
+		self = (Self *) z_object_tracker_create(object_tracker, z_framework_events_type_id);
+	if (!self)
+		self = (Self *) malloc(sizeof(Self));
 	__z_framework_events_init(ctx, self);
 	return self;
 }
@@ -167,7 +173,8 @@ void  z_framework_events_resize_event(Self *self,ZString *output)
 #line 22 "z-framework-events.zco"
 {
 #line 22 "z-framework-events.zco"
-	ZVector *args = z_vector_new(CTX, 0);
+	ZVector *args = z_vector_new(CTX);
+	z_vector_set_item_size(args, 0);
 #line 22 "z-framework-events.zco"
 	z_vector_set_item_destruct(args, (ZVectorItemCallback) z_object_unref);
 #line 22 "z-framework-events.zco"
@@ -191,7 +198,8 @@ void  z_framework_events_draw_event(Self *self,ZString *output)
 #line 23 "z-framework-events.zco"
 {
 #line 23 "z-framework-events.zco"
-	ZVector *args = z_vector_new(CTX, 0);
+	ZVector *args = z_vector_new(CTX);
+	z_vector_set_item_size(args, 0);
 #line 23 "z-framework-events.zco"
 	z_vector_set_item_destruct(args, (ZVectorItemCallback) z_object_unref);
 #line 23 "z-framework-events.zco"
@@ -215,7 +223,8 @@ void  z_framework_events_io_event(Self *self)
 #line 24 "z-framework-events.zco"
 {
 #line 24 "z-framework-events.zco"
-	ZVector *args = z_vector_new(CTX, 0);
+	ZVector *args = z_vector_new(CTX);
+	z_vector_set_item_size(args, 0);
 #line 24 "z-framework-events.zco"
 	z_vector_set_item_destruct(args, (ZVectorItemCallback) z_object_unref);
 #line 24 "z-framework-events.zco"

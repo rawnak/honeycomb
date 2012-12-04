@@ -74,11 +74,21 @@ class ZDefaultObjectTracker : ZObject,ZObjectTracker
                 ZVector *pool;
                 ZObject *object;
 
+                if (selfp->suspended)
+                        return NULL;
+
+                /* Disabling this feature for now */
+                return NULL;
+
+#if 0
+                selfp->suspended = 1;
+
                 /* look for an object pool of the target type id */
                 pos = z_map_find(selfp->pools, INT_TO_PTR(type_id));
                 if (!pos) {
                         /* nothing to reclaim */
-                        return NULL;
+                        object = NULL;
+                        goto done;
                 }
 
                 pool = z_map_get_value(selfp->pools, pos);
@@ -87,12 +97,20 @@ class ZDefaultObjectTracker : ZObject,ZObjectTracker
                 /* nothing to do if pool is empty */
                 if (z_vector_get_is_empty(pool)) {
                         /* nothing to reclaim */
-                        return NULL;
+                        object = NULL;
+                        goto done;
                 }
 
                 /* pop last item from the pool */
                 z_vector_pop_back(pool, &object);
+
+                /* reset the object state */
+                z_object_reset(object);
+
+done:
+                selfp->suspended = 0;
                 return object;
+#endif
         }
 
 	override(ZObjectTracker)
@@ -119,7 +137,8 @@ class ZDefaultObjectTracker : ZObject,ZObjectTracker
 
                         } else {
                                 /* create the pool for the type */
-                                pool = z_vector_new(CTX, 0);
+                                pool = z_vector_new(CTX);
+                                z_vector_set_item_size(pool, 0);
 
                                 /* insert the pool into the list of pools */
                                 z_map_assign(selfp->pools, INT_TO_PTR(id), pool);

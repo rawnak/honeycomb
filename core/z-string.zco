@@ -55,10 +55,28 @@ class ZString : ZObject
 	
 	init(Self *self)
 	{
-		selfp->data = z_vector_new(CTX, sizeof(char));
+		selfp->data = z_vector_new(CTX);
+                z_vector_set_item_size(selfp->data, sizeof(char));
+
 		selfp->length = 0;
 		selfp->token_it = 0;
 	}
+
+        override(ZObject) void reset(ZObject *object)
+        {
+		Self *self = (Self *) object;
+
+		if (selfp->token_it)
+			z_object_unref(Z_OBJECT(selfp->token_it));
+
+                z_object_reset(Z_OBJECT(selfp->data));
+                z_vector_set_item_size(selfp->data, sizeof(char));
+
+		selfp->length = 0;
+		selfp->token_it = 0;
+
+                PARENT_HANDLER(object);
+        }
 
 	override(ZObject) void dispose(ZObject *object)
 	{

@@ -61,7 +61,8 @@ class ZGatewayApplication : ZObject
 		zco_context_set_marshal(CTX, selfp->marshal);
 
 		/* create a vector to hold on to the top level windows */
-		selfp->toplevels = z_vector_new(CTX, 0);
+		selfp->toplevels = z_vector_new(CTX);
+                z_vector_set_item_size(selfp->toplevels, 0);
 		z_vector_set_item_destruct(selfp->toplevels, (ZVectorItemCallback) z_object_unref);
 
 		/* create the main window */

@@ -78,6 +78,8 @@ struct ZValueGlobal {
 	int id;
 	void *method_map;
 #line 75 "z-value.zco"
+	void  (*__parent_reset)(ZObject *object);
+#line 87 "z-value.zco"
 	void  (*__parent_dispose)(ZObject *object);
 };
 
@@ -99,77 +101,77 @@ void __z_value_class_init(struct zco_context_t *ctx, ZValueClass *_class);
 Self * z_value_new(struct zco_context_t *ctx);
 #line 62 "z-value.zco"
 Self * z_value_dup(ZValue *src);
-#line 89 "z-value.zco"
+#line 101 "z-value.zco"
 int  z_value_get_is_object(Self *self);
-#line 97 "z-value.zco"
+#line 109 "z-value.zco"
 ZObject *  z_value_get_as_object(Self *self);
-#line 103 "z-value.zco"
+#line 115 "z-value.zco"
 void z_value_set_as_object(Self *self, ZObject *  value);
-#line 118 "z-value.zco"
+#line 130 "z-value.zco"
 int  z_value_get_is_boolean(Self *self);
-#line 126 "z-value.zco"
+#line 138 "z-value.zco"
 int  z_value_get_as_boolean(Self *self);
-#line 131 "z-value.zco"
+#line 143 "z-value.zco"
 void z_value_set_as_boolean(Self *self, int  value);
-#line 144 "z-value.zco"
+#line 156 "z-value.zco"
 int  z_value_get_is_int8(Self *self);
-#line 152 "z-value.zco"
+#line 164 "z-value.zco"
 int8_t  z_value_get_as_int8(Self *self);
-#line 157 "z-value.zco"
-void z_value_set_as_int8(Self *self, int8_t  value);
 #line 169 "z-value.zco"
+void z_value_set_as_int8(Self *self, int8_t  value);
+#line 181 "z-value.zco"
 int  z_value_get_is_int16(Self *self);
-#line 177 "z-value.zco"
+#line 189 "z-value.zco"
 int16_t  z_value_get_as_int16(Self *self);
-#line 182 "z-value.zco"
-void z_value_set_as_int16(Self *self, int16_t  value);
 #line 194 "z-value.zco"
+void z_value_set_as_int16(Self *self, int16_t  value);
+#line 206 "z-value.zco"
 int  z_value_get_is_int32(Self *self);
-#line 202 "z-value.zco"
+#line 214 "z-value.zco"
 int32_t  z_value_get_as_int32(Self *self);
-#line 207 "z-value.zco"
-void z_value_set_as_int32(Self *self, int32_t  value);
 #line 219 "z-value.zco"
+void z_value_set_as_int32(Self *self, int32_t  value);
+#line 231 "z-value.zco"
 int  z_value_get_is_int64(Self *self);
-#line 227 "z-value.zco"
+#line 239 "z-value.zco"
 int64_t  z_value_get_as_int64(Self *self);
-#line 232 "z-value.zco"
+#line 244 "z-value.zco"
 void z_value_set_as_int64(Self *self, int64_t  value);
-#line 245 "z-value.zco"
+#line 257 "z-value.zco"
 int  z_value_get_is_uint8(Self *self);
-#line 253 "z-value.zco"
+#line 265 "z-value.zco"
 uint8_t  z_value_get_as_uint8(Self *self);
-#line 258 "z-value.zco"
-void z_value_set_as_uint8(Self *self, uint8_t  value);
 #line 270 "z-value.zco"
+void z_value_set_as_uint8(Self *self, uint8_t  value);
+#line 282 "z-value.zco"
 int  z_value_get_is_uint16(Self *self);
-#line 278 "z-value.zco"
+#line 290 "z-value.zco"
 uint16_t  z_value_get_as_uint16(Self *self);
-#line 283 "z-value.zco"
-void z_value_set_as_uint16(Self *self, uint16_t  value);
 #line 295 "z-value.zco"
+void z_value_set_as_uint16(Self *self, uint16_t  value);
+#line 307 "z-value.zco"
 int  z_value_get_is_uint32(Self *self);
-#line 303 "z-value.zco"
+#line 315 "z-value.zco"
 uint32_t  z_value_get_as_uint32(Self *self);
-#line 308 "z-value.zco"
-void z_value_set_as_uint32(Self *self, uint32_t  value);
 #line 320 "z-value.zco"
+void z_value_set_as_uint32(Self *self, uint32_t  value);
+#line 332 "z-value.zco"
 int  z_value_get_is_uint64(Self *self);
-#line 328 "z-value.zco"
+#line 340 "z-value.zco"
 uint64_t  z_value_get_as_uint64(Self *self);
-#line 333 "z-value.zco"
+#line 345 "z-value.zco"
 void z_value_set_as_uint64(Self *self, uint64_t  value);
-#line 346 "z-value.zco"
+#line 358 "z-value.zco"
 int  z_value_get_is_real32(Self *self);
-#line 354 "z-value.zco"
+#line 366 "z-value.zco"
 float  z_value_get_as_real32(Self *self);
-#line 359 "z-value.zco"
-void z_value_set_as_real32(Self *self, float  value);
 #line 371 "z-value.zco"
+void z_value_set_as_real32(Self *self, float  value);
+#line 383 "z-value.zco"
 int  z_value_get_is_real64(Self *self);
-#line 379 "z-value.zco"
+#line 391 "z-value.zco"
 double  z_value_get_as_real64(Self *self);
-#line 384 "z-value.zco"
+#line 396 "z-value.zco"
 void z_value_set_as_real64(Self *self, double  value);
 
 #undef Self

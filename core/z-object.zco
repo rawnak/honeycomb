@@ -52,6 +52,13 @@ class ZObject
 		selfp->attached_properties = 0;
 		selfp->signal_map = 0;
 	}
+        
+        public virtual void reset(Self *self)
+        {
+		selfp->ref_count = 1;
+		selfp->attached_properties = 0;
+		selfp->signal_map = 0;
+        }
 
 	public virtual void dispose(Self *self)
 	{
@@ -217,7 +224,8 @@ class ZObject
 		ZMapIter *it = z_map_find(selfp->signal_map, name);
 
 		if (!it) {
-			ZVector *closure_list = z_vector_new(CTX, 0);
+			ZVector *closure_list = z_vector_new(CTX);
+                        z_vector_set_item_size(closure_list, 0);
 			z_vector_set_item_destruct(closure_list, (ZVectorItemCallback) z_object_unref);
 			z_map_insert(selfp->signal_map, strdup(name), closure_list);
 		}
@@ -257,8 +265,10 @@ class ZObject
 
 	public void add_attached_property_map(Self *self, void *map)
 	{
-		if (selfp->attached_properties == 0)
-			selfp->attached_properties = z_vector_new(CTX, sizeof(void *));
+		if (selfp->attached_properties == 0) {
+			selfp->attached_properties = z_vector_new(CTX);
+                        z_vector_set_item_size(selfp->attached_properties, sizeof(void *));
+                }
 
 		/* keep note of the maps that has a pointer to 'self' */
 		z_vector_push_back((ZVector *) selfp->attached_properties, map);

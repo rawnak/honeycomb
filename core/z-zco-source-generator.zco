@@ -414,7 +414,8 @@ class ZZcoSourceGenerator : ZObject
                 z_string_append_format(selfp->function_definitions, "\x7b\n");
 
                 print_line_number(self, selfp->function_definitions);
-                z_string_append_format(selfp->function_definitions, "\tZVector *args = z_vector_new(CTX, 0);\n");
+                z_string_append_format(selfp->function_definitions, "\tZVector *args = z_vector_new(CTX);\n");
+                z_string_append_format(selfp->function_definitions, "\tz_vector_set_item_size(args, 0);\n");
 
                 print_line_number(self, selfp->function_definitions);
                 z_string_append_format(selfp->function_definitions, "\tz_vector_set_item_destruct(args, (ZVectorItemCallback) z_object_unref);\n");
@@ -1364,6 +1365,7 @@ class ZZcoSourceGenerator : ZObject
 
                 /* includes in the source file */
                 z_file_write(selfp->source_file,
+                                "#include <z-object-tracker.h>\n"
                                 "#include <z-map.h>\n"
                                 "#include <string.h>\n");
 
@@ -1490,7 +1492,12 @@ class ZZcoSourceGenerator : ZObject
                 z_file_write_format(selfp->source_file,
                                 "static Self *__%S_new(struct zco_context_t *ctx)\n"
                                 "\x7b\n"
-                                "\tSelf *self = (Self *) malloc(sizeof(Self));\n"
+                                "\tSelf *self = NULL;\n"
+                                "\tZObjectTracker *object_tracker = (ZObjectTracker *) ctx->object_tracker;\n"
+                                "\tif (object_tracker)\n"
+                                "\t\tself = (Self *) z_object_tracker_create(object_tracker, %S_type_id);\n"
+                                "\tif (!self)\n"
+                                "\t\tself = (Self *) malloc(sizeof(Self));\n"
                                 "\t__%S_init(ctx, self);\n"
                                 "\treturn self;\n"
                                 "\x7d\n"
@@ -1499,6 +1506,7 @@ class ZZcoSourceGenerator : ZObject
                                 "\x7b\n"
                                 "\treturn strcmp(a, b);\n"
                                 "\x7d\n",
+                                selfp->current_class_name_lowercase,
                                 selfp->current_class_name_lowercase,
                                 selfp->current_class_name_lowercase);
 

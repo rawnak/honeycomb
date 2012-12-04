@@ -50,7 +50,9 @@ class ZMap : ZObject
 
 	init(Self *self)
 	{
-		selfp->data = z_vector_new(CTX, 2 * sizeof(void *));
+		selfp->data = z_vector_new(CTX);
+                z_vector_set_item_size(selfp->data, 2 * sizeof(void *));
+
 		selfp->compare = NULL;
 		selfp->key_destruct = NULL;
 		selfp->value_destruct = NULL;
@@ -59,6 +61,24 @@ class ZMap : ZObject
 		z_vector_set_userdata(selfp->data, self);
 		z_vector_set_item_destruct(selfp->data, item_destroy);
 	}
+
+        override(ZObject) void reset(ZObject *object)
+        {
+                Self *self = (Self *) object;
+
+                z_object_reset(Z_OBJECT(selfp->data));
+                z_vector_set_item_size(selfp->data, 2 * sizeof(void *));
+
+		selfp->compare = NULL;
+		selfp->key_destruct = NULL;
+		selfp->value_destruct = NULL;
+		selfp->userdata = NULL;
+
+		z_vector_set_userdata(selfp->data, self);
+		z_vector_set_item_destruct(selfp->data, item_destroy);
+
+                PARENT_HANDLER(object);
+        }
 
 	override(ZObject) void dispose(ZObject *object)
 	{

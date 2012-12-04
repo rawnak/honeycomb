@@ -38,10 +38,28 @@ class ZClosure : ZObject
 
    init(Self *self)
    {
-	   selfp->marshal = 0;
-	   selfp->handler = 0;
-	   selfp->target = 0;
-	   selfp->userdata = 0;
+           selfp->marshal = 0;
+           selfp->handler = 0;
+           selfp->target = 0;
+           selfp->userdata = 0;
+   }
+
+   override(ZObject) void reset(ZObject *object)
+   {
+	ZClosure *self = (ZClosure *) object;
+	
+	if (selfp->marshal)
+		z_object_unref(Z_OBJECT(selfp->marshal));
+
+	if (selfp->target)
+		z_object_unref(Z_OBJECT(selfp->target));
+
+        selfp->marshal = 0;
+        selfp->handler = 0;
+        selfp->target = 0;
+        selfp->userdata = 0;
+
+        PARENT_HANDLER(object);
    }
 
    override(ZObject) void dispose(ZObject *object)

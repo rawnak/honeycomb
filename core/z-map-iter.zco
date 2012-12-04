@@ -34,6 +34,13 @@ class ZMapIter : ZObject
 		selfp->index = 0;
 	}
 
+        override(ZObject) void reset(ZObject *object)
+        {
+                Self *self = (Self *) object;
+                selfp->index = 0;
+                PARENT_HANDLER(object);
+        }
+
 	public Self *new(struct zco_context_t *ctx)
 	{
 		Self *self = GET_NEW(ctx);

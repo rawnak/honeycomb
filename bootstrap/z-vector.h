@@ -75,7 +75,9 @@ struct ZVectorGlobal {
 	const char *name;
 	int id;
 	void *method_map;
-#line 37 "z-vector.zco"
+#line 38 "z-vector.zco"
+	void  (*__parent_reset)(ZObject *object);
+#line 56 "z-vector.zco"
 	void  (*__parent_dispose)(ZObject *object);
 };
 
@@ -93,57 +95,59 @@ extern int z_vector_type_id;
 ZVectorGlobal * z_vector_get_type(struct zco_context_t *ctx);
 void __z_vector_init(struct zco_context_t *ctx, ZVector *self);
 void __z_vector_class_init(struct zco_context_t *ctx, ZVectorClass *_class);
-#line 47 "z-vector.zco"
-Self * z_vector_new(struct zco_context_t *ctx,int item_size);
-#line 67 "z-vector.zco"
+#line 66 "z-vector.zco"
+Self * z_vector_new(struct zco_context_t *ctx);
+#line 74 "z-vector.zco"
+void z_vector_set_item_size(Self *self, int  value);
+#line 91 "z-vector.zco"
 void z_vector_set_item_construct(Self *self, ZVectorItemCallback  value);
-#line 79 "z-vector.zco"
+#line 103 "z-vector.zco"
 void z_vector_set_item_destruct(Self *self, ZVectorItemCallback  value);
-#line 89 "z-vector.zco"
+#line 113 "z-vector.zco"
 void z_vector_set_userdata(Self *self, void *  value);
-#line 98 "z-vector.zco"
+#line 122 "z-vector.zco"
 ZVectorIter *  z_vector_get_begin(Self *self);
-#line 109 "z-vector.zco"
+#line 133 "z-vector.zco"
 ZVectorIter *  z_vector_get_end(Self *self);
-#line 123 "z-vector.zco"
+#line 147 "z-vector.zco"
 int  z_vector_get_size(Self *self);
-#line 127 "z-vector.zco"
+#line 151 "z-vector.zco"
 void z_vector_set_size(Self *self, int  value);
-#line 177 "z-vector.zco"
+#line 201 "z-vector.zco"
 int  z_vector_get_is_empty(Self *self);
-#line 187 "z-vector.zco"
+#line 211 "z-vector.zco"
 int  z_vector_get_capacity(Self *self);
-#line 191 "z-vector.zco"
+#line 215 "z-vector.zco"
 void z_vector_set_capacity(Self *self, int  value);
-#line 220 "z-vector.zco"
+#line 244 "z-vector.zco"
 int  z_vector_is_in_bound(Self *self,ZVectorIter *iter);
-#line 233 "z-vector.zco"
+#line 257 "z-vector.zco"
 void *  z_vector_get_item(Self *self,ZVectorIter *iter);
-#line 253 "z-vector.zco"
+#line 277 "z-vector.zco"
 int  z_vector_set_item(Self *self,ZVectorIter *iter,void *item);
-#line 273 "z-vector.zco"
+#line 297 "z-vector.zco"
 void *  z_vector_get_front(Self *self);
-#line 280 "z-vector.zco"
+#line 304 "z-vector.zco"
 void z_vector_set_front(Self *self, void *  value);
-#line 291 "z-vector.zco"
+#line 315 "z-vector.zco"
 void *  z_vector_get_back(Self *self);
-#line 300 "z-vector.zco"
-void z_vector_set_back(Self *self, void *  value);
-#line 311 "z-vector.zco"
-void  z_vector_push_back(Self *self,void *item);
 #line 324 "z-vector.zco"
+void z_vector_set_back(Self *self, void *  value);
+#line 335 "z-vector.zco"
+void  z_vector_push_back(Self *self,void *item);
+#line 348 "z-vector.zco"
 void  z_vector_pop_back(Self *self,void *item);
-#line 340 "z-vector.zco"
+#line 364 "z-vector.zco"
 void  z_vector_insert(Self *self,ZVectorIter *iter,int n,void *item);
-#line 375 "z-vector.zco"
+#line 399 "z-vector.zco"
 void  z_vector_insert_range(Self *self,ZVectorIter *iter,ZVector *src,ZVectorIter *src_iter_start,ZVectorIter *src_iter_end);
-#line 427 "z-vector.zco"
+#line 451 "z-vector.zco"
 void  z_vector_erase(Self *self,ZVectorIter *start,ZVectorIter *end);
-#line 471 "z-vector.zco"
+#line 495 "z-vector.zco"
 void  z_vector_erase1(Self *self,ZVectorIter *iter);
-#line 484 "z-vector.zco"
+#line 508 "z-vector.zco"
 void  z_vector_erase1_increment(Self *self,ZVectorIter *iter);
-#line 507 "z-vector.zco"
+#line 531 "z-vector.zco"
 void  z_vector_clear(Self *self);
 
 #undef Self

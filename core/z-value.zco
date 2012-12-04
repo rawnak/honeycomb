@@ -92,6 +92,18 @@ class ZValue : ZObject
 		return self;
 	}
 
+        override(ZObject) void reset(ZObject *object)
+        {
+		Self *self = (Self *) object;
+
+		if (selfp->tag == Object)
+			z_object_unref(selfp->data._object);
+
+		selfp->tag = None;
+
+                PARENT_HANDLER(object);
+        }
+
 	override(ZObject) void dispose(ZObject *object)
 	{
 		Self *self = (Self *) object;
