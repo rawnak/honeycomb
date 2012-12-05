@@ -77,10 +77,6 @@ class ZDefaultObjectTracker : ZObject,ZObjectTracker
                 if (selfp->suspended)
                         return NULL;
 
-                /* Disabling this feature for now */
-                return NULL;
-
-#if 0
                 selfp->suspended = 1;
 
                 /* look for an object pool of the target type id */
@@ -100,7 +96,7 @@ class ZDefaultObjectTracker : ZObject,ZObjectTracker
                         object = NULL;
                         goto done;
                 }
-
+                
                 /* pop last item from the pool */
                 z_vector_pop_back(pool, &object);
 
@@ -110,7 +106,6 @@ class ZDefaultObjectTracker : ZObject,ZObjectTracker
 done:
                 selfp->suspended = 0;
                 return object;
-#endif
         }
 
 	override(ZObjectTracker)
