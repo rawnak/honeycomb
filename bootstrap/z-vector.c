@@ -517,7 +517,7 @@ void  z_vector_pop_back(Self *self,void *item)
  if (item) {
  /* get the last item of the vector */
  void *d = get_back(self);
- memcpy(item, d, selfp->item_size);
+ memcpy(item, &d, selfp->item_size);
  }
 
  /* decrease the size of the vector by 1 */
