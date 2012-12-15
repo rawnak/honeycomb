@@ -54,6 +54,7 @@ target_link_libraries(zco m zclib-core ffi)
 # zclib
 parse_zco(z-object)
 parse_zco(z-vector-iter)
+parse_zco(z-vector-segment)
 parse_zco(z-vector)
 parse_zco(z-string-iter)
 parse_zco(z-string)
@@ -74,6 +75,7 @@ add_library(
       zco-type.c
       z-object.c
       z-vector-iter.c
+      z-vector-segment.c
       z-vector.c
       z-string-iter.c
       z-string.c
