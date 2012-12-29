@@ -62,7 +62,7 @@ static void case1(void)
 	z_object_unref(Z_OBJECT(end));
 }
 
-static void case5(void)
+static void case2(void)
 {
 	/* Testing z_vector_get_size */
 	ZVector *vec;
@@ -70,7 +70,7 @@ static void case5(void)
 	int i, size;
 
 	printf("======================\n");
-	printf("Vector case #5:\n");
+	printf("Vector case #2:\n");
 
 	vec = z_vector_new(&context);
         z_vector_set_item_size(vec, sizeof(int));
@@ -113,12 +113,12 @@ static void case5(void)
 	z_object_unref(Z_OBJECT(end));
 }
 
-static void case6_helper1(void *data, void *userdata)
+static void case3_helper1(void *data, void *userdata)
 {
 	*((int *)data) = 100;
 }
 
-static void case6(void)
+static void case3(void)
 {
 	/* Testing z_vector_set_size */
 	ZVector *vec;
@@ -126,11 +126,11 @@ static void case6(void)
 	int i;
 
 	printf("======================\n");
-	printf("Vector case #6:\n");
+	printf("Vector case #3:\n");
 
 	vec = z_vector_new(&context);
         z_vector_set_item_size(vec, sizeof(int));
-	z_vector_set_item_construct(vec, case6_helper1);
+	z_vector_set_item_construct(vec, case3_helper1);
 
 	for (i = 1; i <= 10; ++i) {
 		z_vector_push_back(vec, &i);
@@ -142,7 +142,7 @@ static void case6(void)
 	printf("vec contains:");
 	int size = z_vector_get_size(vec);
 
-	it = z_vector_iter_new(&context);
+        it = z_vector_get_begin(vec);
 
 	for (i = 0; i < size; ++i) {
 		int x = *((int *) z_vector_get_item(vec, it));
@@ -158,39 +158,14 @@ static void case6(void)
 	z_object_unref(Z_OBJECT(vec));
 }
 
-static void case7(void)
-{
-	/* Testing z_vector_get_capacity */
-	ZVector *vec;
-	int i;
-
-	printf("======================\n");
-	printf("Vector case #7:\n");
-
-	vec = z_vector_new(&context);
-        z_vector_set_item_size(vec, sizeof(int));
-
-	for (i = 0; i < 100; ++i) {
-		z_vector_push_back(vec, &i);
-	}
-
-	int size = z_vector_get_size(vec);
-	int capacity = z_vector_get_capacity(vec);
-
-	assert(size == 100 && capacity >= 100);
-	printf("size: %d\ncapacity: %d\n\n", size, capacity);
-
-	z_object_unref(Z_OBJECT(vec));
-}
-
-static void case8(void)
+static void case4(void)
 {
 	/* Testing z_vector_is_empty */
 	ZVector *vec;
 	int i, sum = 0;
 
 	printf("======================\n");
-	printf("Vector case #8:\n");
+	printf("Vector case #4:\n");
 
 	vec = z_vector_new(&context);
         z_vector_set_item_size(vec, sizeof(int));
@@ -210,12 +185,12 @@ static void case8(void)
 	z_object_unref(Z_OBJECT(vec));
 }
 
-static void case9_helper1(void *data, void *userdata)
+static void case5_helper1(void *data, void *userdata)
 {
 	*((int *)data) = 0;
 }
 
-static void case9(void)
+static void case5(void)
 {
 	/* Testing z_vector_get_item / z_vector_set_item */
 	ZVector *vec;
@@ -223,14 +198,14 @@ static void case9(void)
 	int i;
 
 	printf("======================\n");
-	printf("Vector case #9:\n");
+	printf("Vector case #5:\n");
 
 	vec = z_vector_new(&context);
         z_vector_set_item_size(vec, sizeof(int));
-	z_vector_set_item_construct(vec, case9_helper1);
+	z_vector_set_item_construct(vec, case5_helper1);
 	z_vector_set_size(vec, 10);
 
-	it = z_vector_iter_new(&context);
+        it = z_vector_get_begin(vec);
 
 	for (i = 0; i < z_vector_get_size(vec); ++i) {
 		z_vector_set_item(vec, it, &i);
@@ -254,14 +229,14 @@ static void case9(void)
 	z_object_unref(Z_OBJECT(vec));
 }
 
-static void case10(void)
+static void case6(void)
 {
 	/* Testing z_vector_get_front / z_vector_set_front */
 	ZVector *vec;
 	int x;
 
 	printf("======================\n");
-	printf("Vector case #10:\n");
+	printf("Vector case #6:\n");
 
 	vec = z_vector_new(&context);
         z_vector_set_item_size(vec, sizeof(int));
@@ -282,7 +257,7 @@ static void case10(void)
 	z_object_unref(Z_OBJECT(vec));
 }
 
-static void case11(void)
+static void case7(void)
 {
 	/* Testing z_vector_get_back / z_vector_set_back */
 	ZVector *vec;
@@ -290,7 +265,7 @@ static void case11(void)
 	int i, x;
 
 	printf("======================\n");
-	printf("Vector case #11:\n");
+	printf("Vector case #7:\n");
 
 	vec = z_vector_new(&context);
         z_vector_set_item_size(vec, sizeof(int));
@@ -303,7 +278,7 @@ static void case11(void)
 		z_vector_push_back(vec, &x);
 	}
 
-	it = z_vector_iter_new(&context);
+        it = z_vector_get_begin(vec);
 	for (i = 0; i < z_vector_get_size(vec); ++i) {
 
 		int x = *((int *)z_vector_get_item(vec, it));
@@ -319,14 +294,14 @@ static void case11(void)
 	z_object_unref(Z_OBJECT(vec));
 }
 
-static void case12(void)
+static void case8(void)
 {
 	/* Testing z_vector_push_back / z_vector_pop_back */
 	ZVector *vec;
 	int x, sum = 0;
 
 	printf("======================\n");
-	printf("Vector case #12:\n");
+	printf("Vector case #8:\n");
 
 	vec = z_vector_new(&context);
         z_vector_set_item_size(vec, sizeof(int));
@@ -351,17 +326,17 @@ static void case12(void)
 	assert(sum == 600);
 }
 
-static void case13_helper1(void *data, void *userdata)
+static void case9_helper1(void *data, void *userdata)
 {
 	*((int *)data) = 100;
 }
 
-static void case13_helper2(void *data, void *userdata)
+static void case9_helper2(void *data, void *userdata)
 {
 	*((int *)data) = 400;
 }
 
-static void case13(void)
+static void case9(void)
 {
 	/* Testing z_vector_insert / z_vector_insert_range */
 
@@ -370,11 +345,11 @@ static void case13(void)
 	int x, i;
 
 	printf("======================\n");
-	printf("Vector case #13:\n");
+	printf("Vector case #9:\n");
 
 	vec1 = z_vector_new(&context);
         z_vector_set_item_size(vec1, sizeof(int));
-	z_vector_set_item_construct(vec1, case13_helper1);
+	z_vector_set_item_construct(vec1, case9_helper1);
 	z_vector_set_size(vec1, 3);
 
 	x = 200;
@@ -389,7 +364,7 @@ static void case13(void)
 
 	vec2 = z_vector_new(&context);
         z_vector_set_item_size(vec2, sizeof(int));
-	z_vector_set_item_construct(vec2, case13_helper2);
+	z_vector_set_item_construct(vec2, case9_helper2);
 	z_vector_set_size(vec2, 2);
 
 	it = z_vector_get_begin(vec1);
@@ -426,7 +401,7 @@ static void case13(void)
 	z_object_unref(Z_OBJECT(vec2));
 }
 
-static void case14(void)
+static void case10(void)
 {
 	/* Testing z_vector_erase */
 	int i;
@@ -434,7 +409,7 @@ static void case14(void)
 	ZVectorIter *it, *start, *end;
 
 	printf("======================\n");
-	printf("Vector case #14:\n");
+	printf("Vector case #10:\n");
 
 	vec = z_vector_new(&context);
         z_vector_set_item_size(vec, sizeof(int));
@@ -462,7 +437,7 @@ static void case14(void)
 	z_object_unref(Z_OBJECT(end));
 
 	printf("vec contains:");
-	it = z_vector_iter_new(&context);
+        it = z_vector_get_begin(vec);
 
 	for (i = 0; i < z_vector_get_size(vec); ++i) {
 		int x = *((int *)z_vector_get_item(vec, it));
@@ -479,7 +454,7 @@ static void case14(void)
 	printf("\n\n");
 }
 
-static void case16(void)
+static void case11(void)
 {
 	/* Testing z_vector_clear */
 	int i, x;
@@ -487,7 +462,7 @@ static void case16(void)
 	ZVectorIter *it;
 
 	printf("======================\n");
-	printf("Vector case #16:\n");
+	printf("Vector case #11:\n");
 
 	vec = z_vector_new(&context);
         z_vector_set_item_size(vec, sizeof(int));
@@ -502,7 +477,7 @@ static void case16(void)
 	z_vector_push_back(vec, &x);
 
 	printf("vec contains:");
-	it = z_vector_iter_new(&context);
+        it = z_vector_get_begin(vec);
 
 	for (i = 0; i < z_vector_get_size(vec); ++i) {
 		int x = *((int *)z_vector_get_item(vec, it));
@@ -522,7 +497,7 @@ static void case16(void)
 	z_vector_push_back(vec, &x);
 
 	printf("\nmyvector contains:");
-	it = z_vector_iter_new(&context);
+        it = z_vector_get_begin(vec);
 
 	for (i = 0; i < z_vector_get_size(vec); ++i) {
 		int x = *((int *)z_vector_get_item(vec, it));
@@ -543,17 +518,16 @@ void z_vector_test(int id)
 	zco_context_init(&context);
 
 	DEFINE_TEST(1, case1);
-	DEFINE_TEST(2, case5);
-	DEFINE_TEST(3, case6);
-	DEFINE_TEST(4, case7);
-	DEFINE_TEST(5, case8);
-	DEFINE_TEST(6, case9);
-	DEFINE_TEST(7, case10);
-	DEFINE_TEST(8, case11);
-	DEFINE_TEST(9, case12);
-	DEFINE_TEST(10, case13);
-	DEFINE_TEST(11, case14);
-	DEFINE_TEST(12, case16);
+	DEFINE_TEST(2, case2);
+	DEFINE_TEST(3, case3);
+	DEFINE_TEST(4, case4);
+	DEFINE_TEST(5, case5);
+	DEFINE_TEST(6, case6);
+	DEFINE_TEST(7, case7);
+	DEFINE_TEST(8, case8);
+	DEFINE_TEST(9, case9);
+	DEFINE_TEST(10, case10);
+	DEFINE_TEST(11, case11);
 
 	zco_context_destroy(&context);
 }

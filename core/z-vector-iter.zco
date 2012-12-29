@@ -20,18 +20,24 @@
 
 %h{
 #include <z-object.h>
+
+struct ZVectorSegment;
+typedef struct ZVectorSegment ZVectorSegment;
 %}
 
 %{
+#include <z-vector-segment.h>
 %}
 
 class ZVectorIter : ZObject
 {
 	private int index;
+        private ZVectorSegment *segment;
 
 	init(Self *self)
 	{
 		selfp->index = 0;
+                selfp->segment = 0;
 	}
 
         override(ZObject) void reset(ZObject *object)
@@ -53,8 +59,32 @@ class ZVectorIter : ZObject
 		Self *self = GET_NEW(src->_global->ctx);
 
 		set_index(self, get_index(src));
+
+                selfp->segment = src->_priv.segment;
+                if (selfp->segment)
+                        z_object_ref(Z_OBJECT(selfp->segment));
+
 		return self;
 	}
+
+        public ZVectorSegment *segment
+        {
+                get
+                {
+                        z_object_ref(Z_OBJECT(selfp->segment));
+                        return selfp->segment;
+                }
+                set
+                {
+                        if (value)
+                                z_object_ref(Z_OBJECT(value));
+
+                        if (selfp->segment)
+                                z_object_unref(Z_OBJECT(selfp->segment));
+
+                        selfp->segment = value;
+                }
+        }
 
 	public int index
 	{

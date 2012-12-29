@@ -270,6 +270,12 @@ class ZString : ZObject
 		char *buffer;
 		int i, size;
 
+                if (get_length(self) == 0) {
+                        buffer = malloc(1);
+                        buffer[0] = 0;
+                        return buffer;
+                }
+
 		it = z_vector_get_begin(selfp->data);
 		last = z_vector_get_end(selfp->data);
 		i = 0;

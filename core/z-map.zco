@@ -122,6 +122,8 @@ class ZMap : ZObject
 	{
 		get
 		{
+                        assert(get_size(self) > 0);
+
 			ZVectorIter *ptr = z_vector_get_begin(selfp->data);
 			ZMapIter *it = z_map_iter_new(CTX);
 
@@ -136,6 +138,8 @@ class ZMap : ZObject
 	{
 		get
 		{
+                        assert(get_size(self) > 0);
+
 			ZVectorIter *ptr = z_vector_get_end(selfp->data);
 			ZMapIter *it = z_map_iter_new(CTX);
 
@@ -194,7 +198,7 @@ class ZMap : ZObject
 		int end_idx = z_vector_iter_get_index(last);
 		int offset = (end_idx - begin_idx) >> 1;
 
-		z_vector_iter_set_index(pivot, begin_idx + offset);
+		z_vector_iter_advance(pivot, begin_idx + offset);
 	}
 
 	private void *find_item(Self *self, const void *key, int *bound, ZMapIter *pivot)
@@ -203,12 +207,12 @@ class ZMap : ZObject
 
 		first = z_vector_get_begin(selfp->data);
 		last = z_vector_get_end(selfp->data);
-		pivot_ptr = z_vector_iter_new(CTX);
 
 		while (1) {
 			void *pivot_key;
 			void *item;
 
+                        pivot_ptr = z_vector_get_begin(selfp->data);
 			get_pivot(self, first, last, pivot_ptr);
 			item = z_vector_get_item(selfp->data, pivot_ptr);
 			pivot_key = get_key_internal(item);
@@ -270,6 +274,8 @@ class ZMap : ZObject
 				z_object_unref(Z_OBJECT(first));
 				return get_value_internal(item);
 			}
+
+                        z_object_unref(Z_OBJECT(pivot_ptr));
 		}
 
 		z_map_iter_set_index(pivot, z_vector_iter_get_index(pivot_ptr));
@@ -321,9 +327,9 @@ class ZMap : ZObject
 
 	public void *get_key(Self *self, ZMapIter *it)
 	{
-		ZVectorIter *ptr = z_vector_iter_new(CTX);
+		ZVectorIter *ptr = z_vector_get_begin(selfp->data);
 
-		z_vector_iter_set_index(ptr, z_map_iter_get_index(it));
+                z_vector_iter_advance(ptr, z_map_iter_get_index(it));
 		void *item = z_vector_get_item(selfp->data, ptr);
 		z_object_unref(Z_OBJECT(ptr));
 
@@ -332,14 +338,25 @@ class ZMap : ZObject
 
 	public void *get_value(Self *self, ZMapIter *it)
 	{
-		ZVectorIter *ptr = z_vector_iter_new(CTX);
+		ZVectorIter *ptr = z_vector_get_begin(selfp->data);
 
-		z_vector_iter_set_index(ptr, z_map_iter_get_index(it));
+		z_vector_iter_advance(ptr, z_map_iter_get_index(it));
 		void *item = z_vector_get_item(selfp->data, ptr);
 		z_object_unref(Z_OBJECT(ptr));
 
 		return get_value_internal(item);
 	}
+
+        public void set_value(Self *self, ZMapIter *it, void *value)
+        {
+		ZVectorIter *ptr = z_vector_get_begin(selfp->data);
+
+		z_vector_iter_advance(ptr, z_map_iter_get_index(it));
+		void *item = z_vector_get_item(selfp->data, ptr);
+		z_object_unref(Z_OBJECT(ptr));
+
+                set_value_internal(item, value);
+        }
 
 	private void item_destroy(void *item, void *userdata)
 	{
@@ -367,8 +384,8 @@ class ZMap : ZObject
 			prev = z_map_iter_dup(it);
 			z_map_iter_decrement(prev);
 
-			ZVectorIter *prev_ptr = z_vector_iter_new(CTX);
-			z_vector_iter_set_index(prev_ptr, z_map_iter_get_index(prev));
+			ZVectorIter *prev_ptr = z_vector_get_begin(selfp->data);
+			z_vector_iter_advance(prev_ptr, z_map_iter_get_index(prev));
 			z_object_unref(Z_OBJECT(prev));
 
 			if (z_vector_is_in_bound(selfp->data, prev_ptr)) {
@@ -396,8 +413,8 @@ class ZMap : ZObject
 			key_value[0] = (unsigned long)key;
 			key_value[1] = (unsigned long)value;
 
-			ZVectorIter *it_ptr = z_vector_iter_new(CTX);
-			z_vector_iter_set_index(it_ptr, z_map_iter_get_index(it));
+			ZVectorIter *it_ptr = z_vector_get_begin(selfp->data);
+			z_vector_iter_advance(it_ptr, z_map_iter_get_index(it));
 			z_vector_insert(selfp->data, it_ptr, 1, key_value);
 			z_object_unref(Z_OBJECT(it));
 			z_object_unref(Z_OBJECT(it_ptr));
@@ -439,11 +456,11 @@ class ZMap : ZObject
 			z_object_ref(Z_OBJECT(last));
 
 
-		p1 = z_vector_iter_new(CTX);
-		p2 = z_vector_iter_new(CTX);
+		p1 = z_vector_get_begin(selfp->data);
+		p2 = z_vector_get_begin(selfp->data);
 
-		z_vector_iter_set_index(p1, z_map_iter_get_index(first));
-		z_vector_iter_set_index(p2, z_map_iter_get_index(last));
+		z_vector_iter_advance(p1, z_map_iter_get_index(first));
+		z_vector_iter_advance(p2, z_map_iter_get_index(last));
 
 		z_vector_erase(selfp->data, p1, p2);
 

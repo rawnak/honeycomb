@@ -39,21 +39,35 @@ class ZVectorSegment : ZObject
 	private int count;
 	private int capacity;
 	private void *data;
+        public Self *prev;
+        public Self *next;
 
 	init(Self *self)
 	{
 		selfp->count = 0;
 		selfp->capacity = 0;
 		selfp->data = 0;
+                self->prev = NULL;
+                self->next = NULL;
 	}
 
         override(ZObject) void reset(ZObject *object)
         {
 		Self *self = (Self *) object;
 
+                if (self->prev)
+                        z_object_unref(Z_OBJECT(self->prev));
+
+                if (self->next)
+                        z_object_unref(Z_OBJECT(self->next));
+
+
 		selfp->count = 0;
 		selfp->capacity = 0;
 		selfp->data = 0;
+
+                self->prev = NULL;
+                self->next = NULL;
 
                 PARENT_HANDLER(object);
         }
@@ -61,6 +75,16 @@ class ZVectorSegment : ZObject
 	override(ZObject) void dispose(ZObject *object)
 	{
 		Self *self = (Self *) object;
+
+                if (self->prev)
+                        z_object_unref(Z_OBJECT(self->prev));
+
+                if (self->next)
+                        z_object_unref(Z_OBJECT(self->next));
+
+                self->prev = NULL;
+                self->next = NULL;
+
 		PARENT_HANDLER(object);
 	}
 
@@ -80,7 +104,7 @@ class ZVectorSegment : ZObject
                 return selfp->count;
         }
 
-        public void set_size(Self *self, int value, int item_size, int storage_mode, void *userdata,
+        public int set_size(Self *self, int value, int item_size, int storage_mode, void *userdata,
                         ZVectorItemCallback item_construct, ZVectorItemCallback item_destruct)
         {
                 if (selfp->count < value) {
@@ -126,6 +150,11 @@ class ZVectorSegment : ZObject
                 }
 
                 selfp->count = value;
+
+                /* FIXME: Always realloc the buffer for now. Once we have an allocator that is able to resize
+                   a buffer and fail if it's not possible, we can return a different return code here to notify
+                   the caller that the set_size operation wasn't successful */
+                return 0;
         }
 
 	/* The current storage capacity of the vector. This value must be
@@ -214,6 +243,24 @@ class ZVectorSegment : ZObject
 		return ERANGE;
 	}
 
+        public int insert_segment(Self *self, ZVectorSegment *src, int item_size)
+        {
+                ZVectorSegment *obj;
+
+                obj = z_vector_segment_new(CTX);
+                obj->_priv.count = src->_priv.count;
+                obj->_priv.capacity = src->_priv.count;
+                obj->next = self;
+                obj->prev = self->prev;
+                self->prev->next = obj;
+                self->prev = obj;
+
+                obj->_priv.data = malloc(src->_priv.capacity * item_size);
+                memcpy(obj->_priv.data, src->_priv.data, src->_priv.count * item_size);
+
+                return obj->_priv.count;
+        }
+
 	/* Insert item before the element pointed to by the specified 
 	   iterator. The 'n' parameter specifies how many times the item
 	   should be inserted before the iterator */
@@ -247,6 +294,7 @@ class ZVectorSegment : ZObject
 		get
 		{
 			ZVectorIter *iter = z_vector_iter_new(CTX);
+                        z_vector_iter_set_segment(iter, self);
 			return iter;
 		}
 	}
@@ -258,6 +306,7 @@ class ZVectorSegment : ZObject
 		get
 		{
 			ZVectorIter *iter = z_vector_iter_new(CTX);
+                        z_vector_iter_set_segment(iter, self);
 			z_vector_iter_set_index(iter, get_size(self));
 			return iter;
 		}
@@ -275,7 +324,7 @@ class ZVectorSegment : ZObject
 
            If 'src_iter_end' is NULL, the assumed end iterator will be the end of
 	   the source vector */
-	public void insert_range(Self *self, ZVectorIter *iter, ZVectorSegment *src, ZVectorIter *src_iter_start, ZVectorIter *src_iter_end,
+	public int insert_range(Self *self, ZVectorIter *iter, ZVectorSegment *src, ZVectorIter *src_iter_start, ZVectorIter *src_iter_end,
                         int item_size, int storage_mode, void *userdata, ZVectorItemCallback item_construct,
                         ZVectorItemCallback item_destruct)
 	{
@@ -326,14 +375,26 @@ class ZVectorSegment : ZObject
 		z_object_unref(Z_OBJECT(it1));
 		z_object_unref(Z_OBJECT(it2));
 		z_object_unref(Z_OBJECT(dest_it));
+
+                return n;
 	}
 
 	/* Erase the items in the range [start,end) */
-	public void erase(Self *self, ZVectorIter *start, ZVectorIter *end, int item_size, int storage_mode,
+	public int erase(Self *self, ZVectorIter *start, ZVectorIter *end, int item_size, int storage_mode,
                         void *userdata, ZVectorItemCallback item_destruct)
 	{
 		ZVectorIter *it1;
 		ZVectorIter *it2;
+
+		if (start == NULL)
+			start = get_begin(self);
+                else
+                        z_object_ref(Z_OBJECT(start));
+
+		if (end == NULL)
+			end = get_end(self);
+                else
+                        z_object_ref(Z_OBJECT(end));
 		
 		/* compute the item count */
 		int n = z_vector_iter_get_index(end) - z_vector_iter_get_index(start);
@@ -371,6 +432,8 @@ class ZVectorSegment : ZObject
 
 		z_object_unref(Z_OBJECT(it2));
 		z_object_unref(Z_OBJECT(it1));
+
+                return n;
 	}
 }
 
