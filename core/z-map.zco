@@ -248,7 +248,7 @@ class ZMap : ZObject
 
 				z_vector_iter_increment(pivot_ptr);
 
-				if (!z_vector_is_in_bound(selfp->data, pivot_ptr)) {
+				if (!z_vector_iter_is_in_bound(pivot_ptr)) {
 					/* revert to previous index (which is the highest valid index) */
 					z_vector_iter_decrement(pivot_ptr);
 
@@ -388,7 +388,7 @@ class ZMap : ZObject
 			z_vector_iter_advance(prev_ptr, z_map_iter_get_index(prev));
 			z_object_unref(Z_OBJECT(prev));
 
-			if (z_vector_is_in_bound(selfp->data, prev_ptr)) {
+			if (z_vector_iter_is_in_bound(prev_ptr)) {
 				item = z_vector_get_item(selfp->data, prev_ptr);
 
 				if (selfp->compare(self, get_key_internal(item), key) == 0) {

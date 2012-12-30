@@ -504,7 +504,7 @@ class ZString : ZObject
 	{
 		uint8_t byte = 0;
 
-		if (z_vector_is_in_bound(selfp->data, it)) {
+		if (z_vector_iter_is_in_bound(it)) {
 			byte = *((uint8_t *) z_vector_get_item(selfp->data, it));
 			z_vector_iter_increment(it);
 		}

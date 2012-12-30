@@ -1,6 +1,6 @@
 #!/bin/bash
 
-classes=( z-zco-source-generator z-closure z-closure-marshal z-map-iter z-map z-object z-string-iter z-string z-vector-iter z-vector z-file z-framework-events z-value z-object-tracker z-default-object-tracker )
+classes=( z-zco-source-generator z-closure z-closure-marshal z-map-iter z-map z-object z-string-iter z-string z-vector-iter z-vector z-vector-segment z-file z-framework-events z-value z-object-tracker z-default-object-tracker )
 
 for class_name in ${classes[@]}; do
    cp build/core/$class_name.[ch] bootstrap/

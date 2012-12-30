@@ -20,9 +20,12 @@
 
 #ifndef _Z_VECTOR_ITER_H_
 #define _Z_VECTOR_ITER_H_
-#line 3 "z-vector-iter.zco"
+#line 6 "z-vector-iter.zco"
 
 #include <z-object.h>
+
+struct ZVectorSegment;
+typedef struct ZVectorSegment ZVectorSegment;
 
 #include <zco-type.h>
 #define Self ZVectorIter
@@ -42,8 +45,10 @@ typedef struct ZVectorIterClass ZVectorIterClass;
 typedef struct ZVectorIter ZVectorIter;
 
 struct ZVectorIterPrivate {
-#line 10 "z-vector-iter.zco"
+#line 14 "z-vector-iter.zco"
 	int index;
+#line 15 "z-vector-iter.zco"
+	ZVectorSegment *segment;
 };
 
 struct ZVectorIterProtected {
@@ -58,7 +63,7 @@ struct ZVectorIterGlobal {
 	const char *name;
 	int id;
 	void *method_map;
-#line 17 "z-vector-iter.zco"
+#line 23 "z-vector-iter.zco"
 	void  (*__parent_reset)(ZObject *object);
 };
 
@@ -76,26 +81,32 @@ extern int z_vector_iter_type_id;
 ZVectorIterGlobal * z_vector_iter_get_type(struct zco_context_t *ctx);
 void __z_vector_iter_init(struct zco_context_t *ctx, ZVectorIter *self);
 void __z_vector_iter_class_init(struct zco_context_t *ctx, ZVectorIterClass *_class);
-#line 25 "z-vector-iter.zco"
-Self * z_vector_iter_new(struct zco_context_t *ctx);
 #line 31 "z-vector-iter.zco"
+Self * z_vector_iter_new(struct zco_context_t *ctx);
+#line 37 "z-vector-iter.zco"
 Self * z_vector_iter_dup(ZVectorIter *src);
-#line 41 "z-vector-iter.zco"
-int  z_vector_iter_get_index(Self *self);
-#line 45 "z-vector-iter.zco"
-void z_vector_iter_set_index(Self *self, int  value);
-#line 51 "z-vector-iter.zco"
-void  z_vector_iter_advance(Self *self,int steps);
-#line 56 "z-vector-iter.zco"
-void  z_vector_iter_increment(Self *self);
-#line 61 "z-vector-iter.zco"
-void  z_vector_iter_decrement(Self *self);
-#line 66 "z-vector-iter.zco"
-int  z_vector_iter_is_equal(Self *self,Self *other);
+#line 52 "z-vector-iter.zco"
+ZVectorSegment * z_vector_iter_get_segment(Self *self);
+#line 57 "z-vector-iter.zco"
+void z_vector_iter_set_segment(Self *self, ZVectorSegment * value);
 #line 71 "z-vector-iter.zco"
+int  z_vector_iter_get_index(Self *self);
+#line 75 "z-vector-iter.zco"
+void z_vector_iter_set_index(Self *self, int  value);
+#line 81 "z-vector-iter.zco"
+void  z_vector_iter_advance(Self *self,int steps);
+#line 86 "z-vector-iter.zco"
+void  z_vector_iter_increment(Self *self);
+#line 91 "z-vector-iter.zco"
+void  z_vector_iter_decrement(Self *self);
+#line 96 "z-vector-iter.zco"
+int  z_vector_iter_is_equal(Self *self,Self *other);
+#line 101 "z-vector-iter.zco"
 int  z_vector_iter_is_lte(Self *self,Self *other);
-#line 76 "z-vector-iter.zco"
+#line 106 "z-vector-iter.zco"
 int  z_vector_iter_is_gte(Self *self,Self *other);
+#line 113 "z-vector-iter.zco"
+int  z_vector_iter_is_in_bound(ZVectorIter *self);
 
 #undef Self
 

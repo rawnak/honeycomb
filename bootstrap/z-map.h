@@ -104,35 +104,37 @@ void z_map_set_key_destruct(Self *self, ZMapItemCallback  value);
 void z_map_set_value_destruct(Self *self, ZMapItemCallback  value);
 #line 103 "z-map.zco"
 ZMapIter * z_map_get_begin(Self *self);
-#line 117 "z-map.zco"
+#line 119 "z-map.zco"
 ZMapIter * z_map_get_end(Self *self);
-#line 131 "z-map.zco"
+#line 135 "z-map.zco"
 int  z_map_get_is_empty(Self *self);
-#line 139 "z-map.zco"
+#line 143 "z-map.zco"
 int  z_map_get_size(Self *self);
-#line 145 "z-map.zco"
+#line 149 "z-map.zco"
 void  z_map_clear(Self *self);
-#line 261 "z-map.zco"
+#line 267 "z-map.zco"
 ZMapIter * z_map_find(Self *self,const void *key);
-#line 302 "z-map.zco"
+#line 308 "z-map.zco"
 void * z_map_get_key(Self *self,ZMapIter *it);
-#line 313 "z-map.zco"
+#line 319 "z-map.zco"
 void * z_map_get_value(Self *self,ZMapIter *it);
-#line 397 "z-map.zco"
+#line 330 "z-map.zco"
+void  z_map_set_value(Self *self,ZMapIter *it,void *value);
+#line 414 "z-map.zco"
 int  z_map_assign(Self *self,void *key,void *value);
-#line 402 "z-map.zco"
+#line 419 "z-map.zco"
 int  z_map_insert(Self *self,void *key,void *value);
-#line 407 "z-map.zco"
+#line 424 "z-map.zco"
 void  z_map_erase(Self *self,ZMapIter *first,ZMapIter *last);
-#line 437 "z-map.zco"
+#line 454 "z-map.zco"
 void  z_map_erase1(Self *self,ZMapIter *it);
-#line 447 "z-map.zco"
+#line 464 "z-map.zco"
 void  z_map_erase1_inc(Self *self,ZMapIter **it);
-#line 467 "z-map.zco"
+#line 484 "z-map.zco"
 ZMapIter * z_map_lower_bound(Self *self,void *key);
-#line 485 "z-map.zco"
+#line 502 "z-map.zco"
 ZMapIter * z_map_upper_bound(Self *self,void *key);
-#line 523 "z-map.zco"
+#line 540 "z-map.zco"
 void z_map_set_compare(Self *self, ZMapCompareFunc  value);
 
 #undef Self

@@ -289,14 +289,6 @@ class ZVector : ZObject
 		}
 	}
 
-	/* Indicates if the specified iterator is within the bounds
-	   of the vector */
-	public int is_in_bound(Self *self, ZVectorIter *iter)
-	{
-                ZVectorSegment *segment = z_vector_iter_get_segment(iter);
-                return z_vector_segment_is_in_bound(segment, iter);
-	}
-
 	/* Get the element value at the specified position as indicated
 	   by the iterator */
 	public void * get_item(Self *self, ZVectorIter *iter)

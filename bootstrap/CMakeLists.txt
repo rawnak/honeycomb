@@ -30,6 +30,7 @@ add_executable(
       z-string-iter.c
       z-vector.c
       z-vector-iter.c
+      z-vector-segment.c
       z-object.c
       z-file.c
       z-zco-source-generator.c

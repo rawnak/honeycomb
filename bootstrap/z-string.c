@@ -59,77 +59,77 @@
 #define set_cstring z_string_set_cstring
 #line 247 "z-string.zco"
 #define get_cstring z_string_get_cstring
-#line 301 "z-string.zco"
+#line 307 "z-string.zco"
 #define append z_string_append
-#line 308 "z-string.zco"
+#line 314 "z-string.zco"
 #define insert z_string_insert
-#line 341 "z-string.zco"
+#line 347 "z-string.zco"
 #define erase z_string_erase
-#line 366 "z-string.zco"
-#define replace_with_chars z_string_replace_with_chars
 #line 372 "z-string.zco"
-#define replace z_string_replace
+#define replace_with_chars z_string_replace_with_chars
 #line 378 "z-string.zco"
+#define replace z_string_replace
+#line 384 "z-string.zco"
 #define append_cstring z_string_append_cstring
-#line 388 "z-string.zco"
+#line 394 "z-string.zco"
 #define get_char_size z_string_get_char_size
-#line 418 "z-string.zco"
+#line 424 "z-string.zco"
 #define encode z_string_encode
-#line 477 "z-string.zco"
+#line 483 "z-string.zco"
 #define get_next_byte z_string_get_next_byte
-#line 489 "z-string.zco"
+#line 495 "z-string.zco"
 #define strict_decode z_string_strict_decode
-#line 716 "z-string.zco"
+#line 722 "z-string.zco"
 #define move_next z_string_move_next
-#line 795 "z-string.zco"
+#line 801 "z-string.zco"
 #define decode z_string_decode
-#line 904 "z-string.zco"
+#line 910 "z-string.zco"
 #define push_back z_string_push_back
-#line 923 "z-string.zco"
+#line 929 "z-string.zco"
 #define insert_char z_string_insert_char
-#line 949 "z-string.zco"
+#line 955 "z-string.zco"
 #define to_lower z_string_to_lower
-#line 957 "z-string.zco"
+#line 963 "z-string.zco"
 #define compare z_string_compare
-#line 1010 "z-string.zco"
+#line 1016 "z-string.zco"
 #define get_length z_string_get_length
-#line 1018 "z-string.zco"
+#line 1024 "z-string.zco"
 #define get_begin z_string_get_begin
-#line 1027 "z-string.zco"
+#line 1033 "z-string.zco"
 #define get_end z_string_get_end
-#line 1035 "z-string.zco"
+#line 1041 "z-string.zco"
 #define clear z_string_clear
-#line 1043 "z-string.zco"
-#define get_is_empty z_string_get_is_empty
 #line 1049 "z-string.zco"
+#define get_is_empty z_string_get_is_empty
+#line 1055 "z-string.zco"
 #define find z_string_find
-#line 1095 "z-string.zco"
+#line 1101 "z-string.zco"
 #define find_char z_string_find_char
-#line 1149 "z-string.zco"
+#line 1155 "z-string.zco"
 #define find_any_char z_string_find_any_char
-#line 1196 "z-string.zco"
+#line 1202 "z-string.zco"
 #define get_real64 z_string_get_real64
-#line 1277 "z-string.zco"
+#line 1283 "z-string.zco"
 #define get_int64 z_string_get_int64
-#line 1377 "z-string.zco"
+#line 1383 "z-string.zco"
 #define get_uint64 z_string_get_uint64
-#line 1471 "z-string.zco"
+#line 1477 "z-string.zco"
 #define append_int z_string_append_int
-#line 1501 "z-string.zco"
+#line 1507 "z-string.zco"
 #define append_hex z_string_append_hex
-#line 1552 "z-string.zco"
+#line 1558 "z-string.zco"
 #define append_ptr z_string_append_ptr
-#line 1614 "z-string.zco"
+#line 1620 "z-string.zco"
 #define append_vformat z_string_append_vformat
-#line 1681 "z-string.zco"
-#define vformat z_string_vformat
 #line 1687 "z-string.zco"
+#define vformat z_string_vformat
+#line 1693 "z-string.zco"
 #define append_format z_string_append_format
-#line 1696 "z-string.zco"
+#line 1702 "z-string.zco"
 #define format z_string_format
-#line 1705 "z-string.zco"
+#line 1711 "z-string.zco"
 #define token_start z_string_token_start
-#line 1713 "z-string.zco"
+#line 1719 "z-string.zco"
 #define token_next z_string_token_next
 
 int z_string_type_id = -1;
@@ -158,25 +158,25 @@ static void  z_string_reset(ZObject *object);
 static void  z_string_dispose(ZObject *object);
 #line 124 "z-string.zco"
 static ZVectorIter *  z_string_get_char_ref(Self *self,ZStringIter *it);
-#line 388 "z-string.zco"
+#line 394 "z-string.zco"
 static unsigned int  z_string_get_char_size(uint32_t ch);
-#line 418 "z-string.zco"
+#line 424 "z-string.zco"
 static unsigned int  z_string_encode(uint32_t ch,uint8_t *buffer);
-#line 477 "z-string.zco"
+#line 483 "z-string.zco"
 static uint8_t  z_string_get_next_byte(Self *self,ZVectorIter *it);
-#line 489 "z-string.zco"
+#line 495 "z-string.zco"
 static uint32_t  z_string_strict_decode(Self *self,ZVectorIter *it,int *status);
-#line 716 "z-string.zco"
+#line 722 "z-string.zco"
 static void  z_string_move_next(Self *self,ZVectorIter *it);
-#line 795 "z-string.zco"
+#line 801 "z-string.zco"
 static uint32_t  z_string_decode(Self *self,ZVectorIter *it);
-#line 949 "z-string.zco"
+#line 955 "z-string.zco"
 static uint32_t  z_string_to_lower(uint32_t ch);
-#line 1471 "z-string.zco"
+#line 1477 "z-string.zco"
 static void  z_string_append_int(Self *self,int val);
-#line 1501 "z-string.zco"
+#line 1507 "z-string.zco"
 static void  z_string_append_hex(Self *self,unsigned int val,int uppercase);
-#line 1552 "z-string.zco"
+#line 1558 "z-string.zco"
 static void  z_string_append_ptr(Self *self,void *val,int uppercase);
 
 static void cleanup_signal_arg(void *item, void *userdata)
@@ -273,49 +273,49 @@ ZStringGlobal * z_string_get_type(struct zco_context_t *ctx)
 		z_map_insert((ZMap *) global->method_map, strdup("set_cstring"), (ZObjectSignalHandler) set_cstring);
 #line 247 "z-string.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("get_cstring"), (ZObjectSignalHandler) get_cstring);
-#line 301 "z-string.zco"
+#line 307 "z-string.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("append"), (ZObjectSignalHandler) append);
-#line 308 "z-string.zco"
+#line 314 "z-string.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("insert"), (ZObjectSignalHandler) insert);
-#line 341 "z-string.zco"
+#line 347 "z-string.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("erase"), (ZObjectSignalHandler) erase);
-#line 366 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("replace_with_chars"), (ZObjectSignalHandler) replace_with_chars);
 #line 372 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("replace"), (ZObjectSignalHandler) replace);
+		z_map_insert((ZMap *) global->method_map, strdup("replace_with_chars"), (ZObjectSignalHandler) replace_with_chars);
 #line 378 "z-string.zco"
+		z_map_insert((ZMap *) global->method_map, strdup("replace"), (ZObjectSignalHandler) replace);
+#line 384 "z-string.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("append_cstring"), (ZObjectSignalHandler) append_cstring);
-#line 904 "z-string.zco"
+#line 910 "z-string.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("push_back"), (ZObjectSignalHandler) push_back);
-#line 923 "z-string.zco"
+#line 929 "z-string.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("insert_char"), (ZObjectSignalHandler) insert_char);
-#line 957 "z-string.zco"
+#line 963 "z-string.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("compare"), (ZObjectSignalHandler) compare);
-#line 1035 "z-string.zco"
+#line 1041 "z-string.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("clear"), (ZObjectSignalHandler) clear);
-#line 1049 "z-string.zco"
+#line 1055 "z-string.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("find"), (ZObjectSignalHandler) find);
-#line 1095 "z-string.zco"
+#line 1101 "z-string.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("find_char"), (ZObjectSignalHandler) find_char);
-#line 1149 "z-string.zco"
+#line 1155 "z-string.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("find_any_char"), (ZObjectSignalHandler) find_any_char);
-#line 1196 "z-string.zco"
+#line 1202 "z-string.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("get_real64"), (ZObjectSignalHandler) get_real64);
-#line 1277 "z-string.zco"
+#line 1283 "z-string.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("get_int64"), (ZObjectSignalHandler) get_int64);
-#line 1377 "z-string.zco"
+#line 1383 "z-string.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("get_uint64"), (ZObjectSignalHandler) get_uint64);
-#line 1614 "z-string.zco"
+#line 1620 "z-string.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("append_vformat"), (ZObjectSignalHandler) append_vformat);
-#line 1681 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("vformat"), (ZObjectSignalHandler) vformat);
 #line 1687 "z-string.zco"
+		z_map_insert((ZMap *) global->method_map, strdup("vformat"), (ZObjectSignalHandler) vformat);
+#line 1693 "z-string.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("append_format"), (ZObjectSignalHandler) append_format);
-#line 1696 "z-string.zco"
+#line 1702 "z-string.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("format"), (ZObjectSignalHandler) format);
-#line 1705 "z-string.zco"
+#line 1711 "z-string.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("token_start"), (ZObjectSignalHandler) token_start);
-#line 1713 "z-string.zco"
+#line 1719 "z-string.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("token_next"), (ZObjectSignalHandler) token_next);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZStringGlobal *) global);
@@ -565,6 +565,12 @@ char * z_string_get_cstring(Self *self,int encoding)
  char *buffer;
  int i, size;
 
+ if (get_length(self) == 0) {
+ buffer = malloc(1);
+ buffer[0] = 0;
+ return buffer;
+ }
+
  it = z_vector_get_begin(selfp->data);
  last = z_vector_get_end(selfp->data);
  i = 0;
@@ -612,14 +618,14 @@ char * z_string_get_cstring(Self *self,int encoding)
  z_object_unref(Z_OBJECT(last));
  return buffer;
  }
-#line 301 "z-string.zco"
+#line 307 "z-string.zco"
 void  z_string_append(Self *self,ZString *src,ZStringIter *first,ZStringIter *last)
 {
  ZStringIter *it = get_end(self);
  insert(self, it, src, first, last);
  z_object_unref(Z_OBJECT(it));
  }
-#line 308 "z-string.zco"
+#line 314 "z-string.zco"
 void  z_string_insert(Self *self,ZStringIter *it,ZString *src,ZStringIter *first,ZStringIter *last)
 {
  ZVectorIter *it1, *it2, *tmp, *pos;
@@ -652,7 +658,7 @@ void  z_string_insert(Self *self,ZStringIter *it,ZString *src,ZStringIter *first
  z_object_unref(Z_OBJECT(it2));
  z_object_unref(Z_OBJECT(it1));
  }
-#line 341 "z-string.zco"
+#line 347 "z-string.zco"
 void  z_string_erase(Self *self,ZStringIter *first,ZStringIter *last)
 {
  ZVectorIter *it1 = get_char_ref(self, first);
@@ -677,19 +683,19 @@ void  z_string_erase(Self *self,ZStringIter *first,ZStringIter *last)
  z_object_unref(Z_OBJECT(it1));
  z_object_unref(Z_OBJECT(it2));
  }
-#line 366 "z-string.zco"
+#line 372 "z-string.zco"
 void  z_string_replace_with_chars(Self *self,ZStringIter *first,ZStringIter *last,int count,uint32_t ch)
 {
  erase(self, first, last);
  insert_char(self, first, count, ch);
  }
-#line 372 "z-string.zco"
+#line 378 "z-string.zco"
 void  z_string_replace(Self *self,ZStringIter *first,ZStringIter *last,ZString *src,ZStringIter *src_first,ZStringIter *src_last)
 {
  erase(self, first, last);
  insert(self, first, src, src_first, src_last);
  }
-#line 378 "z-string.zco"
+#line 384 "z-string.zco"
 void  z_string_append_cstring(Self *self,const char *s,int encoding)
 {
  Self *tmp = new(CTX);
@@ -699,7 +705,7 @@ void  z_string_append_cstring(Self *self,const char *s,int encoding)
 
  z_object_unref(Z_OBJECT(tmp));
  }
-#line 388 "z-string.zco"
+#line 394 "z-string.zco"
 static unsigned int  z_string_get_char_size(uint32_t ch)
 {
  if (ch < 0x80) {
@@ -728,7 +734,7 @@ static unsigned int  z_string_get_char_size(uint32_t ch)
 
  return 0;
  }
-#line 418 "z-string.zco"
+#line 424 "z-string.zco"
 static unsigned int  z_string_encode(uint32_t ch,uint8_t *buffer)
 {
  switch (get_char_size(ch))
@@ -787,19 +793,19 @@ static unsigned int  z_string_encode(uint32_t ch,uint8_t *buffer)
  return 0;
  }
  }
-#line 477 "z-string.zco"
+#line 483 "z-string.zco"
 static uint8_t  z_string_get_next_byte(Self *self,ZVectorIter *it)
 {
  uint8_t byte = 0;
 
- if (z_vector_is_in_bound(selfp->data, it)) {
+ if (z_vector_iter_is_in_bound(it)) {
  byte = *((uint8_t *) z_vector_get_item(selfp->data, it));
  z_vector_iter_increment(it);
  }
 
  return byte;
  }
-#line 489 "z-string.zco"
+#line 495 "z-string.zco"
 static uint32_t  z_string_strict_decode(Self *self,ZVectorIter *it,int *status)
 {
  uint32_t ch = 0;
@@ -1026,7 +1032,7 @@ static uint32_t  z_string_strict_decode(Self *self,ZVectorIter *it,int *status)
  return ch;
 
  }
-#line 716 "z-string.zco"
+#line 722 "z-string.zco"
 static void  z_string_move_next(Self *self,ZVectorIter *it)
 {
  uint32_t b0 = get_next_byte(self, it);
@@ -1105,7 +1111,7 @@ static void  z_string_move_next(Self *self,ZVectorIter *it)
  get_next_byte(self, it);
  } 
  }
-#line 795 "z-string.zco"
+#line 801 "z-string.zco"
 static uint32_t  z_string_decode(Self *self,ZVectorIter *it)
 {
  uint32_t ch = 0;
@@ -1214,7 +1220,7 @@ static uint32_t  z_string_decode(Self *self,ZVectorIter *it)
 
  return ch;
  }
-#line 904 "z-string.zco"
+#line 910 "z-string.zco"
 void  z_string_push_back(Self *self,uint32_t ch)
 {
  uint8_t buffer[6];
@@ -1233,7 +1239,7 @@ void  z_string_push_back(Self *self,uint32_t ch)
 
  ++selfp->length;
  }
-#line 923 "z-string.zco"
+#line 929 "z-string.zco"
 void  z_string_insert_char(Self *self,ZStringIter *it,int count,uint32_t ch)
 {
  ZVectorIter *pos;
@@ -1259,7 +1265,7 @@ void  z_string_insert_char(Self *self,ZStringIter *it,int count,uint32_t ch)
  selfp->length += count;
  z_object_unref(Z_OBJECT(pos));
  }
-#line 949 "z-string.zco"
+#line 955 "z-string.zco"
 static uint32_t  z_string_to_lower(uint32_t ch)
 {
  if (ch >= 'A' && ch <= 'Z')
@@ -1267,7 +1273,7 @@ static uint32_t  z_string_to_lower(uint32_t ch)
 
  return ch;
  }
-#line 957 "z-string.zco"
+#line 963 "z-string.zco"
 int  z_string_compare(Self *self,ZStringIter *it,ZString *other,ZStringIter *other_iter,int flags,int64_t count)
 {
  ZVectorIter *it1, *it2;
@@ -1318,36 +1324,36 @@ int  z_string_compare(Self *self,ZStringIter *it,ZString *other,ZStringIter *oth
 
  return (int32_t) x1 - (int32_t) x2;
  }
-#line 1010 "z-string.zco"
+#line 1016 "z-string.zco"
 int  z_string_get_length(Self *self)
 {
  return selfp->length;
  }
-#line 1018 "z-string.zco"
+#line 1024 "z-string.zco"
 ZStringIter *  z_string_get_begin(Self *self)
 {
  ZStringIter *it = z_string_iter_new(CTX);
  return it;
  }
-#line 1027 "z-string.zco"
+#line 1033 "z-string.zco"
 ZStringIter *  z_string_get_end(Self *self)
 {
  ZStringIter *it = z_string_iter_new(CTX);
  z_string_iter_set_index(it, selfp->length);
  return it;
  }
-#line 1035 "z-string.zco"
+#line 1041 "z-string.zco"
 void  z_string_clear(Self *self)
 {
  z_vector_clear(selfp->data);
  selfp->length = 0;
  }
-#line 1043 "z-string.zco"
+#line 1049 "z-string.zco"
 int  z_string_get_is_empty(Self *self)
 {
  return selfp->length == 0;
  }
-#line 1049 "z-string.zco"
+#line 1055 "z-string.zco"
 int  z_string_find(Self *self,ZStringIter *it,ZString *needle,int flags)
 {
  ZStringIter *temp;
@@ -1393,7 +1399,7 @@ int  z_string_find(Self *self,ZStringIter *it,ZString *needle,int flags)
  z_object_unref(Z_OBJECT(temp));
  return 0;
  }
-#line 1095 "z-string.zco"
+#line 1101 "z-string.zco"
 int  z_string_find_char(Self *self,ZStringIter *it,uint32_t ch,int flags)
 {
  ZStringIter *temp;
@@ -1447,7 +1453,7 @@ int  z_string_find_char(Self *self,ZStringIter *it,uint32_t ch,int flags)
  z_object_unref(Z_OBJECT(temp));
  return 0;
  }
-#line 1149 "z-string.zco"
+#line 1155 "z-string.zco"
 int  z_string_find_any_char(Self *self,ZStringIter *it,ZString *list,int flags)
 {
  ZStringIter *temp;
@@ -1494,7 +1500,7 @@ int  z_string_find_any_char(Self *self,ZStringIter *it,ZString *list,int flags)
  z_object_unref(Z_OBJECT(temp));
  return 0;
  }
-#line 1196 "z-string.zco"
+#line 1202 "z-string.zco"
 double  z_string_get_real64(Self *self,ZStringIter *first,ZStringIter *last)
 {
  ZStringIter *it, *it2;
@@ -1575,7 +1581,7 @@ double  z_string_get_real64(Self *self,ZStringIter *first,ZStringIter *last)
 
  return result;
  }
-#line 1277 "z-string.zco"
+#line 1283 "z-string.zco"
 int64_t  z_string_get_int64(Self *self,ZStringIter *first,ZStringIter *last,int base)
 {
  ZStringIter *it, *it2;
@@ -1675,7 +1681,7 @@ int64_t  z_string_get_int64(Self *self,ZStringIter *first,ZStringIter *last,int 
 
  return result;
  }
-#line 1377 "z-string.zco"
+#line 1383 "z-string.zco"
 uint64_t  z_string_get_uint64(Self *self,ZStringIter *first,ZStringIter *last,int base)
 {
  ZStringIter *it, *it2;
@@ -1769,7 +1775,7 @@ uint64_t  z_string_get_uint64(Self *self,ZStringIter *first,ZStringIter *last,in
 
  return result;
  }
-#line 1471 "z-string.zco"
+#line 1477 "z-string.zco"
 static void  z_string_append_int(Self *self,int val)
 {
  int temp = 1000000000;
@@ -1799,7 +1805,7 @@ static void  z_string_append_int(Self *self,int val)
  if (sum_of_digits == 0)
  push_back(self, '0');
  }
-#line 1501 "z-string.zco"
+#line 1507 "z-string.zco"
 static void  z_string_append_hex(Self *self,unsigned int val,int uppercase)
 {
  int temp = 0x10000000;
@@ -1850,7 +1856,7 @@ static void  z_string_append_hex(Self *self,unsigned int val,int uppercase)
  if (sum_of_digits == 0)
  push_back(self, '0');
  }
-#line 1552 "z-string.zco"
+#line 1558 "z-string.zco"
 static void  z_string_append_ptr(Self *self,void *val,int uppercase)
 {
  long input;
@@ -1912,7 +1918,7 @@ static void  z_string_append_ptr(Self *self,void *val,int uppercase)
  push_back(self, '0');
 
  }
-#line 1614 "z-string.zco"
+#line 1620 "z-string.zco"
 int  z_string_append_vformat(Self *self,const char *fmt,va_list ap)
 {
  const char *p;
@@ -1979,13 +1985,13 @@ int  z_string_append_vformat(Self *self,const char *fmt,va_list ap)
 
  return 0;
  }
-#line 1681 "z-string.zco"
+#line 1687 "z-string.zco"
 int  z_string_vformat(Self *self,const char *fmt,va_list ap)
 {
  clear(self);
  append_vformat(self, fmt, ap);
  }
-#line 1687 "z-string.zco"
+#line 1693 "z-string.zco"
 void  z_string_append_format(Self *self,const char *fmt,...)
 {
  va_list ap;
@@ -1994,7 +2000,7 @@ void  z_string_append_format(Self *self,const char *fmt,...)
  append_vformat(self, fmt, ap);
  va_end(ap);
  }
-#line 1696 "z-string.zco"
+#line 1702 "z-string.zco"
 void  z_string_format(Self *self,const char *fmt,...)
 {
  va_list ap;
@@ -2003,7 +2009,7 @@ void  z_string_format(Self *self,const char *fmt,...)
  vformat(self, fmt, ap);
  va_end(ap);
  }
-#line 1705 "z-string.zco"
+#line 1711 "z-string.zco"
 void  z_string_token_start(Self *self)
 {
  if (selfp->token_it)
@@ -2011,7 +2017,7 @@ void  z_string_token_start(Self *self)
 
  selfp->token_it = get_begin(self);
  }
-#line 1713 "z-string.zco"
+#line 1719 "z-string.zco"
 int  z_string_token_next(Self *self,ZString *separator,ZStringIter *first,ZStringIter *last)
 {
  z_string_iter_set_index(first, z_string_iter_get_index(selfp->token_it));
@@ -2033,6 +2039,6 @@ int  z_string_token_next(Self *self,ZString *separator,ZStringIter *first,ZStrin
 
  }
 
-#line 1733 "z-string.zco"
+#line 1739 "z-string.zco"
 
 

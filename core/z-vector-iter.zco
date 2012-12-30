@@ -127,5 +127,12 @@ class ZVectorIter : ZObject
 	{
 		return selfp->index >= get_index(other);
 	}
+
+	/* Indicates if the specified iterator is within the bounds
+	   of the vector */
+	public int is_in_bound(ZVectorIter *self)
+	{
+                return z_vector_segment_is_in_bound(selfp->segment, self);
+	}
 }
 
