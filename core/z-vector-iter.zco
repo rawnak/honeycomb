@@ -32,11 +32,13 @@ typedef struct ZVectorSegment ZVectorSegment;
 class ZVectorIter : ZObject
 {
 	private int index;
+        private int absolute_index;
         private ZVectorSegment *segment;
 
 	init(Self *self)
 	{
 		selfp->index = 0;
+                selfp->absolute_index = 0;
                 selfp->segment = 0;
 	}
 
@@ -44,6 +46,7 @@ class ZVectorIter : ZObject
         {
                 Self *self = (Self *) object;
 		selfp->index = 0;
+                selfp->absolute_index = 0;
 
                 PARENT_HANDLER(object);
         }
@@ -58,11 +61,11 @@ class ZVectorIter : ZObject
 	{
 		Self *self = GET_NEW(src->_global->ctx);
 
-		set_index(self, get_index(src));
-
                 selfp->segment = src->_priv.segment;
                 if (selfp->segment)
                         z_object_ref(Z_OBJECT(selfp->segment));
+
+		set_index(self, get_index(src));
 
 		return self;
 	}
@@ -86,6 +89,19 @@ class ZVectorIter : ZObject
                 }
         }
 
+	public int absolute_index
+	{
+		get
+		{
+			return selfp->absolute_index;
+		}
+		set
+		{
+                        if (selfp->absolute_index != value)
+                                advance(self, value - selfp->absolute_index);
+		}
+	}
+
 	public int index
 	{
 		get
@@ -94,38 +110,116 @@ class ZVectorIter : ZObject
 		}
 		set
 		{
-			selfp->index = value;
-		}
+                        ZVectorSegment *it = selfp->segment;
+
+                        selfp->index = value;
+                        selfp->absolute_index = 0;
+
+                        if (it) {
+                                while ((it = it->prev)) {
+                                        selfp->absolute_index += z_vector_segment_get_size(it);
+                                }
+                        }
+
+                        selfp->absolute_index += value;
+                }
+	}
+
+
+	public void assign(Self *self, ZVectorIter *src)
+	{
+		ZVectorSegment *segment = get_segment(src);
+		set_segment(self, segment);
+		z_object_unref(Z_OBJECT(segment));
+
+		set_index(self, get_index(src));
 	}
 
 	public void advance(Self *self, int steps)
 	{
+		int segment_size;
+
 		selfp->index += steps;
+                selfp->absolute_index += steps;
+
+		if (steps > 0) {
+			while (selfp->segment->next && selfp->index >= (segment_size = z_vector_segment_get_size(selfp->segment))) {
+				selfp->index -= segment_size;
+				selfp->segment = selfp->segment->next;
+			}
+
+		} else if (steps < 0) {
+			while (selfp->index < 0) {
+				if (!selfp->segment->prev)
+					break;
+
+				selfp->segment = selfp->segment->prev;
+				selfp->index += z_vector_segment_get_size(selfp->segment);
+			}
+
+		}
 	}
 
 	public void increment(Self *self)
 	{
+		int segment_size;
+
 		++selfp->index;
+                ++selfp->absolute_index;
+
+		while (selfp->segment->next && selfp->index >= (segment_size = z_vector_segment_get_size(selfp->segment))) {
+			selfp->index -= segment_size;
+			selfp->segment = selfp->segment->next;
+		}
 	}
 	
 	public void decrement(Self *self)
 	{
 		--selfp->index;
+                --selfp->absolute_index;
+
+		while (selfp->index < 0) {
+			if (!selfp->segment->prev)
+				break;
+
+			selfp->segment = selfp->segment->prev;
+			selfp->index += z_vector_segment_get_size(selfp->segment);
+		}
 	}
 
 	public int is_equal(Self *self, Self *other)
 	{
-		return selfp->index == get_index(other);
+		return selfp->segment == other->_priv.segment && selfp->index == get_index(other);
 	}
 
 	public int is_lte(Self *self, Self *other)
 	{
-		return selfp->index <= get_index(other);
+		if (selfp->segment == other->_priv.segment) {
+			return selfp->index <= get_index(other);
+		} else {
+			ZVectorSegment *segment = selfp->segment->next;
+
+			while (segment && segment != other->_priv.segment) {
+				segment = segment->next;
+			}
+
+			return segment == other->_priv.segment;
+		}
 	}
 
 	public int is_gte(Self *self, Self *other)
 	{
-		return selfp->index >= get_index(other);
+		if (selfp->segment == other->_priv.segment) {
+			return selfp->index >= get_index(other);
+		} else {
+			ZVectorSegment *segment = selfp->segment->prev;
+
+			while (segment && segment != other->_priv.segment) {
+				segment = segment->prev;
+			}
+
+			return segment == other->_priv.segment;
+		}
 	}
 
 	/* Indicates if the specified iterator is within the bounds

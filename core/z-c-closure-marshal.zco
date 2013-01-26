@@ -167,7 +167,7 @@ class ZCClosureMarshal : ZObject,ZClosureMarshal
 		}
 
 		/* release references to any ZObjects in the argument list */
-		z_vector_iter_set_index(it, 0);
+		z_vector_iter_set_absolute_index(it, 0);
 		i = 1;
 	
 		while (!z_vector_iter_is_equal(it, end)) {

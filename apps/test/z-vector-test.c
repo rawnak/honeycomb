@@ -213,7 +213,7 @@ static void case5(void)
 	}
 
 	printf("vec contains:");
-	z_vector_iter_set_index(it, 0);
+	z_vector_iter_set_absolute_index(it, 0);
 
 	for (i = 0; i < z_vector_get_size(vec); ++i) {
 		int x = *((int *) z_vector_get_item(vec, it));

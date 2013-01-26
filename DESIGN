@@ -89,6 +89,32 @@ interface. Suppose there are two interfaces X and Y. If class A implements inter
 interface Y, X,  the interface X will have a different offset for both classes so we cannot have just a single constant
 within the interface's Global struct.
 
+=============================
+
+There are two ways to reuse the same data for multiple vectors:
+ 1. Use a linked-list method: every segment will have a prev,next and
+    the vector will contain a reference to the head and tail. When
+    at least one segment is modified in the chain, the entire chain
+    has to be duplicated for the new vector (if the chain was already
+    used by another vector) but the data that each segment refers to
+    remains the same.
+
+    Advantages:
+      1. Avoid potential data copy when array of segment exceeds the
+         array capacity and so the array needn't be reallocated.
+      2. Splitting a segment won't require any modification to the
+         ZVector.
+
+ 2. Use an array method: every segment will be a standalone segment
+    and the vector will contain an array of references to segments. When
+    a segment is modified, it is duplicated if its ref count is > 1, and
+    then its ref count drops by 1. 
+
+    Advantages:
+      1. Each segment will have a smaller size overhead since it doesn't
+         need to keep a prev,next pointer.
+      2. Each segment can be updated independently without requiring
+         the entire chain to be duplicated.
 
 
 

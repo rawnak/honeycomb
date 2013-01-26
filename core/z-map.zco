@@ -127,7 +127,7 @@ class ZMap : ZObject
 			ZVectorIter *ptr = z_vector_get_begin(selfp->data);
 			ZMapIter *it = z_map_iter_new(CTX);
 
-			z_map_iter_set_index(it, z_vector_iter_get_index(ptr));
+			z_map_iter_set_index(it, z_vector_iter_get_absolute_index(ptr));
 			z_object_unref(Z_OBJECT(ptr));
 
 			return it;
@@ -143,7 +143,7 @@ class ZMap : ZObject
 			ZVectorIter *ptr = z_vector_get_end(selfp->data);
 			ZMapIter *it = z_map_iter_new(CTX);
 
-			z_map_iter_set_index(it, z_vector_iter_get_index(ptr));
+			z_map_iter_set_index(it, z_vector_iter_get_absolute_index(ptr));
 			z_object_unref(Z_OBJECT(ptr));
 
 			return it;
@@ -194,8 +194,8 @@ class ZMap : ZObject
 		   only composed of one element and no further iterations are needed.
 		 */
 
-		int begin_idx = z_vector_iter_get_index(first);
-		int end_idx = z_vector_iter_get_index(last);
+		int begin_idx = z_vector_iter_get_absolute_index(first);
+		int end_idx = z_vector_iter_get_absolute_index(last);
 		int offset = (end_idx - begin_idx) >> 1;
 
 		z_vector_iter_advance(pivot, begin_idx + offset);
@@ -224,14 +224,14 @@ class ZMap : ZObject
 					if (bound)
 						*bound = 1;
 
-					z_map_iter_set_index(pivot, z_vector_iter_get_index(pivot_ptr));
+					z_map_iter_set_index(pivot, z_vector_iter_get_absolute_index(pivot_ptr));
 					z_object_unref(Z_OBJECT(pivot_ptr));
 					z_object_unref(Z_OBJECT(last));
 					z_object_unref(Z_OBJECT(first));
 					return 0;
 				}
 
-				z_vector_iter_set_index(last, z_vector_iter_get_index(pivot_ptr));
+                                z_vector_iter_assign(last, pivot_ptr);
 
 			} else if (rc > 0) {
 				/* keep the upper half. pivot_ptr value is lower than target */
@@ -239,7 +239,7 @@ class ZMap : ZObject
 					if (bound)
 						*bound = -1;
 
-					z_map_iter_set_index(pivot, z_vector_iter_get_index(pivot_ptr));
+					z_map_iter_set_index(pivot, z_vector_iter_get_absolute_index(pivot_ptr));
 					z_object_unref(Z_OBJECT(pivot_ptr));
 					z_object_unref(Z_OBJECT(last));
 					z_object_unref(Z_OBJECT(first));
@@ -255,20 +255,20 @@ class ZMap : ZObject
 					if (bound)
 						*bound = -1;
 
-					z_map_iter_set_index(pivot, z_vector_iter_get_index(pivot_ptr));
+					z_map_iter_set_index(pivot, z_vector_iter_get_absolute_index(pivot_ptr));
 					z_object_unref(Z_OBJECT(pivot_ptr));
 					z_object_unref(Z_OBJECT(last));
 					z_object_unref(Z_OBJECT(first));
 					return 0;
 				}
 
-				z_vector_iter_set_index(first, z_vector_iter_get_index(pivot_ptr));
+                                z_vector_iter_assign(first, pivot_ptr);
 
 			} else {
 				if (bound)
 					*bound = 0;
 
-				z_map_iter_set_index(pivot, z_vector_iter_get_index(pivot_ptr));
+				z_map_iter_set_index(pivot, z_vector_iter_get_absolute_index(pivot_ptr));
 				z_object_unref(Z_OBJECT(pivot_ptr));
 				z_object_unref(Z_OBJECT(last));
 				z_object_unref(Z_OBJECT(first));
@@ -278,7 +278,7 @@ class ZMap : ZObject
                         z_object_unref(Z_OBJECT(pivot_ptr));
 		}
 
-		z_map_iter_set_index(pivot, z_vector_iter_get_index(pivot_ptr));
+		z_map_iter_set_index(pivot, z_vector_iter_get_absolute_index(pivot_ptr));
 		z_object_unref(Z_OBJECT(pivot_ptr));
 		z_object_unref(Z_OBJECT(last));
 		z_object_unref(Z_OBJECT(first));

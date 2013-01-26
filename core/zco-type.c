@@ -41,8 +41,8 @@ void zco_context_init(struct zco_context_t *ctx)
            (by convention). Loading the object tracker at the end of the context
            initialization and unloading it at the start of the context destruction
            ensures that we consistently use the correct tracker for every object. */
-        ZDefaultObjectTracker *tracker = z_default_object_tracker_new(ctx);
-        zco_context_set_object_tracker(ctx, (void *) tracker);
+        //ZDefaultObjectTracker *tracker = z_default_object_tracker_new(ctx);
+        //zco_context_set_object_tracker(ctx, (void *) tracker);
 }
 
 void zco_context_destroy(struct zco_context_t *ctx)
@@ -50,21 +50,23 @@ void zco_context_destroy(struct zco_context_t *ctx)
 	int i;
         ZDefaultObjectTracker *tracker = (ZDefaultObjectTracker *) ctx->object_tracker;
 
-        /* Full garbage collection */
-        while (z_object_tracker_garbage_collect((ZObjectTracker *) tracker));
+        if (tracker) {
+                /* Full garbage collection */
+                while (z_object_tracker_garbage_collect((ZObjectTracker *) tracker));
 
-        /* Unload the default object tracker
-           This must be the very first step in the context destruction process
-           (by convention). Loading the object tracker at the end of the context
-           initialization and unloading it at the start of the context destruction
-           ensures that we consistently use the correct tracker for every object.
-           
-           When we created the object tracker, we didn't have any trackers loaded.
-           When we are unloading the object tracker, we must ensure that no trackers
-           (itself) isn't loaded. To do this, we keep a reference to the pointer
-           and set the pointer to NULL. */
-        ctx->object_tracker = NULL;
-	z_object_unref(Z_OBJECT(tracker));
+                /* Unload the default object tracker
+                   This must be the very first step in the context destruction process
+                   (by convention). Loading the object tracker at the end of the context
+                   initialization and unloading it at the start of the context destruction
+                   ensures that we consistently use the correct tracker for every object.
+                   
+                   When we created the object tracker, we didn't have any trackers loaded.
+                   When we are unloading the object tracker, we must ensure that no trackers
+                   (itself) isn't loaded. To do this, we keep a reference to the pointer
+                   and set the pointer to NULL. */
+                ctx->object_tracker = NULL;
+                z_object_unref(Z_OBJECT(tracker));
+        }
 
 	z_object_unref((ZObject *) ctx->framework_events);
 

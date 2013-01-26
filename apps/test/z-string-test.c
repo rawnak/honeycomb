@@ -458,6 +458,10 @@ static void case8(void)
 
 	for (i = 0; !z_string_iter_is_equal(it, end); z_string_iter_increment(it), ++i) {
 		uint32_t ch = z_string_get_char(str1, it);
+
+                fprintf(stderr, "i=%d, test_string12[i]=%d(%c), ch=%d(%c)\n",
+                                i, test_string12[i], test_string12[i], (int8_t) ch, (int8_t) ch);
+
 		assert(test_string12[i] == (int8_t) ch);
 	}
 
@@ -598,6 +602,11 @@ static void case10(void)
 
 	for (i = 0; !z_string_iter_is_equal(it1, end); z_string_iter_increment(it1), ++i) {
 		uint32_t ch = z_string_get_char(str3, it1);
+
+                fprintf(stderr, "i=%d, test_string12[i]=%d(%c), ch=%d(%c)\n",
+                                i, test_string12[i], test_string12[i], (int8_t) ch, (int8_t) ch);
+
+                fflush(stderr);
 		assert(test_string12[i] == (int8_t) ch);
 	}
 

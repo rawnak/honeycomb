@@ -124,7 +124,7 @@ class ZString : ZObject
 			strict_decode(self, it, &status);
 			
 			if (status != 0) {
-				int new_size = z_vector_iter_get_index(it) - z_vector_iter_get_index(first);
+				int new_size = z_vector_iter_get_absolute_index(it) - z_vector_iter_get_absolute_index(first);
 				z_vector_set_size(selfp->data, new_size);
 				assert(z_vector_iter_is_lte(it, last));
 				break;
@@ -180,9 +180,9 @@ class ZString : ZObject
 
 		/* get the size of the current unicode character */
 		ZVectorIter *tmp_ptr = z_vector_iter_dup(ptr);
-		int start_idx = z_vector_iter_get_index(tmp_ptr);
+		int start_idx = z_vector_iter_get_absolute_index(tmp_ptr);
 		move_next(self, tmp_ptr);
-		int old_size = z_vector_iter_get_index(tmp_ptr) - start_idx;
+		int old_size = z_vector_iter_get_absolute_index(tmp_ptr) - start_idx;
 		z_object_unref(Z_OBJECT(tmp_ptr));
 
 		if (old_size == new_size) {
@@ -368,6 +368,9 @@ class ZString : ZObject
 	{
 		ZVectorIter *it1 = get_char_ref(self, first);
 		ZVectorIter *it2 = get_char_ref(self, last);
+
+                // FIXME: This loop may not be running. Possibly because
+                // of a bug in z_vector_iter_is_gte
 
 		/* compute the size of the string that is to be removed */
 		int diff = 0;

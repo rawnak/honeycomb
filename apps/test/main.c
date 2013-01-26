@@ -107,6 +107,16 @@ int main(int argc, char **argv)
 		if (!strcmp(test_set, "vector")) {
 			test_set_number = TestSetVector;
 
+                } else if (!strcmp(test_set, "string")) {
+                        test_set_number = TestSetString;
+
+                } else if (!strcmp(test_set, "map")) {
+                        test_set_number = TestSetMap;
+
+                } else if (!strcmp(test_set, "signal")) {
+                        test_set_number = TestSetSignal;
+
+
 		} else {
 			fprintf(stderr, "Unknown test set '%s'\n", test_set);
 			return -1;
