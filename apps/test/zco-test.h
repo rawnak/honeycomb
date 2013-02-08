@@ -21,17 +21,19 @@
 #ifndef _ZCO_TEST_H_
 #define _ZCO_TEST_H_
 
+#include <zco-type.h>
+
 #ifndef _SYS_CDEFS_H
 #include <sys/cdefs.h>
 #endif
 
 /* convenience macro */
-#define DEFINE_TEST(id_num,callback)  if(id==0 || id==id_num) { callback(); }
+#define DEFINE_TEST(id_num,callback)  if(id==0 || id==id_num) { callback(context); }
 
-void z_vector_test(int);
-void z_string_test(int);
-void z_map_test(int);
-void signal_test(int);
-void z_gateway_application_test(int);
+void z_vector_test(struct zco_context_t *, int);
+void z_string_test(struct zco_context_t *, int);
+void z_map_test(struct zco_context_t *, int);
+void signal_test(struct zco_context_t *, int);
+void z_gateway_application_test(struct zco_context_t *, int);
 
 #endif

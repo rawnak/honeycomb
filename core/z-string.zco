@@ -369,9 +369,6 @@ class ZString : ZObject
 		ZVectorIter *it1 = get_char_ref(self, first);
 		ZVectorIter *it2 = get_char_ref(self, last);
 
-                // FIXME: This loop may not be running. Possibly because
-                // of a bug in z_vector_iter_is_gte
-
 		/* compute the size of the string that is to be removed */
 		int diff = 0;
 		ZVectorIter *tmp = z_vector_iter_dup(it1);

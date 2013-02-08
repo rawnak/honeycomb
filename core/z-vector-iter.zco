@@ -51,6 +51,13 @@ class ZVectorIter : ZObject
                 PARENT_HANDLER(object);
         }
 
+	override(ZObject) void dispose(ZObject *object)
+	{
+		Self *self = (Self *) object;
+                // TODO: set_segment(self, NULL);
+		PARENT_HANDLER(object);
+	}
+
 	public Self *new(struct zco_context_t *ctx)
 	{
 		Self *self = GET_NEW(ctx);
@@ -60,13 +67,7 @@ class ZVectorIter : ZObject
 	public Self *dup(ZVectorIter *src)
 	{
 		Self *self = GET_NEW(src->_global->ctx);
-
-                selfp->segment = src->_priv.segment;
-                if (selfp->segment)
-                        z_object_ref(Z_OBJECT(selfp->segment));
-
-		set_index(self, get_index(src));
-
+                assign(self, src);
 		return self;
 	}
 
@@ -110,14 +111,23 @@ class ZVectorIter : ZObject
 		}
 		set
 		{
-                        ZVectorSegment *it = selfp->segment;
+                        ZVectorSegment *seg = selfp->segment;
 
                         selfp->index = value;
                         selfp->absolute_index = 0;
 
-                        if (it) {
-                                while ((it = it->prev)) {
-                                        selfp->absolute_index += z_vector_segment_get_size(it);
+                        if (seg) {
+                                z_object_ref(Z_OBJECT(seg));
+
+                                while (1) {
+                                        ZVectorSegment *new_seg = z_vector_segment_get_prev(seg);
+                                        z_object_unref(Z_OBJECT(seg));
+                                        seg = new_seg;
+
+                                        if (!seg)
+                                                break;
+
+                                        selfp->absolute_index += z_vector_segment_get_size(seg);
                                 }
                         }
 
@@ -143,17 +153,36 @@ class ZVectorIter : ZObject
                 selfp->absolute_index += steps;
 
 		if (steps > 0) {
-			while (selfp->segment->next && selfp->index >= (segment_size = z_vector_segment_get_size(selfp->segment))) {
-				selfp->index -= segment_size;
-				selfp->segment = selfp->segment->next;
-			}
+                        while (1) {
+                                ZVectorSegment *next = z_vector_segment_get_next(selfp->segment);
+
+                                if (!next)
+                                        break;
+
+                                if (selfp->index >= (segment_size = z_vector_segment_get_size(selfp->segment))) {
+                                        selfp->index -= segment_size;
+
+                                        if (selfp->segment)
+                                                z_object_unref(Z_OBJECT(selfp->segment));
+
+                                        selfp->segment = next;
+                                        continue;
+                                }
+
+                                z_object_unref(Z_OBJECT(next));
+                                break;
+                        }
 
 		} else if (steps < 0) {
 			while (selfp->index < 0) {
-				if (!selfp->segment->prev)
+                                ZVectorSegment *prev = z_vector_segment_get_prev(selfp->segment);
+				if (!prev)
 					break;
 
-				selfp->segment = selfp->segment->prev;
+                                if (selfp->segment)
+                                        z_object_unref(Z_OBJECT(selfp->segment));
+
+				selfp->segment = prev;
 				selfp->index += z_vector_segment_get_size(selfp->segment);
 			}
 
@@ -167,10 +196,21 @@ class ZVectorIter : ZObject
 		++selfp->index;
                 ++selfp->absolute_index;
 
-		while (selfp->segment->next && selfp->index >= (segment_size = z_vector_segment_get_size(selfp->segment))) {
-			selfp->index -= segment_size;
-			selfp->segment = selfp->segment->next;
-		}
+                while (1) {
+                        ZVectorSegment *next = z_vector_segment_get_next(selfp->segment);
+
+                        if (!next)
+                                break;
+
+                        if (selfp->index >= (segment_size = z_vector_segment_get_size(selfp->segment))) {
+                                selfp->index -= segment_size;
+                                selfp->segment = next;
+                                continue;
+                        }
+
+                        z_object_unref(Z_OBJECT(next));
+                        break;
+                }
 	}
 	
 	public void decrement(Self *self)
@@ -179,10 +219,14 @@ class ZVectorIter : ZObject
                 --selfp->absolute_index;
 
 		while (selfp->index < 0) {
-			if (!selfp->segment->prev)
+                        ZVectorSegment *prev = z_vector_segment_get_prev(selfp->segment);
+			if (!prev)
 				break;
 
-			selfp->segment = selfp->segment->prev;
+                        if (selfp->segment)
+                                z_object_unref(Z_OBJECT(selfp->segment));
+
+			selfp->segment = prev;
 			selfp->index += z_vector_segment_get_size(selfp->segment);
 		}
 	}
@@ -197,13 +241,19 @@ class ZVectorIter : ZObject
 		if (selfp->segment == other->_priv.segment) {
 			return selfp->index <= get_index(other);
 		} else {
-			ZVectorSegment *segment = selfp->segment->next;
+			ZVectorSegment *segment = z_vector_segment_get_next(selfp->segment);
 
 			while (segment && segment != other->_priv.segment) {
-				segment = segment->next;
+                                ZVectorSegment *next = z_vector_segment_get_next(segment);
+                                z_object_unref(Z_OBJECT(segment));
+				segment = next;
 			}
 
-			return segment == other->_priv.segment;
+			int rc = segment == other->_priv.segment;
+                        if (segment)
+                                z_object_unref(Z_OBJECT(segment));
+
+                        return rc;
 		}
 	}
 
@@ -212,13 +262,19 @@ class ZVectorIter : ZObject
 		if (selfp->segment == other->_priv.segment) {
 			return selfp->index >= get_index(other);
 		} else {
-			ZVectorSegment *segment = selfp->segment->prev;
+			ZVectorSegment *segment = z_vector_segment_get_prev(selfp->segment);
 
 			while (segment && segment != other->_priv.segment) {
-				segment = segment->prev;
+                                ZVectorSegment *prev = z_vector_segment_get_prev(segment);
+                                z_object_unref(Z_OBJECT(segment));
+				segment = prev;
 			}
 
-			return segment == other->_priv.segment;
+			int rc = segment == other->_priv.segment;
+                        if (segment)
+                                z_object_unref(Z_OBJECT(segment));
+
+                        return rc;
 		}
 	}
 

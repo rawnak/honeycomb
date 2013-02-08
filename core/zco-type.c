@@ -22,6 +22,7 @@
 #include <z-object.h>
 #include <z-framework-events.h>
 #include <z-default-object-tracker.h>
+#include <z-vector-segment.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -36,13 +37,23 @@ void zco_context_init(struct zco_context_t *ctx)
         ctx->object_tracker = NULL;
 	ctx->framework_events = z_framework_events_new(ctx);
 
+        /* Set the default minimum segment capacity to be 3 times the overhead
+           incurred by each segment. This means that there can be at most 40%
+           wasted space that is not used by the actual data */
+        zco_context_set_min_segment_capacity_by_size(ctx, 3 * sizeof(ZVectorSegment));
+
+        /* Set the default minimum segment capacity to hold 2 items. If each
+           segment holds a single item, it is nothing more than a linked list. */
+        zco_context_set_min_segment_capacity_by_count(ctx, 2);
+
+
         /* Load the default object tracker
            This must be the very last step in the context initialization process
            (by convention). Loading the object tracker at the end of the context
            initialization and unloading it at the start of the context destruction
            ensures that we consistently use the correct tracker for every object. */
-        //ZDefaultObjectTracker *tracker = z_default_object_tracker_new(ctx);
-        //zco_context_set_object_tracker(ctx, (void *) tracker);
+        ZDefaultObjectTracker *tracker = z_default_object_tracker_new(ctx);
+        zco_context_set_object_tracker(ctx, (void *) tracker);
 }
 
 void zco_context_destroy(struct zco_context_t *ctx)
@@ -185,6 +196,27 @@ void * zco_context_get_framework_events(struct zco_context_t *ctx)
 
 void * zco_context_set_object_tracker(struct zco_context_t *ctx, void *object_tracker)
 {
-   ctx->object_tracker = object_tracker;
+        ctx->object_tracker = object_tracker;
 }
+
+int zco_context_get_min_segment_capacity_by_size(struct zco_context_t *ctx)
+{
+        return ctx->min_segment_cap_by_size;
+}
+
+void zco_context_set_min_segment_capacity_by_size(struct zco_context_t *ctx, int value)
+{
+        ctx->min_segment_cap_by_size = value;
+}
+
+int zco_context_get_min_segment_capacity_by_count(struct zco_context_t *ctx)
+{
+        return ctx->min_segment_cap_by_count;
+}
+
+void zco_context_set_min_segment_capacity_by_count(struct zco_context_t *ctx, int value)
+{
+        ctx->min_segment_cap_by_count = value;
+}
+
 

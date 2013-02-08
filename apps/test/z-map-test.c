@@ -32,14 +32,12 @@
 #define INT_TO_PTR(x) ((void *) ((unsigned long) (x)))
 #define PTR_TO_INT(x) ((int64_t) ((long) (x)))
 
-static struct zco_context_t context;
-
 static int map_compare(ZMap *self, const void *a, const void *b)
 {
 	return z_string_compare((ZString *) a, NULL, (ZString *) b, NULL, 0, -1);
 }
 
-static void case1(void)
+static void case1(struct zco_context_t *context)
 {
 	/* Testing z_map_get_begin / z_map_get_end */
 	ZMap *mymap;
@@ -51,20 +49,20 @@ static void case1(void)
 	printf("======================\n");
 	printf("ZMap case #1:\n");
 
-	mymap = z_map_new(&context);
+	mymap = z_map_new(context);
 
 	z_map_set_key_destruct(mymap, (ZMapItemCallback) z_object_unref);
 	z_map_set_compare(mymap, map_compare);
 
-	key = z_string_new(&context);
+	key = z_string_new(context);
 	z_string_set_cstring(key, "b", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key, INT_TO_PTR(100));
 
-	key = z_string_new(&context);
+	key = z_string_new(context);
 	z_string_set_cstring(key, "a", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key, INT_TO_PTR(200));
 
-	key = z_string_new(&context);
+	key = z_string_new(context);
 	z_string_set_cstring(key, "c", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key, INT_TO_PTR(300));
 
@@ -85,7 +83,7 @@ static void case1(void)
 	z_object_unref(Z_OBJECT(mymap));
 }
 
-static void case2(void)
+static void case2(struct zco_context_t *context)
 {
 	/* Testing z_map_is_empty */
 	ZMap *mymap;
@@ -97,28 +95,28 @@ static void case2(void)
 	printf("======================\n");
 	printf("ZMap case #2:\n");
 
-	mymap = z_map_new(&context);
+	mymap = z_map_new(context);
 	z_map_set_key_destruct(mymap, (ZMapItemCallback) z_object_unref);
 	z_map_set_compare(mymap, map_compare);
 
-	key = z_string_new(&context);
+	key = z_string_new(context);
 	z_string_set_cstring(key, "a", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key, INT_TO_PTR(10));
 
-	key = z_string_new(&context);
+	key = z_string_new(context);
 	z_string_set_cstring(key, "b", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key, INT_TO_PTR(20));
 
-	key = z_string_new(&context);
+	key = z_string_new(context);
 	z_string_set_cstring(key, "c", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key, INT_TO_PTR(30));
 
 	printf("mymap contains:\n");
 
 	/* create the test key strings */
-	test_key[0] = z_string_new(&context);
-	test_key[1] = z_string_new(&context);
-	test_key[2] = z_string_new(&context);
+	test_key[0] = z_string_new(context);
+	test_key[1] = z_string_new(context);
+	test_key[2] = z_string_new(context);
 
 	z_string_set_cstring(test_key[0], "a", Z_STRING_ENCODING_UTF8);
 	z_string_set_cstring(test_key[1], "b", Z_STRING_ENCODING_UTF8);
@@ -160,7 +158,7 @@ static void case2(void)
 	z_object_unref(Z_OBJECT(mymap));
 }
 
-static void case3(void)
+static void case3(struct zco_context_t *context)
 {
 	/* Testing z_map_get_size */
 	ZMap *mymap;
@@ -170,20 +168,20 @@ static void case3(void)
 	printf("======================\n");
 	printf("ZMap case #3:\n");
 
-	mymap = z_map_new(&context);
+	mymap = z_map_new(context);
 	z_map_set_key_destruct(mymap, (ZMapItemCallback) z_object_unref);
 
 	z_map_set_compare(mymap, map_compare);
 
-	key = z_string_new(&context);
+	key = z_string_new(context);
 	z_string_set_cstring(key, "a", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key, INT_TO_PTR(101));
 
-	key = z_string_new(&context);
+	key = z_string_new(context);
 	z_string_set_cstring(key, "b", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key, INT_TO_PTR(202));
 
-	key = z_string_new(&context);
+	key = z_string_new(context);
 	z_string_set_cstring(key, "c", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key, INT_TO_PTR(302));
 
@@ -194,7 +192,7 @@ static void case3(void)
 	z_object_unref(Z_OBJECT(mymap));
 }
 
-static void case4(void)
+static void case4(struct zco_context_t *context)
 {
 	/* Testing z_map_find / z_map_assign */
 	ZMap *mymap;
@@ -207,30 +205,30 @@ static void case4(void)
 	printf("======================\n");
 	printf("ZMap case #4:\n");
 
-	mymap = z_map_new(&context);
+	mymap = z_map_new(context);
 	z_map_set_key_destruct(mymap, (ZMapItemCallback) z_object_unref);
 	z_map_set_value_destruct(mymap, (ZMapItemCallback) z_object_unref);
 
 	z_map_set_compare(mymap, map_compare);
 
 	/* first element */
-	key1 = z_string_new(&context);
+	key1 = z_string_new(context);
 	z_string_set_cstring(key1, "a", Z_STRING_ENCODING_UTF8);
 
-	value = z_string_new(&context);
+	value = z_string_new(context);
 	z_string_set_cstring(value, "an element", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key1, value);
 
 	/* second element */
-	key2 = z_string_new(&context);
+	key2 = z_string_new(context);
 	z_string_set_cstring(key2, "b", Z_STRING_ENCODING_UTF8);
 
-	value = z_string_new(&context);
+	value = z_string_new(context);
 	z_string_set_cstring(value, "another element", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key2, value);
 
 	/* third element */
-	key3 = z_string_new(&context);
+	key3 = z_string_new(context);
 	z_string_set_cstring(key3, "c", Z_STRING_ENCODING_UTF8);
 
 	it = z_map_find(mymap, key2);
@@ -240,14 +238,14 @@ static void case4(void)
 	z_object_unref(Z_OBJECT(it));
 	z_map_assign(mymap, key3, value);
 
-	key4 = z_string_new(&context);
+	key4 = z_string_new(context);
 	z_string_set_cstring(key4, "d", Z_STRING_ENCODING_UTF8);
 
 	/* create test strings */
-	test_value1 = z_string_new(&context);
+	test_value1 = z_string_new(context);
 	z_string_set_cstring(test_value1, "an element", Z_STRING_ENCODING_UTF8);
 
-	test_value2 = z_string_new(&context);
+	test_value2 = z_string_new(context);
 	z_string_set_cstring(test_value2, "another element", Z_STRING_ENCODING_UTF8);
 
 	/* print mymap['a'] */
@@ -310,7 +308,7 @@ static void case4(void)
 	z_object_unref(Z_OBJECT(key4));
 }
 
-static void case5(void)
+static void case5(struct zco_context_t *context)
 {
 	/* Testing z_map_insert */
 	ZMap *mymap;
@@ -322,28 +320,28 @@ static void case5(void)
 	printf("======================\n");
 	printf("ZMap case #5:\n");
 
-	mymap = z_map_new(&context);
+	mymap = z_map_new(context);
 	z_map_set_key_destruct(mymap, (ZMapItemCallback) z_object_unref);
 	z_map_set_compare(mymap, map_compare);
 
-	key = z_string_new(&context);
+	key = z_string_new(context);
 	z_string_set_cstring(key, "a", Z_STRING_ENCODING_UTF8);
 	assert(z_map_insert(mymap, key, INT_TO_PTR(100)) == 0);
 
-	key = z_string_new(&context);
+	key = z_string_new(context);
 	z_string_set_cstring(key, "z", Z_STRING_ENCODING_UTF8);
 	assert(z_map_insert(mymap, key, INT_TO_PTR(200)) == 0);
 
-	key = z_string_new(&context);
+	key = z_string_new(context);
 	z_string_set_cstring(key, "z", Z_STRING_ENCODING_UTF8);
 	assert(z_map_insert(mymap, key, INT_TO_PTR(500)) == -1);
 	z_object_unref(Z_OBJECT(key));
 
-	key = z_string_new(&context);
+	key = z_string_new(context);
 	z_string_set_cstring(key, "b", Z_STRING_ENCODING_UTF8);
 	assert(z_map_insert(mymap, key, INT_TO_PTR(300)) == 0);
 
-	key = z_string_new(&context);
+	key = z_string_new(context);
 	z_string_set_cstring(key, "c", Z_STRING_ENCODING_UTF8);
 	assert(z_map_insert(mymap, key, INT_TO_PTR(400)) == 0);
 
@@ -364,7 +362,7 @@ static void case5(void)
 	z_object_unref(Z_OBJECT(end));
 }
 
-static void case6(void)
+static void case6(struct zco_context_t *context)
 {
 	/* Testing z_map_erase */
 	ZMap *mymap;
@@ -376,32 +374,32 @@ static void case6(void)
 	printf("======================\n");
 	printf("ZMap case #6:\n");
 
-	mymap = z_map_new(&context);
+	mymap = z_map_new(context);
 	z_map_set_key_destruct(mymap, (ZMapItemCallback) z_object_unref);
 
 	z_map_set_compare(mymap, map_compare);
 
-	key1 = z_string_new(&context);
+	key1 = z_string_new(context);
 	z_string_set_cstring(key1, "a", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key1, INT_TO_PTR(10));
 
-	key2 = z_string_new(&context);
+	key2 = z_string_new(context);
 	z_string_set_cstring(key2, "b", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key2, INT_TO_PTR(20));
 
-	key3 = z_string_new(&context);
+	key3 = z_string_new(context);
 	z_string_set_cstring(key3, "c", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key3, INT_TO_PTR(30));
 
-	key4 = z_string_new(&context);
+	key4 = z_string_new(context);
 	z_string_set_cstring(key4, "d", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key4, INT_TO_PTR(40));
 
-	key5 = z_string_new(&context);
+	key5 = z_string_new(context);
 	z_string_set_cstring(key5, "e", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key5, INT_TO_PTR(50));
 
-	key6 = z_string_new(&context);
+	key6 = z_string_new(context);
 	z_string_set_cstring(key6, "f", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key6, INT_TO_PTR(60));
 
@@ -437,7 +435,7 @@ static void case6(void)
 	z_object_unref(Z_OBJECT(mymap));
 }
 
-static void case7(void)
+static void case7(struct zco_context_t *context)
 {
 	/* Testing z_map_clear */
 	ZMap *mymap;
@@ -450,19 +448,19 @@ static void case7(void)
 	printf("======================\n");
 	printf("ZMap case #7:\n");
 
-	mymap = z_map_new(&context);
+	mymap = z_map_new(context);
 	z_map_set_key_destruct(mymap, (ZMapItemCallback) z_object_unref);
 	z_map_set_compare(mymap, map_compare);
 
-	key = z_string_new(&context);
+	key = z_string_new(context);
 	z_string_set_cstring(key, "x", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key, INT_TO_PTR(100));
 
-	key = z_string_new(&context);
+	key = z_string_new(context);
 	z_string_set_cstring(key, "y", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key, INT_TO_PTR(200));
 
-	key = z_string_new(&context);
+	key = z_string_new(context);
 	z_string_set_cstring(key, "z", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key, INT_TO_PTR(300));
 
@@ -483,11 +481,11 @@ static void case7(void)
 
 	z_map_clear(mymap);
 
-	key = z_string_new(&context);
+	key = z_string_new(context);
 	z_string_set_cstring(key, "a", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key, INT_TO_PTR(1101));
 
-	key = z_string_new(&context);
+	key = z_string_new(context);
 	z_string_set_cstring(key, "b", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key, INT_TO_PTR(2202));
 
@@ -509,7 +507,7 @@ static void case7(void)
 	z_object_unref(Z_OBJECT(mymap));
 }
 
-static void case8(void)
+static void case8(struct zco_context_t *context)
 {
 	/* Testing z_map_lower_bound / z_map_upper_bound */
 	ZMap *mymap;
@@ -521,28 +519,28 @@ static void case8(void)
 	printf("======================\n");
 	printf("ZMap case #8:\n");
 
-	mymap = z_map_new(&context);
+	mymap = z_map_new(context);
 	z_map_set_key_destruct(mymap, (ZMapItemCallback) z_object_unref);
 
 	z_map_set_compare(mymap, map_compare);
 
-	key1 = z_string_new(&context);
+	key1 = z_string_new(context);
 	z_string_set_cstring(key1, "a", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key1, INT_TO_PTR(20));
 
-	key2 = z_string_new(&context);
+	key2 = z_string_new(context);
 	z_string_set_cstring(key2, "b", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key2, INT_TO_PTR(40));
 
-	key3 = z_string_new(&context);
+	key3 = z_string_new(context);
 	z_string_set_cstring(key3, "c", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key3, INT_TO_PTR(60));
 
-	key4 = z_string_new(&context);
+	key4 = z_string_new(context);
 	z_string_set_cstring(key4, "d", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key4, INT_TO_PTR(80));
 
-	key5 = z_string_new(&context);
+	key5 = z_string_new(context);
 	z_string_set_cstring(key5, "e", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key5, INT_TO_PTR(100));
 
@@ -572,10 +570,8 @@ static void case8(void)
 }
 
 
-void z_map_test(int id)
+void z_map_test(struct zco_context_t *context, int id)
 {
-	zco_context_init(&context);
-
 	DEFINE_TEST(1, case1);
 	DEFINE_TEST(2, case2);
 	DEFINE_TEST(3, case3);
@@ -584,8 +580,6 @@ void z_map_test(int id)
 	DEFINE_TEST(6, case6);
 	DEFINE_TEST(7, case7);
 	DEFINE_TEST(8, case8);
-
-	zco_context_destroy(&context);
 }
 
 

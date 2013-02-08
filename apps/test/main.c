@@ -37,7 +37,7 @@ enum TestSet {
 	TestSetEnd
 };
 
-void (*TestDriverSet[]) (int) = {
+void (*TestDriverSet[]) (struct zco_context_t *, int) = {
 	[TestSetVector] = z_vector_test,
 	[TestSetString] = z_string_test,
 	[TestSetMap] = z_map_test,
@@ -47,7 +47,7 @@ void (*TestDriverSet[]) (int) = {
 int main(int argc, char **argv)
 {
 	/* getting argument list and options */
-	int c, help_wanted = 0, test_set_number = 0, test_case_number = 0;
+	int c, help_wanted = 0, test_set_number = 0, test_case_number = 0, try_segments = 0;
 	int option_index = 0;
 	char *test_case = NULL;
 	char *test_set = NULL;
@@ -56,6 +56,7 @@ int main(int argc, char **argv)
 		{"test-case", 2, 0, 'c'},
 		{"test-set", 2, 0, 's'},
 		{"help", 0, 0, 'h'},
+                {"full", 0, 0, 'f'},
 		{0, 0, 0, 0}
 	};
 
@@ -75,6 +76,10 @@ int main(int argc, char **argv)
 		case 'h':
 			help_wanted = 1;
 			break;
+
+                case 'f':
+                        try_segments = 1;
+                        break;
 
 		case '?':
 			if (optopt == 'c')
@@ -96,7 +101,8 @@ int main(int argc, char **argv)
 				"Usage: %s [OPTION]...\n"
 				"Runs the test driver for the specific test case for the test driver set\n\n"
 				"-c,--test-case=#                      test case number within the test driver set\n"
-				"-s,--test-set=(vector,string,...)     test driver set (CObject class name)\n\n",
+				"-s,--test-set=(vector,string,...)     test driver set (CObject class name)\n"
+                                "-f,--full                             test a large number of segment sizes\n\n",
 				argv[0]);
 
 		return 0;
@@ -116,7 +122,6 @@ int main(int argc, char **argv)
                 } else if (!strcmp(test_set, "signal")) {
                         test_set_number = TestSetSignal;
 
-
 		} else {
 			fprintf(stderr, "Unknown test set '%s'\n", test_set);
 			return -1;
@@ -127,13 +132,39 @@ int main(int argc, char **argv)
 			test_case_number = atoi(test_case);
 	}
 
+        int capacity;
 	int i;
 
-	for (i = 1; i < TestSetEnd; ++i) {
-		if (test_set_number == 0 || test_set_number == i)
-			TestDriverSet[i] (test_case_number);
-	}
+        if (try_segments) {
+                for (capacity = 500; capacity >= 1; --capacity) {
 
+                        printf("Testing with minimum vector capacity of %d bytes\n"
+                               "================================================", capacity);
+
+                        for (i = 1; i < TestSetEnd; ++i) {
+                                if (test_set_number != 0 && test_set_number != i)
+                                        continue;
+
+                                struct zco_context_t context;
+
+                                zco_context_init(&context);
+                                zco_context_set_min_segment_capacity_by_size(&context, capacity);
+                                TestDriverSet[i](&context, test_case_number);
+                                zco_context_destroy(&context);
+                        }
+                }
+        } else {
+                for (i = 1; i < TestSetEnd; ++i) {
+                        if (test_set_number != 0 && test_set_number != i)
+                                continue;
+
+                        struct zco_context_t context;
+
+                        zco_context_init(&context);
+                        TestDriverSet[i](&context, test_case_number);
+                        zco_context_destroy(&context);
+                }
+        }
 }
 
 
