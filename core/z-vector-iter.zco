@@ -75,7 +75,9 @@ class ZVectorIter : ZObject
         {
                 get
                 {
-                        z_object_ref(Z_OBJECT(selfp->segment));
+                        if (selfp->segment)
+                                z_object_ref(Z_OBJECT(selfp->segment));
+
                         return selfp->segment;
                 }
                 set
@@ -140,7 +142,9 @@ class ZVectorIter : ZObject
 	{
 		ZVectorSegment *segment = get_segment(src);
 		set_segment(self, segment);
-		z_object_unref(Z_OBJECT(segment));
+
+                if (segment)
+                        z_object_unref(Z_OBJECT(segment));
 
 		set_index(self, get_index(src));
 	}

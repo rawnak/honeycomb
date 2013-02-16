@@ -40,8 +40,8 @@ class ZVectorSegment : ZObject
 	private int count;
 	private int capacity;
 	private void *data;
-        public Self *prev;
-        public Self *next;
+        private Self *prev;
+        private Self *next;
 
 	init(Self *self)
 	{
@@ -49,8 +49,8 @@ class ZVectorSegment : ZObject
 		selfp->count = 0;
 		selfp->capacity = 0;
 		selfp->data = 0;
-                self->prev = NULL;
-                self->next = NULL;
+                selfp->prev = NULL;
+                selfp->next = NULL;
 	}
 
         override(ZObject) void reset(ZObject *object)
@@ -88,17 +88,17 @@ class ZVectorSegment : ZObject
         {
                 get
                 {
-                        if (self->prev)
-                                z_object_ref(Z_OBJECT(self->prev));
+                        if (selfp->prev)
+                                z_object_ref(Z_OBJECT(selfp->prev));
 
-                        return self->prev;
+                        return selfp->prev;
                 }
                 set
                 {
-                        if (self->prev)
-                                z_object_unref(Z_OBJECT(self->prev));
+                        if (selfp->prev)
+                                z_object_unref(Z_OBJECT(selfp->prev));
 
-                        self->prev = value;
+                        selfp->prev = value;
 
                         if (value)
                                 z_object_ref(Z_OBJECT(value));
@@ -109,17 +109,17 @@ class ZVectorSegment : ZObject
         {
                 get
                 {
-                        if (self->next)
-                                z_object_ref(Z_OBJECT(self->next));
+                        if (selfp->next)
+                                z_object_ref(Z_OBJECT(selfp->next));
 
-                        return self->next;
+                        return selfp->next;
                 }
                 set
                 {
-                        if (self->next)
-                                z_object_unref(Z_OBJECT(self->next));
+                        if (selfp->next)
+                                z_object_unref(Z_OBJECT(selfp->next));
 
-                        self->next = value;
+                        selfp->next = value;
 
                         if (value)
                                 z_object_ref(Z_OBJECT(value));
@@ -449,7 +449,7 @@ done:
                 if (src == it2_segment) {
                         n = z_vector_iter_get_index(it2) - z_vector_iter_get_index(it1);
                 } else {
-                        assert(it2_segment == src->next);
+                        assert(it2_segment == src->_priv.next);
                         assert(z_vector_iter_get_index(it2) == 0);
                         n = z_vector_segment_get_size(src) - z_vector_iter_get_index(it1);
                 }
@@ -547,7 +547,7 @@ done:
                 if (self == it2_segment) {
                         n = z_vector_iter_get_index(end) - z_vector_iter_get_index(start);
                 } else {
-                        assert(it2_segment == self->next);
+                        assert(it2_segment == selfp->next);
                         assert(z_vector_iter_get_index(end) == 0);
                         n = z_vector_segment_get_size(self) - z_vector_iter_get_index(start);
                 }
