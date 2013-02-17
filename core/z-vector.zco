@@ -261,19 +261,7 @@ class ZVector : ZObject
                                 while (difference) {
                                         int tail_size = z_vector_segment_get_size(selfp->tail);
                                         if (tail_size <= difference) {
-                                                ZVectorSegment *old_tail = selfp->tail;
-                                                selfp->tail = z_vector_segment_get_prev(old_tail);
-
-                                                if (old_tail) {
-                                                        z_vector_segment_set_prev(old_tail, NULL);
-                                                        z_object_unref(Z_OBJECT(old_tail));
-                                                } 
-
-                                                if (selfp->tail)
-                                                        z_vector_segment_set_next(selfp->tail, NULL);
-                                                else
-                                                        selfp->head = NULL;
-
+						remove_segment(self, selfp->tail);
                                                 difference -= tail_size;
 
                                         } else {
@@ -400,32 +388,20 @@ class ZVector : ZObject
                 /* split the segment so that the 'iter' will be pointing to the first element
                    in the second segment */
 
+		/* create the new 2nd segment. */
                 ZVectorSegment *new_segment = z_vector_segment_new(CTX);
                 ZVectorIter *new_iter = z_vector_segment_get_begin(new_segment);
-
                 int rc = z_vector_segment_insert_range(new_segment, new_iter, segment, iter,
                                 NULL, selfp->item_size, selfp->storage_mode, selfp->userdata,
                                 selfp->item_copy_construct);
-
                 assert(rc >= 0);
+
+		/* shrink the current segment. it will be the 1st segment after the split. */
                 z_vector_segment_set_size(segment, z_vector_iter_get_index(iter), 
                                 selfp->item_size, selfp->storage_mode, NULL, NULL, NULL);
 
-                z_vector_segment_set_prev(new_segment, segment);
-
-                ZVectorSegment *segment_next = z_vector_segment_get_next(segment);
-                z_vector_segment_set_next(new_segment, segment_next);
-
-                if (segment_next)
-                        z_vector_segment_set_prev(segment_next, new_segment);
-
-                z_vector_segment_set_next(segment, new_segment);
-
-                if (segment == selfp->tail) {
-                        z_object_unref(Z_OBJECT(selfp->tail));
-                        selfp->tail = new_segment;
-                        z_object_ref(Z_OBJECT(new_segment));
-                }
+		/* insert the 2nd segment after the 1st */
+		insert_segment_after(self, new_segment, segment);
         }
 
 	/* Insert item before the element pointed to by the specified 
@@ -450,82 +426,45 @@ class ZVector : ZObject
 				/* Iterator is at the beginning of the segment. We needn't split the segment */
                                 ZVectorSegment *new_segment = z_vector_segment_new(CTX);
 
+				/* build the new segment */
                                 ZVectorIter *new_iter = z_vector_segment_get_begin(new_segment);
                                 rc = z_vector_segment_insert(new_segment, new_iter, n, item, selfp->item_size, selfp->storage_mode,
                                                 selfp->userdata, selfp->item_copy_construct);
 
                                 assert(rc >= 0);
-
                                 z_object_unref(Z_OBJECT(new_iter));
                                 
-                                ZVectorSegment *segment_prev = z_vector_segment_get_prev(segment);
-                                z_vector_segment_set_prev(new_segment, segment_prev);
-                                z_vector_segment_set_next(new_segment, segment);
-
-                                if (segment_prev) {
-                                        z_vector_segment_set_next(segment_prev, new_segment);
-                                }
-                                z_vector_segment_set_prev(segment, new_segment);
-
-                                if (segment == selfp->head) {
-                                        z_object_unref(Z_OBJECT(selfp->head));
-                                        selfp->head = new_segment;
-                                        z_object_ref(Z_OBJECT(new_segment));
-                                }
+				/* insert the new segment before 'segment' */
+				insert_segment_before(self, new_segment, segment);
 
 			} else if (index == segment_size) {
 				/* Iterator is at the end of the segment. We needn't split the segment */
                                 ZVectorSegment *new_segment = z_vector_segment_new(CTX);
                                 
+				/* build the new segment */
                                 ZVectorIter *new_iter = z_vector_segment_get_begin(new_segment);
                                 rc = z_vector_segment_insert(new_segment, new_iter, n, item, selfp->item_size, selfp->storage_mode,
                                                 selfp->userdata, selfp->item_copy_construct);
-
                                 assert(rc >= 0);
-
                                 z_object_unref(Z_OBJECT(new_iter));
-                                
-                                z_vector_segment_set_prev(new_segment, segment);
 
-                                ZVectorSegment *segment_next = z_vector_segment_get_next(segment);
-                                z_vector_segment_set_next(new_segment, segment_next);
-
-                                if (segment_next) {
-                                        z_vector_segment_set_prev(segment_next, new_segment);
-                                        z_object_unref(Z_OBJECT(segment_next));
-                                }
-
-                                z_vector_segment_set_next(segment, new_segment);
-
-                                if (segment == selfp->tail) {
-                                        z_object_unref(Z_OBJECT(selfp->tail));
-                                        selfp->tail = new_segment;
-                                        z_object_ref(Z_OBJECT(new_segment));
-                                }
+				/* insert the new segment after 'segment' */
+				insert_segment_after(self, new_segment, segment);
 
 			} else {
 				/* Iterator is in the middle of the segment. We have to split the segment */
                                 split_segment(self, segment, iter);
 
+				/* build the new segment */
                                 ZVectorSegment *new_segment = z_vector_segment_new(CTX);
-
                                 ZVectorIter *new_iter = z_vector_segment_get_begin(new_segment);
                                 rc = z_vector_segment_insert(new_segment, new_iter, n, item, selfp->item_size, selfp->storage_mode,
                                                 selfp->userdata, selfp->item_copy_construct);
-
                                 assert(rc >= 0);
-
-                                /* Every segment has a prev and a next pointing to it, so its ref-count
-                                   must be 2 */
                                 z_object_unref(Z_OBJECT(new_iter));
-                                
-                                z_vector_segment_set_prev(new_segment, segment);
 
-                                ZVectorSegment *segment_next = z_vector_segment_get_next(segment);
-                                z_vector_segment_set_next(new_segment, segment_next);
-
-                                z_vector_segment_set_prev(segment_next, new_segment);
-                                z_vector_segment_set_next(segment, new_segment);
+				/* insert the new segment after 'segement' */
+				insert_segment_after(self, new_segment, segment);
 			}
                 }
 
@@ -560,6 +499,7 @@ class ZVector : ZObject
                 ZVectorSegment *source_end_segment = z_vector_iter_get_segment(src_iter_end);
 
                 ZVectorSegment *source_segment = source_end_segment;
+		z_object_ref(Z_OBJECT(source_segment));
                 int count = 0;
 
                 ZVectorIter *begin_of_start_segment = z_vector_segment_get_begin(source_start_segment);
@@ -616,35 +556,22 @@ class ZVector : ZObject
                         if (t1 == NULL && t2 == NULL && z_vector_iter_get_index(temp_iter) == 0) {
                                 /* we can copy the whole segment */
                                 ZVectorSegment *new_segment = z_vector_segment_new(CTX);
-                               
+
+				/* build the new segment */
                                 ZVectorIter *new_iter = z_vector_segment_get_begin(new_segment);
                                 rc = z_vector_segment_insert_range(new_segment, new_iter, source_segment, NULL,
                                                 NULL, selfp->item_size, selfp->storage_mode, selfp->userdata,
                                                 selfp->item_copy_construct);
-
-
                                 assert(rc > 0);
 
+				/* change iterator so that it points to the beginning of the new segment */
                                 z_object_unref(Z_OBJECT(temp_iter));
                                 temp_iter = new_iter;
 
-                                z_vector_segment_set_next(new_segment, target_segment);
+				/* insert the new segment before target_segment */
+				insert_segment_before(self, new_segment, target_segment);
 
-                                ZVectorSegment *target_segment_prev = z_vector_segment_get_prev(target_segment);
-                                z_vector_segment_set_prev(new_segment, target_segment_prev);
-
-                                if (target_segment_prev) {
-                                        z_vector_segment_set_next(target_segment_prev, new_segment);
-                                        z_object_unref(Z_OBJECT(target_segment_prev));
-                                }
-
-                                if (target_segment == selfp->head) {
-                                        z_object_unref(Z_OBJECT(selfp->head));
-                                        selfp->head = new_segment;
-                                        z_object_ref(Z_OBJECT(new_segment));
-                                }
-
-                                z_vector_segment_set_prev(target_segment, new_segment);
+				/* make the current segment the newly created segment */
                                 target_segment = new_segment;
 
                                 rc = z_vector_segment_get_size(new_segment);
@@ -659,10 +586,10 @@ class ZVector : ZObject
                                         target_segment = z_vector_segment_new(CTX);
                                         
                                         selfp->head = target_segment;
-                                        z_object_ref(Z_OBJECT(selfp->head));
+                                        z_object_ref(Z_OBJECT(target_segment));
 
                                         selfp->tail = target_segment;
-                                        z_object_ref(Z_OBJECT(selfp->tail));
+                                        z_object_ref(Z_OBJECT(target_segment));
 
                                         z_vector_iter_set_segment(temp_iter, target_segment);
                                         z_vector_iter_set_segment(iter, target_segment);
@@ -695,23 +622,7 @@ class ZVector : ZObject
                                         z_object_unref(Z_OBJECT(temp_iter));
                                         temp_iter = new_iter;
                                         
-                                        ZVectorSegment *target_segment_prev = z_vector_segment_get_prev(target_segment);
-                                        z_vector_segment_set_prev(new_segment, target_segment_prev);
-
-                                        z_vector_segment_set_next(new_segment, target_segment);
-
-
-                                        if (target_segment_prev) {
-                                                z_vector_segment_set_next(target_segment_prev, new_segment);
-                                        }
-
-                                        z_vector_segment_set_prev(target_segment, new_segment);
-
-                                        if (target_segment == selfp->head) {
-                                                z_object_unref(Z_OBJECT(selfp->head));
-                                                selfp->head = new_segment;
-                                                z_object_ref(Z_OBJECT(new_segment));
-                                        }
+					insert_segment_before(self, new_segment, target_segment);
 
                                         /* the new target segment is the newly created segment. this ensures
                                            that the next insert_range happens before the newly created segment */
@@ -733,28 +644,12 @@ class ZVector : ZObject
                                         z_object_unref(Z_OBJECT(temp_iter));
                                         temp_iter = new_iter;
 
-                                        z_vector_segment_set_prev(new_segment, target_segment);
 
-                                        ZVectorSegment *target_segment_next = z_vector_segment_get_next(target_segment);
-                                        z_vector_segment_set_next(new_segment, target_segment_next);
-
-
-                                        if (target_segment_next) {
-                                                z_vector_segment_set_prev(target_segment_next, new_segment);
-                                        }
-
-                                        z_vector_segment_set_next(target_segment, new_segment);
-
-                                        if (target_segment == selfp->tail) {
-                                                z_object_unref(Z_OBJECT(selfp->tail));
-                                                selfp->tail = new_segment;
-                                                z_object_ref(Z_OBJECT(new_segment));
-                                        }
+					insert_segment_after(self, new_segment, target_segment);
 
                                         /* the new target segment is the newly created segment. this ensures
                                            that the next insert_range happens before the newly created segment */
                                         target_segment = new_segment;
-
 
                                 } else {
                                         split_segment(self, target_segment, temp_iter);
@@ -762,25 +657,16 @@ class ZVector : ZObject
                                         /* Iterator is in the middle of the segment. We have to split the segment */
                                         ZVectorSegment *new_segment = z_vector_segment_new(CTX);
                                       
+					/* build the new segment */
                                         ZVectorIter *new_iter = z_vector_segment_get_begin(new_segment);
                                         rc = z_vector_segment_insert_range(new_segment, new_iter, s1, t1,
                                                         t2, selfp->item_size, selfp->storage_mode, selfp->userdata,
                                                         selfp->item_copy_construct);
-
-
                                         assert(rc > 0);
-
-                                        /* Every segment has a prev and a next pointing to it, so its ref-count
-                                           must be 2 */
                                         z_object_unref(Z_OBJECT(new_iter));
                                         
-                                        z_vector_segment_set_prev(new_segment, target_segment);
-
-                                        ZVectorSegment *target_segment_next = z_vector_segment_get_next(target_segment);
-                                        z_vector_segment_set_next(new_segment, target_segment_next);
-
-                                        z_vector_segment_set_prev(target_segment_next, new_segment);
-                                        z_vector_segment_set_next(target_segment, new_segment);
+					/* insert the new segment after target_segment */
+					insert_segment_after(self, new_segment, target_segment);
 
                                         /* the new target segment is the newly created segment. this ensures
                                            that the next insert_range happens before the newly created segment */
@@ -797,15 +683,120 @@ class ZVector : ZObject
                         if (source_segment == source_start_segment)
                                 break;
 
+			/* move to the previous segment */
                         ZVectorSegment *source_segment_prev = z_vector_segment_get_prev(source_segment);
                         z_object_unref(Z_OBJECT(source_segment));
                         source_segment = source_segment_prev;
                 }
 
+		z_object_unref(Z_OBJECT(source_segment));
+		z_object_unref(Z_OBJECT(source_start_segment));
+		z_object_unref(Z_OBJECT(source_end_segment));
+		z_object_unref(Z_OBJECT(target_segment));
+
                 z_object_unref(Z_OBJECT(begin_of_start_segment));
                 z_object_unref(Z_OBJECT(end_of_end_segment));
 
                 selfp->count += count;
+	}
+
+	private void insert_segment_after(Self *self, ZVectorSegment *new_segment, ZVectorSegment *after)
+	{
+		/* new segment points back to the existing segment */
+		z_vector_segment_set_prev(new_segment, after);
+
+		/* new segment points forward to the existing segment's next segment */
+		ZVectorSegment *after_next = z_vector_segment_get_next(after);
+		z_vector_segment_set_next(new_segment, after_next);
+
+		/* if the existing segment had a next, it should point back to the new segment */
+		if (after_next) {
+			z_vector_segment_set_prev(after_next, new_segment);
+			z_object_unref(Z_OBJECT(after_next));
+		}
+
+		/* the existing segment points forward to the new segment */
+		z_vector_segment_set_next(after, new_segment);
+
+		/* if after was the tail of the vector, the new segment should be the new tail */
+		if (after == selfp->tail) {
+			z_object_unref(Z_OBJECT(selfp->tail));
+			selfp->tail = new_segment;
+			z_object_ref(Z_OBJECT(new_segment));
+		}
+	}
+
+	private void insert_segment_before(Self *self, ZVectorSegment *new_segment, ZVectorSegment *before)
+	{
+		/* new segment points back to the existing segment's previous segment */
+		ZVectorSegment *before_prev = z_vector_segment_get_prev(before);
+		z_vector_segment_set_prev(new_segment, before_prev);
+
+		/* new segment points forward to the existing segment */
+		z_vector_segment_set_next(new_segment, before);
+
+		/* if the existing segment had a previous, it should point forward to the new segment */
+		if (before_prev) {
+			z_vector_segment_set_next(before_prev, new_segment);
+			z_object_unref(Z_OBJECT(before_prev));
+		}
+
+		/* the existing segment points back to the new segment */
+		z_vector_segment_set_prev(before, new_segment);
+
+		/* if before was the head of the vector, the new segment should be the new head */
+		if (before == selfp->head) {
+			z_object_unref(Z_OBJECT(selfp->head));
+			selfp->head = new_segment;
+			z_object_ref(Z_OBJECT(new_segment));
+		}
+	}
+
+	private void remove_segment(Self *self, ZVectorSegment *segment)
+	{
+		ZVectorSegment *segment_prev = z_vector_segment_get_prev(segment);
+		ZVectorSegment *segment_next = z_vector_segment_get_next(segment);
+
+		if (segment_prev) {
+			/* the previous segment point forward to the next segment */
+			z_vector_segment_set_next(segment_prev, segment_next);
+		} else {
+			assert(segment == selfp->head);
+
+			/* if the segment was the head of the vector, make the next
+			   segment the new head */
+			if (selfp->head)
+				z_object_unref(Z_OBJECT(selfp->head));
+
+			selfp->head = segment_next;
+
+			if (segment_next)
+				z_object_ref(Z_OBJECT(segment_next));
+		}
+
+		if (segment_next) {
+			/* the next segment points back to the previous segment */
+			z_vector_segment_set_prev(segment_next, segment_prev);
+		} else {
+			assert(segment == selfp->tail);
+
+			/* if the segment was the tail of the vector, make the previous
+			   segment the new tail */
+			if (selfp->tail)
+				z_object_unref(Z_OBJECT(selfp->tail));
+
+			selfp->tail = segment_prev;
+
+			if (segment_prev)
+				z_object_ref(Z_OBJECT(segment_prev));
+		}
+
+		if (segment_prev)
+			z_object_unref(Z_OBJECT(segment_prev));
+
+		if (segment_next)
+			z_object_unref(Z_OBJECT(segment_next));
+
 	}
 
 	/* Erase the items in the range [start,end) */
@@ -819,16 +810,17 @@ class ZVector : ZObject
                 ZVectorSegment *segment = start_segment;
                 int count = 0;
                 
+		z_object_ref(Z_OBJECT(segment));
+
                 while (1) {
                         ZVectorIter *t1,*t2;
                         if (segment == start_segment) {
                                 t1 = start;
 
-                                if (segment == end_segment) {
+                                if (segment == end_segment)
                                         t2 = end;
-                                } else {
+                                else
                                         t2 = NULL;
-                                }
                         } else if (segment == end_segment) {
                                 t1 = NULL;
                                 t2 = end;
@@ -857,44 +849,7 @@ class ZVector : ZObject
                                 t1 = NULL;
 
                         if (t1 == NULL && t2 == NULL) {
-                                ZVectorSegment *segment_prev = z_vector_segment_get_prev(segment);
-                                ZVectorSegment *segment_next = z_vector_segment_get_next(segment);
-
-                                if (segment_prev) {
-                                        z_vector_segment_set_next(segment_prev, segment_next);
-                                } else {
-                                        assert(segment == selfp->head);
-                                        if (selfp->head)
-                                                z_object_unref(Z_OBJECT(selfp->head));
-
-                                        selfp->head = segment_next;
-
-                                        if (segment_next)
-                                                z_object_ref(Z_OBJECT(segment_next));
-
-                                }
-                                
-                                if (segment_next) {
-                                        z_vector_segment_set_prev(segment_next, segment_prev);
-                                } else {
-                                        assert(segment == selfp->tail);
-
-                                        if (selfp->tail)
-                                                z_object_unref(Z_OBJECT(selfp->tail));
-
-                                        selfp->tail = segment_prev;
-
-                                        if (segment_prev)
-                                                z_object_ref(Z_OBJECT(segment_prev));
-                                }
-
-                                if (segment_prev)
-                                        z_object_unref(Z_OBJECT(segment_prev));
-
-                                if (segment_next)
-                                        z_object_unref(Z_OBJECT(segment_next));
-
-
+				remove_segment(self, segment);
                                 count += z_vector_segment_get_size(segment);
 
                                 /* 2 unrefs since it lost two references. one from the previous node
@@ -909,11 +864,17 @@ class ZVector : ZObject
                         if (segment == end_segment)
                                 break;
 
+			/* set segment to point to the next segment */
+			ZVectorSegment *segment_next = z_vector_segment_get_next(segment);
                         z_object_unref(Z_OBJECT(segment));
-                        segment = z_vector_segment_get_next(segment);
+                        segment = segment_next;
                 }
 
                 selfp->count -= count;
+
+		z_object_unref(Z_OBJECT(segment));
+		z_object_unref(Z_OBJECT(end_segment));
+		z_object_unref(Z_OBJECT(start_segment));
 
                 return 0;
 	}
