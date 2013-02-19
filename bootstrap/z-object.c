@@ -136,6 +136,7 @@ ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
 		global->_class->__dispose = z_object_virtual_dispose;
 		__z_object_class_init(ctx, (ZObjectClass *) global->_class);
 		global->method_map = z_map_new(ctx);
+		z_map_set_userdata(global->method_map, global->method_map);
 		z_map_set_compare(global->method_map, __map_compare);
 		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
 #line 36 "z-object.zco"

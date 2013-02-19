@@ -59,11 +59,40 @@ class ZDefaultObjectTracker : ZObject,ZObjectTracker
                 return PTR_TO_INT(a) - PTR_TO_INT(b);
         }
 
+	private void lazy_destroy(void *ptr)
+	{
+		printf("*** LAZY DESTROY ***\n");
+		z_object_dispose(ptr);
+	}
+
         override(ZObject)
         void dispose(ZObject *object)
         {
                 Self *self = (Self *) object;
+                ZMapIter *begin, *it, *end;
+
+		/* suspend garbage collector */
+                selfp->suspended = 1;
+
+		/* set a item destructor for each pool */
+                begin = z_map_get_begin(selfp->pools);
+                it = z_map_iter_dup(begin);
+                end = z_map_get_end(selfp->pools);
+
+                while (!z_map_iter_is_equal(it, end)) {
+                        ZVector *pool = (ZVector *) z_map_get_value(selfp->pools, it);
+			z_vector_set_item_destruct(pool, (ZVectorItemCallback) lazy_destroy);
+                        z_map_iter_increment(it);
+                }
+
+                z_object_unref(Z_OBJECT(it));
+                z_object_unref(Z_OBJECT(begin));
+                z_object_unref(Z_OBJECT(end));
+
+		/* unref the pools map */
                 z_object_unref(Z_OBJECT(selfp->pools));
+
+		PARENT_HANDLER(object);
         }
 
 	override(ZObjectTracker)
@@ -105,7 +134,19 @@ class ZDefaultObjectTracker : ZObject,ZObjectTracker
                 }
 
                 /* reset the object state */
-                z_object_reset(object);
+		if (type_id == 1) { // map
+			z_object_dispose(object);
+			object = NULL;
+
+		} else if (type_id == 9) { // string
+			//z_object_dispose(object);
+			//object = NULL;
+
+			z_object_reset(object);
+
+		} else {
+			z_object_reset(object);
+		}
 
 done:
                 selfp->suspended = 0;

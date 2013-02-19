@@ -274,6 +274,7 @@ ZZcoSourceGeneratorGlobal * z_zco_source_generator_get_type(struct zco_context_t
 		}
 		__z_zco_source_generator_class_init(ctx, (ZZcoSourceGeneratorClass *) global->_class);
 		global->method_map = z_map_new(ctx);
+		z_map_set_userdata(global->method_map, global->method_map);
 		z_map_set_compare(global->method_map, __map_compare);
 		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
 #line 255 "z-zco-source-generator.zco"

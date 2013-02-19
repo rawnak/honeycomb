@@ -57,13 +57,16 @@ class ZVectorSegment : ZObject
         {
 		Self *self = (Self *) object;
 
+                set_prev(self, NULL);
+                set_next(self, NULL);
+
+                if (selfp->data)
+                        free(selfp->data);
+                
+                selfp->data = 0;
                 selfp->start = 0;
 		selfp->count = 0;
 		selfp->capacity = 0;
-		selfp->data = 0;
-
-                set_prev(self, NULL);
-                set_next(self, NULL);
 
                 PARENT_HANDLER(object);
         }
@@ -74,6 +77,11 @@ class ZVectorSegment : ZObject
 
                 set_prev(self, NULL);
                 set_next(self, NULL);
+
+                if (selfp->data)
+                        free(selfp->data);
+                
+                selfp->data = 0;
 
 		PARENT_HANDLER(object);
 	}
@@ -183,20 +191,7 @@ class ZVectorSegment : ZObject
                                                 item_destruct(*((void **)(selfp->data + selfp->start + offset)), userdata);
                                         }
                                 }
-                        } else {
-                                // FIXME: just a temporary solution
-                                int i;
-
-                                if (storage_mode == 0) {
-                                        for (i = value; i < selfp->count; ++i) {
-                                                int offset = i * item_size;
-                                                memset(selfp->data + selfp->start + offset, 0, item_size);
-                                        }
-                                } else {
-                                        // to nothing
-                                }
-                        }
-
+                        } 
                 }
 
                 selfp->count = value;
@@ -324,7 +319,7 @@ done:
                         return rc;
 
                 assert(size + n == get_size(self));
-                assert(self == z_vector_iter_get_segment(iter));
+                //assert(self == z_vector_iter_get_segment(iter));
 
 		/* make a copy of the iterator */
 		ZVectorIter *it = z_vector_iter_dup(iter);
@@ -560,6 +555,9 @@ done:
 			it2 = z_vector_iter_dup(start);
 			n = -n;
 		}
+
+                z_object_unref(Z_OBJECT(end));
+                z_object_unref(Z_OBJECT(start));
 
 		/* call the item destructor on the items that is being removed */
 		if (item_destruct) {

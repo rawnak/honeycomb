@@ -135,36 +135,31 @@ int main(int argc, char **argv)
         int capacity;
 	int i;
 
+        struct zco_context_t context;
+        zco_context_init(&context);
+
         if (try_segments) {
                 for (capacity = 500; capacity >= 1; --capacity) {
 
                         printf("Testing with minimum vector capacity of %d bytes\n"
                                "================================================", capacity);
+                        zco_context_set_min_segment_capacity_by_size(&context, capacity);
 
                         for (i = 1; i < TestSetEnd; ++i) {
-                                if (test_set_number != 0 && test_set_number != i)
-                                        continue;
-
-                                struct zco_context_t context;
-
-                                zco_context_init(&context);
-                                zco_context_set_min_segment_capacity_by_size(&context, capacity);
-                                TestDriverSet[i](&context, test_case_number);
-                                zco_context_destroy(&context);
+                                if (test_set_number == 0 || test_set_number == i)
+                                        TestDriverSet[i](&context, test_case_number);
                         }
                 }
         } else {
+                zco_context_set_min_segment_capacity_by_size(&context, 500);
+
                 for (i = 1; i < TestSetEnd; ++i) {
-                        if (test_set_number != 0 && test_set_number != i)
-                                continue;
-
-                        struct zco_context_t context;
-
-                        zco_context_init(&context);
-                        TestDriverSet[i](&context, test_case_number);
-                        zco_context_destroy(&context);
+                        if (test_set_number == 0 || test_set_number == i)
+                                TestDriverSet[i](&context, test_case_number);
                 }
         }
+
+        zco_context_destroy(&context);
 }
 
 

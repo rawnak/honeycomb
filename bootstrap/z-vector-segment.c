@@ -36,35 +36,41 @@
 #define GET_NEW(ctx) __z_vector_segment_new(ctx)
 #define CTX self->_global->ctx
 #define INIT_EXISTS
-#line 25 "z-vector-segment.zco"
+#line 26 "z-vector-segment.zco"
 #define init z_vector_segment_init
-#line 71 "z-vector-segment.zco"
+#line 69 "z-vector-segment.zco"
 #define new z_vector_segment_new
-#line 82 "z-vector-segment.zco"
+#line 77 "z-vector-segment.zco"
+#define get_prev z_vector_segment_get_prev
+#line 84 "z-vector-segment.zco"
+#define set_prev z_vector_segment_set_prev
+#line 98 "z-vector-segment.zco"
+#define get_next z_vector_segment_get_next
+#line 105 "z-vector-segment.zco"
+#define set_next z_vector_segment_set_next
+#line 122 "z-vector-segment.zco"
 #define get_size z_vector_segment_get_size
-#line 87 "z-vector-segment.zco"
+#line 127 "z-vector-segment.zco"
 #define set_size z_vector_segment_set_size
-#line 142 "z-vector-segment.zco"
+#line 185 "z-vector-segment.zco"
 #define get_capacity z_vector_segment_get_capacity
-#line 147 "z-vector-segment.zco"
+#line 190 "z-vector-segment.zco"
 #define set_capacity z_vector_segment_set_capacity
-#line 176 "z-vector-segment.zco"
+#line 230 "z-vector-segment.zco"
 #define is_in_bound z_vector_segment_is_in_bound
-#line 189 "z-vector-segment.zco"
+#line 243 "z-vector-segment.zco"
 #define get_item z_vector_segment_get_item
-#line 209 "z-vector-segment.zco"
+#line 263 "z-vector-segment.zco"
 #define set_item z_vector_segment_set_item
-#line 226 "z-vector-segment.zco"
-#define insert_segment z_vector_segment_insert_segment
-#line 247 "z-vector-segment.zco"
+#line 290 "z-vector-segment.zco"
 #define insert z_vector_segment_insert
-#line 274 "z-vector-segment.zco"
+#line 357 "z-vector-segment.zco"
 #define get_begin z_vector_segment_get_begin
-#line 286 "z-vector-segment.zco"
+#line 369 "z-vector-segment.zco"
 #define get_end z_vector_segment_get_end
-#line 307 "z-vector-segment.zco"
+#line 398 "z-vector-segment.zco"
 #define insert_range z_vector_segment_insert_range
-#line 363 "z-vector-segment.zco"
+#line 502 "z-vector-segment.zco"
 #define erase z_vector_segment_erase
 
 int z_vector_segment_type_id = -1;
@@ -85,12 +91,14 @@ static int __map_compare(ZMap *map, const void *a, const void *b)
 {
 	return strcmp(a, b);
 }
-#line 25 "z-vector-segment.zco"
+#line 26 "z-vector-segment.zco"
 static void z_vector_segment_init(Self *self);
-#line 34 "z-vector-segment.zco"
+#line 36 "z-vector-segment.zco"
 static void  z_vector_segment_reset(ZObject *object);
-#line 55 "z-vector-segment.zco"
+#line 54 "z-vector-segment.zco"
 static void  z_vector_segment_dispose(ZObject *object);
+#line 190 "z-vector-segment.zco"
+static int  z_vector_segment_set_capacity(Self *self,int value,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_construct,ZVectorItemCallback item_destruct);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
@@ -146,53 +154,50 @@ ZVectorSegmentGlobal * z_vector_segment_get_type(struct zco_context_t *ctx)
 		global_ptr = zco_get_ctx_type(ctx, z_vector_segment_type_id);
 		*global_ptr = global;
 		
-#line 34 "z-vector-segment.zco"
+#line 36 "z-vector-segment.zco"
 		{
-#line 34 "z-vector-segment.zco"
+#line 36 "z-vector-segment.zco"
 			ZObjectClass *p_class = &global->_class->parent_z_object;
-#line 34 "z-vector-segment.zco"
+#line 36 "z-vector-segment.zco"
 			global->__parent_reset = p_class->__reset;
-#line 34 "z-vector-segment.zco"
+#line 36 "z-vector-segment.zco"
 			p_class->__reset = z_vector_segment_reset;
-#line 34 "z-vector-segment.zco"
+#line 36 "z-vector-segment.zco"
 		}
-#line 55 "z-vector-segment.zco"
+#line 54 "z-vector-segment.zco"
 		{
-#line 55 "z-vector-segment.zco"
+#line 54 "z-vector-segment.zco"
 			ZObjectClass *p_class = &global->_class->parent_z_object;
-#line 55 "z-vector-segment.zco"
+#line 54 "z-vector-segment.zco"
 			global->__parent_dispose = p_class->__dispose;
-#line 55 "z-vector-segment.zco"
+#line 54 "z-vector-segment.zco"
 			p_class->__dispose = z_vector_segment_dispose;
-#line 55 "z-vector-segment.zco"
+#line 54 "z-vector-segment.zco"
 		}
 		__z_vector_segment_class_init(ctx, (ZVectorSegmentClass *) global->_class);
 		global->method_map = z_map_new(ctx);
+		z_map_set_userdata(global->method_map, global->method_map);
 		z_map_set_compare(global->method_map, __map_compare);
 		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
-#line 71 "z-vector-segment.zco"
+#line 69 "z-vector-segment.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("new"), (ZObjectSignalHandler) new);
-#line 82 "z-vector-segment.zco"
+#line 122 "z-vector-segment.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("get_size"), (ZObjectSignalHandler) get_size);
-#line 87 "z-vector-segment.zco"
+#line 127 "z-vector-segment.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("set_size"), (ZObjectSignalHandler) set_size);
-#line 142 "z-vector-segment.zco"
+#line 185 "z-vector-segment.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("get_capacity"), (ZObjectSignalHandler) get_capacity);
-#line 147 "z-vector-segment.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("set_capacity"), (ZObjectSignalHandler) set_capacity);
-#line 176 "z-vector-segment.zco"
+#line 230 "z-vector-segment.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("is_in_bound"), (ZObjectSignalHandler) is_in_bound);
-#line 189 "z-vector-segment.zco"
+#line 243 "z-vector-segment.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("get_item"), (ZObjectSignalHandler) get_item);
-#line 209 "z-vector-segment.zco"
+#line 263 "z-vector-segment.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("set_item"), (ZObjectSignalHandler) set_item);
-#line 226 "z-vector-segment.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("insert_segment"), (ZObjectSignalHandler) insert_segment);
-#line 247 "z-vector-segment.zco"
+#line 290 "z-vector-segment.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("insert"), (ZObjectSignalHandler) insert);
-#line 307 "z-vector-segment.zco"
+#line 398 "z-vector-segment.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("insert_range"), (ZObjectSignalHandler) insert_range);
-#line 363 "z-vector-segment.zco"
+#line 502 "z-vector-segment.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("erase"), (ZObjectSignalHandler) erase);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZVectorSegmentGlobal *) global);
@@ -220,75 +225,115 @@ void __z_vector_segment_init(struct zco_context_t *ctx, Self *self)
 		init(self);
 	#endif
 }
-#line 25 "z-vector-segment.zco"
+#line 26 "z-vector-segment.zco"
 static void z_vector_segment_init(Self *self)
 {
+ selfp->start = 0;
  selfp->count = 0;
  selfp->capacity = 0;
  selfp->data = 0;
- self->prev = NULL;
- self->next = NULL;
+ selfp->prev = NULL;
+ selfp->next = NULL;
  }
-#line 34 "z-vector-segment.zco"
+#line 36 "z-vector-segment.zco"
 #define PARENT_HANDLER self->_global->__parent_reset
 static void  z_vector_segment_reset(ZObject *object)
 {
  Self *self = (Self *) object;
 
- if (self->prev)
- z_object_unref(Z_OBJECT(self->prev));
+ set_prev(self, NULL);
+ set_next(self, NULL);
 
- if (self->next)
- z_object_unref(Z_OBJECT(self->next));
-
-
+ if (selfp->data)
+ free(selfp->data);
+ 
+ selfp->data = 0;
+ selfp->start = 0;
  selfp->count = 0;
  selfp->capacity = 0;
- selfp->data = 0;
-
- self->prev = NULL;
- self->next = NULL;
 
  PARENT_HANDLER(object);
  }
 #undef PARENT_HANDLER
-#line 55 "z-vector-segment.zco"
+#line 54 "z-vector-segment.zco"
 #define PARENT_HANDLER self->_global->__parent_dispose
 static void  z_vector_segment_dispose(ZObject *object)
 {
  Self *self = (Self *) object;
 
- if (self->prev)
- z_object_unref(Z_OBJECT(self->prev));
+ set_prev(self, NULL);
+ set_next(self, NULL);
 
- if (self->next)
- z_object_unref(Z_OBJECT(self->next));
-
- self->prev = NULL;
- self->next = NULL;
+ if (selfp->data)
+ free(selfp->data);
+ 
+ selfp->data = 0;
 
  PARENT_HANDLER(object);
  }
 #undef PARENT_HANDLER
-#line 71 "z-vector-segment.zco"
+#line 69 "z-vector-segment.zco"
 Self * z_vector_segment_new(struct zco_context_t *ctx)
 {
  Self *self = GET_NEW(ctx);
  return self;
  }
-#line 82 "z-vector-segment.zco"
+#line 77 "z-vector-segment.zco"
+Self * z_vector_segment_get_prev(Self *self)
+{
+ if (selfp->prev)
+ z_object_ref(Z_OBJECT(selfp->prev));
+
+ return selfp->prev;
+ }
+#line 84 "z-vector-segment.zco"
+void z_vector_segment_set_prev(Self *self, Self * value)
+{
+ if (selfp->prev)
+ z_object_unref(Z_OBJECT(selfp->prev));
+
+ selfp->prev = value;
+
+ if (value)
+ z_object_ref(Z_OBJECT(value));
+ }
+#line 98 "z-vector-segment.zco"
+Self * z_vector_segment_get_next(Self *self)
+{
+ if (selfp->next)
+ z_object_ref(Z_OBJECT(selfp->next));
+
+ return selfp->next;
+ }
+#line 105 "z-vector-segment.zco"
+void z_vector_segment_set_next(Self *self, Self * value)
+{
+ if (selfp->next)
+ z_object_unref(Z_OBJECT(selfp->next));
+
+ selfp->next = value;
+
+ if (value)
+ z_object_ref(Z_OBJECT(value));
+ }
+#line 122 "z-vector-segment.zco"
 int  z_vector_segment_get_size(Self *self)
 {
  return selfp->count;
  }
-#line 87 "z-vector-segment.zco"
+#line 127 "z-vector-segment.zco"
 int  z_vector_segment_set_size(Self *self,int value,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_construct,ZVectorItemCallback item_destruct)
 {
+ int rc = 0;
+
  if (selfp->count < value) {
  /* grow the vector */
  if (selfp->capacity < value) {
- set_capacity(self, value * 2, item_size, storage_mode, userdata,
+ rc = set_capacity(self, value * 2, item_size, storage_mode, userdata,
  item_construct, item_destruct);
+ 
+ if (rc)
+ goto done;
  }
 
  if (item_construct) {
@@ -297,12 +342,12 @@ int  z_vector_segment_set_size(Self *self,int value,int item_size,int storage_mo
  if (storage_mode == 0) {
  for (i = selfp->count; i < value; ++i) {
  int offset = i * item_size;
- item_construct(selfp->data + offset, userdata);
+ item_construct(selfp->data + selfp->start + offset, userdata);
  }
  } else {
  for (i = selfp->count; i < value; ++i) {
  int offset = i * item_size;
- item_construct(*((void **)(selfp->data + offset)), userdata);
+ item_construct(*((void **)(selfp->data + selfp->start + offset)), userdata);
  }
  }
  }
@@ -315,56 +360,65 @@ int  z_vector_segment_set_size(Self *self,int value,int item_size,int storage_mo
  if (storage_mode == 0) {
  for (i = value; i < selfp->count; ++i) {
  int offset = i * item_size;
- item_destruct(selfp->data + offset, userdata);
+ item_destruct(selfp->data + selfp->start + offset, userdata);
  }
  } else {
  for (i = value; i < selfp->count; ++i) {
  int offset = i * item_size;
- item_destruct(*((void **)(selfp->data + offset)), userdata);
+ item_destruct(*((void **)(selfp->data + selfp->start + offset)), userdata);
  }
  }
- }
+ } 
  }
 
  selfp->count = value;
 
- /* FIXME: Always realloc the buffer for now. Once we have an allocator that is able to resize
-                   a buffer and fail if it's not possible, we can return a different return code here to notify
-                   the caller that the set_size operation wasn't successful */
- return 0;
+done:
+ return rc;
  }
-#line 142 "z-vector-segment.zco"
+#line 185 "z-vector-segment.zco"
 int  z_vector_segment_get_capacity(Self *self)
 {
  return selfp->capacity;
  }
-#line 147 "z-vector-segment.zco"
-void  z_vector_segment_set_capacity(Self *self,int value,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_construct,ZVectorItemCallback item_destruct)
+#line 190 "z-vector-segment.zco"
+static int  z_vector_segment_set_capacity(Self *self,int value,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_construct,ZVectorItemCallback item_destruct)
 {
  if (value < selfp->count) {
  set_size(self, value, item_size, storage_mode, userdata, item_construct, item_destruct);
  selfp->count = value;
  }
 
- selfp->capacity = value;
-
  if (value) {
+ int min_segment_capacity_by_size = zco_context_get_min_segment_capacity_by_size(CTX);
+ int min_segment_capacity_by_count = zco_context_get_min_segment_capacity_by_count(CTX);
+
+ /* restrict minimum segment size by count */
+ if (value < min_segment_capacity_by_count)
+ value = min_segment_capacity_by_count;
+
+ /* restrict minimum segment size by size in bytes */
+ if (value * item_size < min_segment_capacity_by_size)
+ value = (min_segment_capacity_by_size + item_size - 1) / item_size;
+
  if (selfp->data) {
- int copy_size = selfp->count * item_size;
- void *b = malloc(value * item_size);
- memcpy(b, selfp->data, copy_size);
- free(selfp->data);
- selfp->data = b;
+ /* FIXME: We cannot resize the buffer until we have an allocator to do so */
+ return -1;
  } else {
+ selfp->capacity = value;
  selfp->data = malloc(value * item_size);
  }
 
  } else if (selfp->data) {
+ selfp->capacity = 0;
+
  free(selfp->data);
  selfp->data = NULL;
  }
+
+ return 0;
  }
-#line 176 "z-vector-segment.zco"
+#line 230 "z-vector-segment.zco"
 int  z_vector_segment_is_in_bound(Self *self,ZVectorIter *iter)
 {
  int index = z_vector_iter_get_index(iter);
@@ -375,7 +429,7 @@ int  z_vector_segment_is_in_bound(Self *self,ZVectorIter *iter)
  else
  return 0;
  }
-#line 189 "z-vector-segment.zco"
+#line 243 "z-vector-segment.zco"
 void *  z_vector_segment_get_item(Self *self,ZVectorIter *iter,int item_size,int storage_mode)
 {
  int index = z_vector_iter_get_index(iter);
@@ -383,9 +437,9 @@ void *  z_vector_segment_get_item(Self *self,ZVectorIter *iter,int item_size,int
 
  if (is_in_bound(self, iter)) {
  if (storage_mode == 0)
- return selfp->data + offset;
+ return selfp->data + selfp->start + offset;
  else
- return *((void **)(selfp->data + offset));
+ return *((void **)(selfp->data + selfp->start + offset));
 
  } else {
  fprintf(stderr, "Index out of bound. max=%d, index=%d\n", selfp->count-1, index);
@@ -393,7 +447,7 @@ void *  z_vector_segment_get_item(Self *self,ZVectorIter *iter,int item_size,int
 
  return NULL;
  }
-#line 209 "z-vector-segment.zco"
+#line 263 "z-vector-segment.zco"
 int  z_vector_segment_set_item(Self *self,ZVectorIter *iter,void *item,int item_size,int storage_mode)
 {
  int index = z_vector_iter_get_index(iter);
@@ -401,73 +455,96 @@ int  z_vector_segment_set_item(Self *self,ZVectorIter *iter,void *item,int item_
 
  if (index >= 0 && index < selfp->count) {
  if (storage_mode == 0)
- memcpy(selfp->data + offset, item, item_size);
+ memcpy(selfp->data + selfp->start + offset, item, item_size);
  else
- memcpy(selfp->data + offset, &item, item_size);
+ memcpy(selfp->data + selfp->start + offset, &item, item_size);
 
  return 0;
  }
 
  return ERANGE;
  }
-#line 226 "z-vector-segment.zco"
-int  z_vector_segment_insert_segment(Self *self,ZVectorSegment *src,int item_size)
+#line 290 "z-vector-segment.zco"
+int  z_vector_segment_insert(Self *self,ZVectorIter *iter,int n,void *item,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_copy_construct)
 {
- ZVectorSegment *obj;
+ /* increase the size of the vector */
 
- obj = z_vector_segment_new(CTX);
- obj->_priv.count = src->_priv.count;
- obj->_priv.capacity = src->_priv.count;
- obj->next = self;
- obj->prev = self->prev;
- self->prev->next = obj;
- self->prev = obj;
+ int size = get_size(self);
+ int rc = set_size(self, size + n, item_size, storage_mode, NULL, NULL, NULL);
 
- obj->_priv.data = malloc(src->_priv.capacity * item_size);
- memcpy(obj->_priv.data, src->_priv.data, src->_priv.count * item_size);
+ if (rc)
+ return rc;
 
- return obj->_priv.count;
- }
-#line 247 "z-vector-segment.zco"
-void  z_vector_segment_insert(Self *self,ZVectorIter *iter,int n,void *item,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_construct,ZVectorItemCallback item_destruct)
-{
+ assert(size + n == get_size(self));
+ assert(self == z_vector_iter_get_segment(iter));
+
  /* make a copy of the iterator */
  ZVectorIter *it = z_vector_iter_dup(iter);
 
- /* increase the size of the vector */
- int size = get_size(self);
- set_size(self, size + n, item_size, storage_mode, userdata, item_construct, item_destruct);
-
  /* shift all elements in [it,inf) forward */
- memmove(selfp->data + (z_vector_iter_get_index(it) + n) * item_size,
- selfp->data + z_vector_iter_get_index(it) * item_size,
- (size - z_vector_iter_get_index(it)) * item_size);
+ int index = z_vector_iter_get_index(it);
+ assert(size >= index);
+
+ if (size > index) {
+ void *base = selfp->data + selfp->start;
+ memmove(base + (index + n) * item_size,
+ base + index * item_size,
+ (size - index) * item_size);
+ }
 
  int i;
+
+ if (item_copy_construct) {
+ int i;
+
+ if (storage_mode == 0) {
+ for (i=0; i<n; ++i) {
+ set_item(self, it, item, item_size, storage_mode);
+ z_vector_iter_increment(it);
+
+ int offset = (index + i) * item_size;
+ item_copy_construct(selfp->data + selfp->start + offset, userdata);
+ }
+
+ } else {
+ for (i=0; i<n; ++i) {
+ set_item(self, it, item, item_size, storage_mode);
+ z_vector_iter_increment(it);
+
+ int offset = (index + i) * item_size;
+ item_copy_construct(*((void **)(selfp->data + selfp->start + offset)), userdata);
+ }
+ }
+ } else {
  for (i=0; i<n; ++i) {
  set_item(self, it, item, item_size, storage_mode);
  z_vector_iter_increment(it);
  }
+ }
+
 
  z_object_unref(Z_OBJECT(it));
+
+ return 0;
  }
-#line 274 "z-vector-segment.zco"
+#line 357 "z-vector-segment.zco"
 ZVectorIter *  z_vector_segment_get_begin(Self *self)
 {
  ZVectorIter *iter = z_vector_iter_new(CTX);
  z_vector_iter_set_segment(iter, self);
  return iter;
  }
-#line 286 "z-vector-segment.zco"
+#line 369 "z-vector-segment.zco"
 ZVectorIter *  z_vector_segment_get_end(Self *self)
 {
  ZVectorIter *iter = z_vector_iter_new(CTX);
  z_vector_iter_set_segment(iter, self);
- z_vector_iter_set_index(iter, get_size(self));
+ z_vector_iter_set_index(iter, get_size(self)-1);
+ z_vector_iter_increment(iter);
  return iter;
  }
-#line 307 "z-vector-segment.zco"
-int  z_vector_segment_insert_range(Self *self,ZVectorIter *iter,ZVectorSegment *src,ZVectorIter *src_iter_start,ZVectorIter *src_iter_end,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_construct,ZVectorItemCallback item_destruct)
+#line 398 "z-vector-segment.zco"
+int  z_vector_segment_insert_range(Self *self,ZVectorIter *iter,ZVectorSegment *src,ZVectorIter *src_iter_start,ZVectorIter *src_iter_end,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_copy_construct)
 {
  ZVectorIter *it1, *it2;
  ZVectorIter *dest_it;
@@ -487,24 +564,70 @@ int  z_vector_segment_insert_range(Self *self,ZVectorIter *iter,ZVectorSegment *
  it2 = get_end(src);
  else
  it2 = z_vector_iter_dup(src_iter_end);
- 
- /* compute the item count */
- int n = z_vector_iter_get_index(it2) - z_vector_iter_get_index(it1);
 
+ /* compute the item count */
+ ZVectorSegment *it2_segment = z_vector_iter_get_segment(it2);
+
+ int n;
+ if (src == it2_segment) {
+ n = z_vector_iter_get_index(it2) - z_vector_iter_get_index(it1);
+ } else {
+ assert(it2_segment == src->_priv.next);
+ assert(z_vector_iter_get_index(it2) == 0);
+ n = z_vector_segment_get_size(src) - z_vector_iter_get_index(it1);
+ }
+ z_object_unref(Z_OBJECT(it2_segment));
  assert(n >= 0);
 
  /* increase the size of the vector */
  int size = get_size(self);
- set_size(self, size + n, item_size, storage_mode, userdata, item_construct, item_destruct);
+ int rc = set_size(self, size + n, item_size, storage_mode, NULL, NULL, NULL);
+
+ if (rc) {
+ /* all return codes must be non-positive */
+ assert(rc < 0);
+ n = rc;
+ goto done;
+ }
+
+ int index = z_vector_iter_get_index(dest_it);
 
  /* shift all elements in [dest_it,inf) forward */
- memmove(selfp->data +
- (z_vector_iter_get_index(dest_it) + n) * item_size,
- selfp->data + z_vector_iter_get_index(dest_it) * item_size,
- (size - z_vector_iter_get_index(dest_it)) * item_size);
+ void *base = selfp->data + selfp->start;
+ memmove(base + (index + n) * item_size,
+ base + index * item_size,
+ (size - index) * item_size);
 
  /* insert the new item(s) */
  int i;
+ if (item_copy_construct) {
+ int i;
+
+ if (storage_mode == 0) {
+ for (i=0; i<n; ++i) {
+ void *data = get_item(src, it1, item_size, storage_mode);
+ set_item(self, dest_it, data, item_size, storage_mode);
+
+ z_vector_iter_increment(dest_it);
+ z_vector_iter_increment(it1);
+
+ int offset = (index + i) * item_size;
+ item_copy_construct(selfp->data + selfp->start + offset, userdata);
+ }
+
+ } else {
+ for (i=0; i<n; ++i) {
+ void *data = get_item(src, it1, item_size, storage_mode);
+ set_item(self, dest_it, data, item_size, storage_mode);
+
+ z_vector_iter_increment(dest_it);
+ z_vector_iter_increment(it1);
+
+ int offset = (index + i) * item_size;
+ item_copy_construct(*((void **)(selfp->data + selfp->start + offset)), userdata);
+ }
+ }
+ } else {
  for (i=0; i<n; ++i) {
  void *data = get_item(src, it1, item_size, storage_mode);
  set_item(self, dest_it, data, item_size, storage_mode);
@@ -512,14 +635,17 @@ int  z_vector_segment_insert_range(Self *self,ZVectorIter *iter,ZVectorSegment *
  z_vector_iter_increment(dest_it);
  z_vector_iter_increment(it1);
  }
+ }
 
+
+done:
  z_object_unref(Z_OBJECT(it1));
  z_object_unref(Z_OBJECT(it2));
  z_object_unref(Z_OBJECT(dest_it));
 
  return n;
  }
-#line 363 "z-vector-segment.zco"
+#line 502 "z-vector-segment.zco"
 int  z_vector_segment_erase(Self *self,ZVectorIter *start,ZVectorIter *end,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_destruct)
 {
  ZVectorIter *it1;
@@ -536,7 +662,16 @@ int  z_vector_segment_erase(Self *self,ZVectorIter *start,ZVectorIter *end,int i
  z_object_ref(Z_OBJECT(end));
  
  /* compute the item count */
- int n = z_vector_iter_get_index(end) - z_vector_iter_get_index(start);
+ ZVectorSegment *it2_segment = z_vector_iter_get_segment(end);
+
+ int n;
+ if (self == it2_segment) {
+ n = z_vector_iter_get_index(end) - z_vector_iter_get_index(start);
+ } else {
+ assert(it2_segment == selfp->next);
+ assert(z_vector_iter_get_index(end) == 0);
+ n = z_vector_segment_get_size(self) - z_vector_iter_get_index(start);
+ }
 
  if (n >= 0) {
  it1 = z_vector_iter_dup(start);
@@ -546,6 +681,9 @@ int  z_vector_segment_erase(Self *self,ZVectorIter *start,ZVectorIter *end,int i
  it2 = z_vector_iter_dup(start);
  n = -n;
  }
+
+ z_object_unref(Z_OBJECT(end));
+ z_object_unref(Z_OBJECT(start));
 
  /* call the item destructor on the items that is being removed */
  if (item_destruct) {
@@ -561,10 +699,17 @@ int  z_vector_segment_erase(Self *self,ZVectorIter *start,ZVectorIter *end,int i
 
  /* shift all elements in [it1,inf) backward */
  int size = get_size(self);
+ int it1_index = z_vector_iter_get_index(it1);
+ int it2_index = z_vector_iter_get_index(it2);
+ void *base = selfp->data + selfp->start;
 
- memmove(selfp->data + (z_vector_iter_get_index(it1)) * item_size,
- selfp->data + (z_vector_iter_get_index(it1) + n) * item_size,
- (size - z_vector_iter_get_index(it2)) * item_size);
+ if (self == it2_segment) {
+ memmove(base + (it1_index) * item_size,
+ base + (it1_index + n) * item_size,
+ (size - it2_index) * item_size);
+ } 
+
+ z_object_unref(Z_OBJECT(it2_segment));
 
  /* decrease the size of the vector */
  selfp->count = size - n;
@@ -575,6 +720,6 @@ int  z_vector_segment_erase(Self *self,ZVectorIter *start,ZVectorIter *end,int i
  return n;
  }
 
-#line 418 "z-vector-segment.zco"
+#line 576 "z-vector-segment.zco"
 
 

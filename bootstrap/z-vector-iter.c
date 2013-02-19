@@ -33,33 +33,39 @@
 #define GET_NEW(ctx) __z_vector_iter_new(ctx)
 #define CTX self->_global->ctx
 #define INIT_EXISTS
-#line 17 "z-vector-iter.zco"
+#line 18 "z-vector-iter.zco"
 #define init z_vector_iter_init
-#line 31 "z-vector-iter.zco"
+#line 41 "z-vector-iter.zco"
 #define new z_vector_iter_new
-#line 37 "z-vector-iter.zco"
+#line 47 "z-vector-iter.zco"
 #define dup z_vector_iter_dup
-#line 52 "z-vector-iter.zco"
+#line 56 "z-vector-iter.zco"
 #define get_segment z_vector_iter_get_segment
-#line 57 "z-vector-iter.zco"
+#line 63 "z-vector-iter.zco"
 #define set_segment z_vector_iter_set_segment
-#line 71 "z-vector-iter.zco"
-#define get_index z_vector_iter_get_index
-#line 75 "z-vector-iter.zco"
-#define set_index z_vector_iter_set_index
+#line 77 "z-vector-iter.zco"
+#define get_absolute_index z_vector_iter_get_absolute_index
 #line 81 "z-vector-iter.zco"
+#define set_absolute_index z_vector_iter_set_absolute_index
+#line 90 "z-vector-iter.zco"
+#define get_index z_vector_iter_get_index
+#line 94 "z-vector-iter.zco"
+#define set_index z_vector_iter_set_index
+#line 121 "z-vector-iter.zco"
+#define assign z_vector_iter_assign
+#line 132 "z-vector-iter.zco"
 #define advance z_vector_iter_advance
-#line 86 "z-vector-iter.zco"
+#line 177 "z-vector-iter.zco"
 #define increment z_vector_iter_increment
-#line 91 "z-vector-iter.zco"
+#line 212 "z-vector-iter.zco"
 #define decrement z_vector_iter_decrement
-#line 96 "z-vector-iter.zco"
+#line 230 "z-vector-iter.zco"
 #define is_equal z_vector_iter_is_equal
-#line 101 "z-vector-iter.zco"
+#line 235 "z-vector-iter.zco"
 #define is_lte z_vector_iter_is_lte
-#line 106 "z-vector-iter.zco"
+#line 256 "z-vector-iter.zco"
 #define is_gte z_vector_iter_is_gte
-#line 113 "z-vector-iter.zco"
+#line 279 "z-vector-iter.zco"
 #define is_in_bound z_vector_iter_is_in_bound
 
 int z_vector_iter_type_id = -1;
@@ -80,10 +86,12 @@ static int __map_compare(ZMap *map, const void *a, const void *b)
 {
 	return strcmp(a, b);
 }
-#line 17 "z-vector-iter.zco"
+#line 18 "z-vector-iter.zco"
 static void z_vector_iter_init(Self *self);
-#line 23 "z-vector-iter.zco"
+#line 25 "z-vector-iter.zco"
 static void  z_vector_iter_reset(ZObject *object);
+#line 34 "z-vector-iter.zco"
+static void  z_vector_iter_dispose(ZObject *object);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
@@ -139,37 +147,50 @@ ZVectorIterGlobal * z_vector_iter_get_type(struct zco_context_t *ctx)
 		global_ptr = zco_get_ctx_type(ctx, z_vector_iter_type_id);
 		*global_ptr = global;
 		
-#line 23 "z-vector-iter.zco"
+#line 25 "z-vector-iter.zco"
 		{
-#line 23 "z-vector-iter.zco"
+#line 25 "z-vector-iter.zco"
 			ZObjectClass *p_class = &global->_class->parent_z_object;
-#line 23 "z-vector-iter.zco"
+#line 25 "z-vector-iter.zco"
 			global->__parent_reset = p_class->__reset;
-#line 23 "z-vector-iter.zco"
+#line 25 "z-vector-iter.zco"
 			p_class->__reset = z_vector_iter_reset;
-#line 23 "z-vector-iter.zco"
+#line 25 "z-vector-iter.zco"
+		}
+#line 34 "z-vector-iter.zco"
+		{
+#line 34 "z-vector-iter.zco"
+			ZObjectClass *p_class = &global->_class->parent_z_object;
+#line 34 "z-vector-iter.zco"
+			global->__parent_dispose = p_class->__dispose;
+#line 34 "z-vector-iter.zco"
+			p_class->__dispose = z_vector_iter_dispose;
+#line 34 "z-vector-iter.zco"
 		}
 		__z_vector_iter_class_init(ctx, (ZVectorIterClass *) global->_class);
 		global->method_map = z_map_new(ctx);
+		z_map_set_userdata(global->method_map, global->method_map);
 		z_map_set_compare(global->method_map, __map_compare);
 		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
-#line 31 "z-vector-iter.zco"
+#line 41 "z-vector-iter.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("new"), (ZObjectSignalHandler) new);
-#line 37 "z-vector-iter.zco"
+#line 47 "z-vector-iter.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("dup"), (ZObjectSignalHandler) dup);
-#line 81 "z-vector-iter.zco"
+#line 121 "z-vector-iter.zco"
+		z_map_insert((ZMap *) global->method_map, strdup("assign"), (ZObjectSignalHandler) assign);
+#line 132 "z-vector-iter.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("advance"), (ZObjectSignalHandler) advance);
-#line 86 "z-vector-iter.zco"
+#line 177 "z-vector-iter.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("increment"), (ZObjectSignalHandler) increment);
-#line 91 "z-vector-iter.zco"
+#line 212 "z-vector-iter.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("decrement"), (ZObjectSignalHandler) decrement);
-#line 96 "z-vector-iter.zco"
+#line 230 "z-vector-iter.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("is_equal"), (ZObjectSignalHandler) is_equal);
-#line 101 "z-vector-iter.zco"
+#line 235 "z-vector-iter.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("is_lte"), (ZObjectSignalHandler) is_lte);
-#line 106 "z-vector-iter.zco"
+#line 256 "z-vector-iter.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("is_gte"), (ZObjectSignalHandler) is_gte);
-#line 113 "z-vector-iter.zco"
+#line 279 "z-vector-iter.zco"
 		z_map_insert((ZMap *) global->method_map, strdup("is_in_bound"), (ZObjectSignalHandler) is_in_bound);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZVectorIterGlobal *) global);
@@ -197,48 +218,55 @@ void __z_vector_iter_init(struct zco_context_t *ctx, Self *self)
 		init(self);
 	#endif
 }
-#line 17 "z-vector-iter.zco"
+#line 18 "z-vector-iter.zco"
 static void z_vector_iter_init(Self *self)
 {
  selfp->index = 0;
+ selfp->absolute_index = 0;
  selfp->segment = 0;
  }
-#line 23 "z-vector-iter.zco"
+#line 25 "z-vector-iter.zco"
 #define PARENT_HANDLER self->_global->__parent_reset
 static void  z_vector_iter_reset(ZObject *object)
 {
  Self *self = (Self *) object;
  selfp->index = 0;
+ selfp->absolute_index = 0;
 
  PARENT_HANDLER(object);
  }
 #undef PARENT_HANDLER
-#line 31 "z-vector-iter.zco"
+#line 34 "z-vector-iter.zco"
+#define PARENT_HANDLER self->_global->__parent_dispose
+static void  z_vector_iter_dispose(ZObject *object)
+{
+ Self *self = (Self *) object;
+ set_segment(self, NULL);
+ PARENT_HANDLER(object);
+ }
+#undef PARENT_HANDLER
+#line 41 "z-vector-iter.zco"
 Self * z_vector_iter_new(struct zco_context_t *ctx)
 {
  Self *self = GET_NEW(ctx);
  return self;
  }
-#line 37 "z-vector-iter.zco"
+#line 47 "z-vector-iter.zco"
 Self * z_vector_iter_dup(ZVectorIter *src)
 {
  Self *self = GET_NEW(src->_global->ctx);
-
- set_index(self, get_index(src));
-
- selfp->segment = src->_priv.segment;
+ assign(self, src);
+ return self;
+ }
+#line 56 "z-vector-iter.zco"
+ZVectorSegment * z_vector_iter_get_segment(Self *self)
+{
  if (selfp->segment)
  z_object_ref(Z_OBJECT(selfp->segment));
 
- return self;
- }
-#line 52 "z-vector-iter.zco"
-ZVectorSegment * z_vector_iter_get_segment(Self *self)
-{
- z_object_ref(Z_OBJECT(selfp->segment));
  return selfp->segment;
  }
-#line 57 "z-vector-iter.zco"
+#line 63 "z-vector-iter.zco"
 void z_vector_iter_set_segment(Self *self, ZVectorSegment * value)
 {
  if (value)
@@ -249,52 +277,209 @@ void z_vector_iter_set_segment(Self *self, ZVectorSegment * value)
 
  selfp->segment = value;
  }
-#line 71 "z-vector-iter.zco"
+#line 77 "z-vector-iter.zco"
+int  z_vector_iter_get_absolute_index(Self *self)
+{
+ return selfp->absolute_index;
+ }
+#line 81 "z-vector-iter.zco"
+void z_vector_iter_set_absolute_index(Self *self, int  value)
+{
+ if (selfp->absolute_index != value)
+ advance(self, value - selfp->absolute_index);
+ }
+#line 90 "z-vector-iter.zco"
 int  z_vector_iter_get_index(Self *self)
 {
  return selfp->index;
  }
-#line 75 "z-vector-iter.zco"
+#line 94 "z-vector-iter.zco"
 void z_vector_iter_set_index(Self *self, int  value)
 {
+ ZVectorSegment *seg = selfp->segment;
+
  selfp->index = value;
+ selfp->absolute_index = 0;
+
+ if (seg) {
+ z_object_ref(Z_OBJECT(seg));
+
+ while (1) {
+ ZVectorSegment *new_seg = z_vector_segment_get_prev(seg);
+ z_object_unref(Z_OBJECT(seg));
+ seg = new_seg;
+
+ if (!seg)
+ break;
+
+ selfp->absolute_index += z_vector_segment_get_size(seg);
  }
-#line 81 "z-vector-iter.zco"
+ }
+
+ selfp->absolute_index += value;
+ }
+#line 121 "z-vector-iter.zco"
+void  z_vector_iter_assign(Self *self,ZVectorIter *src)
+{
+ ZVectorSegment *segment = get_segment(src);
+ set_segment(self, segment);
+
+ if (segment)
+ z_object_unref(Z_OBJECT(segment));
+
+ set_index(self, get_index(src));
+ }
+#line 132 "z-vector-iter.zco"
 void  z_vector_iter_advance(Self *self,int steps)
 {
+ int segment_size;
+
  selfp->index += steps;
+ selfp->absolute_index += steps;
+
+ if (steps > 0) {
+ while (1) {
+ ZVectorSegment *next = z_vector_segment_get_next(selfp->segment);
+
+ if (!next)
+ break;
+
+ if (selfp->index >= (segment_size = z_vector_segment_get_size(selfp->segment))) {
+ selfp->index -= segment_size;
+
+ if (selfp->segment)
+ z_object_unref(Z_OBJECT(selfp->segment));
+
+ /* give ownership of next to selfp->segment */
+ selfp->segment = next;
+ continue;
  }
-#line 86 "z-vector-iter.zco"
+
+ z_object_unref(Z_OBJECT(next));
+ break;
+ }
+
+ } else if (steps < 0) {
+ while (selfp->index < 0) {
+ ZVectorSegment *prev = z_vector_segment_get_prev(selfp->segment);
+ if (!prev)
+ break;
+
+ if (selfp->segment)
+ z_object_unref(Z_OBJECT(selfp->segment));
+
+ selfp->segment = prev;
+ selfp->index += z_vector_segment_get_size(selfp->segment);
+ }
+
+ }
+ }
+#line 177 "z-vector-iter.zco"
 void  z_vector_iter_increment(Self *self)
 {
+ int segment_size;
+
  ++selfp->index;
+ ++selfp->absolute_index;
+
+ /* If there is no associated segment with this iterator (which may happen if it's
+		   referencing an empty vector), we just increment the index without touching
+		   the segment */
+ if (!selfp->segment)
+ return;
+
+ while (1) {
+ ZVectorSegment *next = z_vector_segment_get_next(selfp->segment);
+
+ if (!next)
+ break;
+
+ if (selfp->index >= (segment_size = z_vector_segment_get_size(selfp->segment))) {
+ selfp->index -= segment_size;
+
+ if (selfp->segment)
+ z_object_unref(Z_OBJECT(selfp->segment));
+
+ /* give ownership of next to selfp->segment */
+ selfp->segment = next;
+ continue;
  }
-#line 91 "z-vector-iter.zco"
+
+ z_object_unref(Z_OBJECT(next));
+ break;
+ }
+ }
+#line 212 "z-vector-iter.zco"
 void  z_vector_iter_decrement(Self *self)
 {
  --selfp->index;
+ --selfp->absolute_index;
+
+ while (selfp->index < 0) {
+ ZVectorSegment *prev = z_vector_segment_get_prev(selfp->segment);
+ if (!prev)
+ break;
+
+ if (selfp->segment)
+ z_object_unref(Z_OBJECT(selfp->segment));
+
+ selfp->segment = prev;
+ selfp->index += z_vector_segment_get_size(selfp->segment);
  }
-#line 96 "z-vector-iter.zco"
+ }
+#line 230 "z-vector-iter.zco"
 int  z_vector_iter_is_equal(Self *self,Self *other)
 {
- return selfp->index == get_index(other);
+ return selfp->segment == other->_priv.segment && selfp->index == get_index(other);
  }
-#line 101 "z-vector-iter.zco"
+#line 235 "z-vector-iter.zco"
 int  z_vector_iter_is_lte(Self *self,Self *other)
 {
+ if (selfp->segment == other->_priv.segment) {
  return selfp->index <= get_index(other);
+ } else {
+ ZVectorSegment *segment = z_vector_segment_get_next(selfp->segment);
+
+ while (segment && segment != other->_priv.segment) {
+ ZVectorSegment *next = z_vector_segment_get_next(segment);
+ z_object_unref(Z_OBJECT(segment));
+ segment = next;
  }
-#line 106 "z-vector-iter.zco"
+
+ int rc = segment == other->_priv.segment;
+ if (segment)
+ z_object_unref(Z_OBJECT(segment));
+
+ return rc;
+ }
+ }
+#line 256 "z-vector-iter.zco"
 int  z_vector_iter_is_gte(Self *self,Self *other)
 {
+ if (selfp->segment == other->_priv.segment) {
  return selfp->index >= get_index(other);
+ } else {
+ ZVectorSegment *segment = z_vector_segment_get_prev(selfp->segment);
+
+ while (segment && segment != other->_priv.segment) {
+ ZVectorSegment *prev = z_vector_segment_get_prev(segment);
+ z_object_unref(Z_OBJECT(segment));
+ segment = prev;
  }
-#line 113 "z-vector-iter.zco"
+
+ int rc = segment == other->_priv.segment;
+ if (segment)
+ z_object_unref(Z_OBJECT(segment));
+
+ return rc;
+ }
+ }
+#line 279 "z-vector-iter.zco"
 int  z_vector_iter_is_in_bound(ZVectorIter *self)
 {
  return z_vector_segment_is_in_bound(selfp->segment, self);
  }
 
-#line 117 "z-vector-iter.zco"
+#line 283 "z-vector-iter.zco"
 
 

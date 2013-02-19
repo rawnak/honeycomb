@@ -255,6 +255,7 @@ ZStringGlobal * z_string_get_type(struct zco_context_t *ctx)
 		}
 		__z_string_class_init(ctx, (ZStringClass *) global->_class);
 		global->method_map = z_map_new(ctx);
+		z_map_set_userdata(global->method_map, global->method_map);
 		z_map_set_compare(global->method_map, __map_compare);
 		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
 #line 73 "z-string.zco"
@@ -419,7 +420,7 @@ int  z_string_validate(Self *self)
  strict_decode(self, it, &status);
  
  if (status != 0) {
- int new_size = z_vector_iter_get_index(it) - z_vector_iter_get_index(first);
+ int new_size = z_vector_iter_get_absolute_index(it) - z_vector_iter_get_absolute_index(first);
  z_vector_set_size(selfp->data, new_size);
  assert(z_vector_iter_is_lte(it, last));
  break;
@@ -475,9 +476,9 @@ void  z_string_set_char(Self *self,ZStringIter *it,uint32_t ch)
 
  /* get the size of the current unicode character */
  ZVectorIter *tmp_ptr = z_vector_iter_dup(ptr);
- int start_idx = z_vector_iter_get_index(tmp_ptr);
+ int start_idx = z_vector_iter_get_absolute_index(tmp_ptr);
  move_next(self, tmp_ptr);
- int old_size = z_vector_iter_get_index(tmp_ptr) - start_idx;
+ int old_size = z_vector_iter_get_absolute_index(tmp_ptr) - start_idx;
  z_object_unref(Z_OBJECT(tmp_ptr));
 
  if (old_size == new_size) {

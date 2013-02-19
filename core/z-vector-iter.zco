@@ -45,6 +45,9 @@ class ZVectorIter : ZObject
         override(ZObject) void reset(ZObject *object)
         {
                 Self *self = (Self *) object;
+
+                set_segment(self, NULL);
+
 		selfp->index = 0;
                 selfp->absolute_index = 0;
 
@@ -54,7 +57,7 @@ class ZVectorIter : ZObject
 	override(ZObject) void dispose(ZObject *object)
 	{
 		Self *self = (Self *) object;
-                // TODO: set_segment(self, NULL);
+                set_segment(self, NULL);
 		PARENT_HANDLER(object);
 	}
 
@@ -169,6 +172,7 @@ class ZVectorIter : ZObject
                                         if (selfp->segment)
                                                 z_object_unref(Z_OBJECT(selfp->segment));
 
+                                        /* give ownership of next to selfp->segment */
                                         selfp->segment = next;
                                         continue;
                                 }
@@ -200,6 +204,12 @@ class ZVectorIter : ZObject
 		++selfp->index;
                 ++selfp->absolute_index;
 
+		/* If there is no associated segment with this iterator (which may happen if it's
+		   referencing an empty vector), we just increment the index without touching
+		   the segment */
+		if (!selfp->segment)
+			return;
+
                 while (1) {
                         ZVectorSegment *next = z_vector_segment_get_next(selfp->segment);
 
@@ -208,6 +218,11 @@ class ZVectorIter : ZObject
 
                         if (selfp->index >= (segment_size = z_vector_segment_get_size(selfp->segment))) {
                                 selfp->index -= segment_size;
+
+                                if (selfp->segment)
+                                        z_object_unref(Z_OBJECT(selfp->segment));
+
+                                /* give ownership of next to selfp->segment */
                                 selfp->segment = next;
                                 continue;
                         }

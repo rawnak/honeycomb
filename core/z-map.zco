@@ -66,7 +66,11 @@ class ZMap : ZObject
         {
                 Self *self = (Self *) object;
 
-                z_object_reset(Z_OBJECT(selfp->data));
+		z_object_unref(Z_OBJECT(selfp->data));
+		selfp->data = z_vector_new(CTX);
+
+                //z_object_reset(Z_OBJECT(selfp->data));
+
                 z_vector_set_item_size(selfp->data, 2 * sizeof(void *));
 
 		selfp->compare = NULL;
@@ -83,6 +87,7 @@ class ZMap : ZObject
 	override(ZObject) void dispose(ZObject *object)
 	{
 		Self *self = (Self *) object;
+
 		z_object_unref(Z_OBJECT(selfp->data));
 
 		PARENT_HANDLER(object);
@@ -122,8 +127,6 @@ class ZMap : ZObject
 	{
 		get
 		{
-                        assert(get_size(self) > 0);
-
 			ZVectorIter *ptr = z_vector_get_begin(selfp->data);
 			ZMapIter *it = z_map_iter_new(CTX);
 
@@ -138,8 +141,6 @@ class ZMap : ZObject
 	{
 		get
 		{
-                        assert(get_size(self) > 0);
-
 			ZVectorIter *ptr = z_vector_get_end(selfp->data);
 			ZMapIter *it = z_map_iter_new(CTX);
 
@@ -365,6 +366,10 @@ class ZMap : ZObject
 
 		key = get_key_internal(item);
 		value = get_value_internal(item);
+
+                // FIXME
+                //if (selfp->key_destruct == free)
+                        //abort();
 
 		if (selfp->key_destruct)
 			selfp->key_destruct(key, selfp->userdata);

@@ -195,6 +195,7 @@ ZDefaultObjectTrackerGlobal * z_default_object_tracker_get_type(struct zco_conte
 		}
 		__z_default_object_tracker_class_init(ctx, (ZDefaultObjectTrackerClass *) global->_class);
 		global->method_map = z_map_new(ctx);
+		z_map_set_userdata(global->method_map, global->method_map);
 		z_map_set_compare(global->method_map, __map_compare);
 		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
 #line 31 "z-default-object-tracker.zco"

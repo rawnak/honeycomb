@@ -122,6 +122,7 @@ ZFrameworkEventsGlobal * z_framework_events_get_type(struct zco_context_t *ctx)
 		
 		__z_framework_events_class_init(ctx, (ZFrameworkEventsClass *) global->_class);
 		global->method_map = z_map_new(ctx);
+		z_map_set_userdata(global->method_map, global->method_map);
 		z_map_set_compare(global->method_map, __map_compare);
 		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
 #line 15 "z-framework-events.zco"
