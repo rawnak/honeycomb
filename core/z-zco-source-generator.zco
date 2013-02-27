@@ -676,8 +676,8 @@ class ZZcoSourceGenerator : ZObject
 
                         case ACCESS_GLOBAL:
                                 print_line_number(self, selfp->global_data);
-                                z_string_append_format(selfp->global_data, "\t%S%S;\n", _type_name, _symbol_name);
-                                z_string_append_format(selfp->c_macros, "#define %S (self->_global->%S)\n", _symbol_name, selfp->symbol_name);
+                                z_string_append_format(selfp->global_data, "\t%S_%S;\n", _type_name, _symbol_name);
+                                z_string_append_format(selfp->c_macros, "#define %S (self->_global->_%S)\n", _symbol_name, selfp->symbol_name);
                                 break;
                         default:
                                 abort();
@@ -725,12 +725,18 @@ class ZZcoSourceGenerator : ZObject
                 code = z_string_new(CTX);
                 z_string_format(code,
                                 "\x7b\n"
-                                "\tZMap *map = (ZMap *) attached_%S;\n"
+	                        "\tstruct %SGlobal *_global = %S_get_type(object->_global->ctx);\n"
+                                "\tZMap *map = (ZMap *) _global->_attached_%S;\n"
                                 "\tZMapIter *it = z_map_find(map, object);\n"
                                 "\tvoid *value = z_map_get_value(map, it);\n"
                                 "\tz_object_unref(Z_OBJECT(it));\n"
                                 "\treturn (%S) (unsigned long) value;\n"
-                                "\x7d", symbol_name, selfp->type_name);
+                                "\x7d",
+                                
+                                selfp->current_class_name_pascal,
+                                selfp->current_class_name_lowercase,
+                                symbol_name,
+                                selfp->type_name);
 
 		z_string_format(symbol, "get_attached_%S", symbol_name);
                 member_function_decl(self, selfp->type_name, symbol, arglist, code, 0);
@@ -767,10 +773,14 @@ class ZZcoSourceGenerator : ZObject
                 code = z_string_new(CTX);
                 z_string_format(code,
                                 "\x7b\n"
-                                "\tZMap *map = (ZMap *) attached_%S;\n"
+	                        "\tstruct %SGlobal *_global = %S_get_type(object->_global->ctx);\n"
+                                "\tZMap *map = (ZMap *) _global->_attached_%S;\n"
                                 "\tif (z_map_assign(map, object, (void *) (unsigned long) value) == 0)\n"
                                 "\t\tz_object_add_attached_property_map(object, map);\n"
-                                "\x7d", symbol_name);
+                                "\x7d", 
+                                selfp->current_class_name_pascal,
+                                selfp->current_class_name_lowercase,
+                                symbol_name);
 
 		z_string_format(symbol, "set_attached_%S", symbol_name);
 		ZString *temp2 = z_string_new(CTX);
