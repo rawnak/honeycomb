@@ -140,17 +140,17 @@ void z_vector_set_back(Self *self, void *  value);
 void  z_vector_push_back(Self *self,void *item);
 #line 348 "z-vector.zco"
 int  z_vector_pop_back(Self *self,void *item);
-#line 391 "z-vector.zco"
+#line 392 "z-vector.zco"
 int  z_vector_insert(Self *self,ZVectorIter *iter,int n,void *item);
-#line 473 "z-vector.zco"
+#line 474 "z-vector.zco"
 int  z_vector_insert_range(Self *self,ZVectorIter *iter,ZVector *src,ZVectorIter *src_iter_start,ZVectorIter *src_iter_end);
-#line 813 "z-vector.zco"
+#line 814 "z-vector.zco"
 int  z_vector_erase(Self *self,ZVectorIter *start,ZVectorIter *end);
-#line 893 "z-vector.zco"
+#line 894 "z-vector.zco"
 int  z_vector_erase1(Self *self,ZVectorIter *iter);
-#line 909 "z-vector.zco"
+#line 910 "z-vector.zco"
 int  z_vector_erase1_increment(Self *self,ZVectorIter *iter);
-#line 935 "z-vector.zco"
+#line 936 "z-vector.zco"
 int  z_vector_clear(Self *self);
 
 #undef Self

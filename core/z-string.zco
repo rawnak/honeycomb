@@ -64,7 +64,6 @@ class ZString : ZObject
 
         override(ZObject) void reset(ZObject *object)
         {
-		/*
 		Self *self = (Self *) object;
 
 		if (selfp->token_it)
@@ -72,7 +71,6 @@ class ZString : ZObject
 
 		z_object_unref(Z_OBJECT(selfp->data));
 		selfp->data = z_vector_new(CTX);
-                //z_object_reset(Z_OBJECT(selfp->data));
 
                 z_vector_set_item_size(selfp->data, sizeof(char));
 
@@ -80,55 +78,6 @@ class ZString : ZObject
 		selfp->token_it = 0;
 
                 PARENT_HANDLER(object);
-		*/
-
-
- Self *self = (Self *) object;
-
- if (selfp->token_it)
- z_object_unref(Z_OBJECT(selfp->token_it));
-
- z_object_unref(Z_OBJECT(selfp->data));
-
- ZVector *attached_properties = selfp->attached_properties;
- if (attached_properties) {
- ZVectorIter *it, *end;
-
- /* iterate through all attached properties */
- it = z_vector_get_begin(attached_properties);
- end = z_vector_get_end(attached_properties);
-
- for (; !z_vector_iter_is_equal(it, end); z_vector_iter_increment(it)) {
- /* the vector contains a list of maps that has a pointer to 'self'.
-				   our goal is to remove 'self' from the map */
- ZMap *map = (ZMap *) z_vector_get_item(attached_properties, it);
-
- /* remove the pointer */
- ZMapIter *x = z_map_find(map, self);
- z_map_erase1(map, x);
- z_object_unref(Z_OBJECT(x));
- }
-
- z_object_unref(Z_OBJECT(end));
- z_object_unref(Z_OBJECT(it));
- z_object_unref(Z_OBJECT(attached_properties));
-
- selfp->attached_properties = NULL;
- }
-
- ZMap *signal_map = selfp->signal_map;
- if (signal_map) {
- z_object_unref(Z_OBJECT(signal_map));
- selfp->signal_map = NULL;
- }
-
- selfp->data = z_vector_new(CTX);
- z_vector_set_item_size(selfp->data, sizeof(char));
-
- selfp->length = 0;
- selfp->token_it = 0;
-
-
         }
 
 	override(ZObject) void dispose(ZObject *object)

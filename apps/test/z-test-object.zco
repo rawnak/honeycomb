@@ -43,6 +43,18 @@ class ZTestObject : ZObject
 	public void clicked2!(Self *self, char *message);
 	public void clicked3!(Self *self, char *message);
 
+        public int dummy#
+        {
+                get
+                {
+
+                }
+                set
+                {
+
+                }
+        }
+
 	public void click_it(Self *self, char *message)
 	{
 		clicked(self, message);

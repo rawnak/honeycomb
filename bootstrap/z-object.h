@@ -71,9 +71,9 @@ struct ZObjectGlobal {
 struct ZObjectClass {
 	unsigned long * class_off_list;
 	void * real_global;
-#line 36 "z-object.zco"
+#line 40 "z-object.zco"
 	void  (*__reset)(Self *self);
-#line 43 "z-object.zco"
+#line 55 "z-object.zco"
 	void  (*__dispose)(Self *self);
 };
 
@@ -90,23 +90,23 @@ extern int z_object_type_id;
 ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx);
 void __z_object_init(struct zco_context_t *ctx, ZObject *self);
 void __z_object_class_init(struct zco_context_t *ctx, ZObjectClass *_class);
-#line 36 "z-object.zco"
+#line 40 "z-object.zco"
 void  z_object_reset(Self *self);
-#line 43 "z-object.zco"
+#line 55 "z-object.zco"
 void  z_object_dispose(Self *self);
-#line 80 "z-object.zco"
+#line 92 "z-object.zco"
 void  z_object_ref(Self *self);
-#line 85 "z-object.zco"
+#line 97 "z-object.zco"
 void  z_object_unref(Self *self);
-#line 133 "z-object.zco"
+#line 145 "z-object.zco"
 void *  z_object_connect(Self *self,char *name,ZObject *target,char *method_name,void *userdata);
-#line 164 "z-object.zco"
+#line 180 "z-object.zco"
 void  z_object_disconnect(Self *self,char *name,void *key);
-#line 193 "z-object.zco"
+#line 211 "z-object.zco"
 void  z_object_register_signal(Self *self,char *name);
-#line 216 "z-object.zco"
+#line 235 "z-object.zco"
 int  z_object_emit_signal(Self *self,char *name,void *argv);
-#line 246 "z-object.zco"
+#line 265 "z-object.zco"
 void  z_object_add_attached_property_map(Self *self,void *map);
 
 #undef Self

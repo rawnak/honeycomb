@@ -61,7 +61,7 @@ class ZDefaultObjectTracker : ZObject,ZObjectTracker
 
 	private void lazy_destroy(void *ptr)
 	{
-		printf("*** LAZY DESTROY ***\n");
+		//printf("*** LAZY DESTROY ***\n");
 		z_object_dispose(ptr);
 	}
 

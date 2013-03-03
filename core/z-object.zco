@@ -52,12 +52,24 @@ class ZObject
 		selfp->attached_properties = 0;
 		selfp->signal_map = 0;
 	}
+
+//        global virtual void class_destroy(ZObjectClass *klass)
+//        {
+//        }
         
         public virtual void reset(Self *self)
         {
+                /* This ensures that reset() is not called by someone other
+                   than the object tracker */
+                assert(selfp->ref_count == 0);
 		selfp->ref_count = 1;
+
 		selfp->attached_properties = 0;
-		selfp->signal_map = 0;
+
+                /* No need to worry about signal_map. Since we ref(self) when
+                   a signal is connected and unref(self) when it is
+                   disconnected, all closure lists must be empty before self
+                   can have a reference count of 0 */
         }
 
 	public virtual void dispose(Self *self)
@@ -78,19 +90,19 @@ class ZObject
 				/* remove the pointer */
 				ZMapIter *x = z_map_find(map, self);
 				z_map_erase1(map, x);
-				z_object_unref(Z_OBJECT(x));
+				unref(Z_OBJECT(x));
 			}
 
-			z_object_unref(Z_OBJECT(end));
-			z_object_unref(Z_OBJECT(it));
-			z_object_unref(Z_OBJECT(attached_properties));
+			unref(Z_OBJECT(end));
+			unref(Z_OBJECT(it));
+			unref(Z_OBJECT(attached_properties));
 
 			selfp->attached_properties = NULL;
 		}
 
 		ZMap *signal_map = selfp->signal_map;
 		if (signal_map) {
-			z_object_unref(Z_OBJECT(signal_map));
+			unref(Z_OBJECT(signal_map));
 			selfp->signal_map = NULL;
 		}
 
@@ -142,7 +154,7 @@ class ZObject
 
 			if (it) {
 				ZObjectSignalHandler handler = z_map_get_value(method_map, it);
-				z_object_unref(Z_OBJECT(it));
+				unref(Z_OBJECT(it));
 				return handler;
 			}
 		}
@@ -156,6 +168,10 @@ class ZObject
 		ZObjectSignalHandler handler;
 
 		assert(selfp->signal_map != NULL);
+
+                /* Increase the reference count of self so it stays alive for
+                   the disconnect() call. */
+                ref(self);
 
 		/* lookup handler from method_name */
 		handler = lookup_method(target, method_name);
@@ -173,7 +189,7 @@ class ZObject
 		ZMapIter *it = z_map_find(selfp->signal_map, name);
 		assert(it != NULL);
 		ZVector *closure_list = z_map_get_value(selfp->signal_map, it);
-		z_object_unref(Z_OBJECT(it));
+		unref(Z_OBJECT(it));
 
 		/* add new closure into the signal */
 		z_vector_push_back(closure_list, closure);
@@ -189,7 +205,7 @@ class ZObject
 		ZMapIter *map_iter = z_map_find(selfp->signal_map, name);
 		assert(map_iter != NULL);
 		ZVector *closure_list = z_map_get_value(selfp->signal_map, map_iter);
-		z_object_unref(Z_OBJECT(map_iter));
+		unref(Z_OBJECT(map_iter));
 
 		/* remove the closure from the list */
 		ZVectorIter *it = z_vector_get_begin(closure_list);
@@ -206,8 +222,10 @@ class ZObject
 			}
 		}
 
-		z_object_unref(Z_OBJECT(end));
-		z_object_unref(Z_OBJECT(it));
+		unref(Z_OBJECT(end));
+		unref(Z_OBJECT(it));
+
+                unref(self);
 	}
 
 	public void register_signal(Self *self, char *name)
@@ -217,7 +235,7 @@ class ZObject
 			selfp->signal_map = z_map_new(CTX);
 			z_map_set_compare(selfp->signal_map, map_compare);
 			z_map_set_key_destruct(selfp->signal_map, (ZMapItemCallback) free);
-			z_map_set_value_destruct(selfp->signal_map, (ZMapItemCallback) z_object_unref);
+			z_map_set_value_destruct(selfp->signal_map, (ZMapItemCallback) unref);
 		}
 
 		/* locate signal's closure list by name */
@@ -226,10 +244,11 @@ class ZObject
 		if (!it) {
 			ZVector *closure_list = z_vector_new(CTX);
                         z_vector_set_item_size(closure_list, 0);
-			z_vector_set_item_destruct(closure_list, (ZVectorItemCallback) z_object_unref);
+			z_vector_set_item_destruct(closure_list, (ZVectorItemCallback) unref);
 			z_map_insert(selfp->signal_map, strdup(name), closure_list);
 		}
 	}
+
 
 	/*** INTERNAL METHODS ***/
 
@@ -241,7 +260,7 @@ class ZObject
 		ZMapIter *map_iter = z_map_find(selfp->signal_map, name);
 		assert(map_iter != NULL);
 		ZVector *closure_list = z_map_get_value(selfp->signal_map, map_iter);
-		z_object_unref(Z_OBJECT(map_iter));
+		unref(Z_OBJECT(map_iter));
 
 		/* remove the closure from the list */
 		ZVectorIter *it = z_vector_get_begin(closure_list);
@@ -258,8 +277,8 @@ class ZObject
 			z_vector_iter_increment(it);
 		}
 
-		z_object_unref(Z_OBJECT(end));
-		z_object_unref(Z_OBJECT(it));
+		unref(Z_OBJECT(end));
+		unref(Z_OBJECT(it));
 		return rc;
 	}
 

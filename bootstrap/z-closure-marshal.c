@@ -90,7 +90,6 @@ ZClosureMarshalGlobal * z_closure_marshal_get_type(struct zco_context_t *ctx)
 		global->_class->__invoke = z_closure_marshal_virtual_invoke;
 		__z_closure_marshal_class_init(ctx, (ZClosureMarshalClass *) global->_class);
 		global->method_map = z_map_new(ctx);
-		z_map_set_userdata(global->method_map, global->method_map);
 		z_map_set_compare(global->method_map, __map_compare);
 		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
 #line 11 "z-closure-marshal.zco"
