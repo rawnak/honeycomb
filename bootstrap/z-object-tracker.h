@@ -26,7 +26,7 @@
 
 #include <zco-type.h>
 #define Self ZObjectTracker
-#define Z_OBJECT_TRACKER(s) ((ZObjectTracker *) ((char *) (s) + (s)->_global->vtable_off_list[z_object_tracker_type_id]))
+#define Z_OBJECT_TRACKER(s) ((ZObjectTracker *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[z_object_tracker_type_id]))
 
 
 struct ZObjectTrackerPrivate;

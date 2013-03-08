@@ -30,7 +30,7 @@ typedef void(*ZObjectSignalHandler)(struct ZObject *self, ...);
 
 #include <zco-type.h>
 #define Self ZObject
-#define Z_OBJECT(s) ((ZObject *) ((char *) (s) + (s)->_global->vtable_off_list[z_object_type_id]))
+#define Z_OBJECT(s) ((ZObject *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[z_object_type_id]))
 
 
 struct ZObjectPrivate;

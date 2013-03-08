@@ -37,7 +37,6 @@
 #define Self ZMap
 #define selfp (&self->_priv)
 #define GET_NEW(ctx) __z_map_new(ctx)
-#define CTX self->_global->ctx
 #define INIT_EXISTS
 #line 31 "z-map.zco"
 #define init z_map_init
@@ -156,7 +155,7 @@ ZMapGlobal * z_map_get_type(struct zco_context_t *ctx)
 		struct ZMapGlobal *global = (ZMapGlobal *) malloc(sizeof(struct ZMapGlobal));
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZMapClass));
-		memset(global->_class, 0, sizeof(struct ZMapClass));
+		memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct ZMapClass));
 		global->name = "ZMap";
 		global->vtable_off_list = NULL;
 		global->vtable_off_size = 0;
@@ -183,11 +182,11 @@ ZMapGlobal * z_map_get_type(struct zco_context_t *ctx)
 				p_class->vtable_off_size,
 				&temp,
 				&temp.parent_z_object);
-			memcpy((char *) global->_class + offset, p_class->_class, sizeof(struct ZObjectClass));
+			memcpy((char *) CLASS_FROM_GLOBAL(global) + offset, CLASS_FROM_GLOBAL(p_class), sizeof(struct ZObjectClass));
 			class_off_list[p_class->id] = offset;
 			offset += sizeof(struct ZObjectClass);
 		}
-		((ZObjectClass *) global->_class)->class_off_list = class_off_list;
+		((ZObjectClass *) CLASS_FROM_GLOBAL(global))->class_off_list = class_off_list;
 		if (z_map_type_id == -1)
 			z_map_type_id = zco_allocate_type_id();
 		global->id = z_map_type_id;
@@ -198,7 +197,7 @@ ZMapGlobal * z_map_get_type(struct zco_context_t *ctx)
 #line 45 "z-map.zco"
 		{
 #line 45 "z-map.zco"
-			ZObjectClass *p_class = &global->_class->parent_z_object;
+			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
 #line 45 "z-map.zco"
 			global->__parent_reset = p_class->__reset;
 #line 45 "z-map.zco"
@@ -208,14 +207,14 @@ ZMapGlobal * z_map_get_type(struct zco_context_t *ctx)
 #line 67 "z-map.zco"
 		{
 #line 67 "z-map.zco"
-			ZObjectClass *p_class = &global->_class->parent_z_object;
+			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
 #line 67 "z-map.zco"
 			global->__parent_dispose = p_class->__dispose;
 #line 67 "z-map.zco"
 			p_class->__dispose = z_map_dispose;
 #line 67 "z-map.zco"
 		}
-		__z_map_class_init(ctx, (ZMapClass *) global->_class);
+		__z_map_class_init(ctx, (ZMapClass *) CLASS_FROM_GLOBAL(global));
 		global->method_map = z_map_new(ctx);
 		z_map_set_compare(global->method_map, __map_compare);
 		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
@@ -265,8 +264,8 @@ void __z_map_init(struct zco_context_t *ctx, Self *self)
 	struct ZMapGlobal *_global = z_map_get_type(ctx);
 	self->_global = _global;
 	__z_object_init(ctx, (ZObject *) (self));
-	((ZObject *) self)->class_base = (void *) _global->_class;
-	((ZObjectClass *) _global->_class)->real_global = (void *) _global;
+	((ZObject *) self)->class_base = (void *) CLASS_FROM_GLOBAL(_global);
+	((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (void *) _global;
 	#ifdef INIT_EXISTS
 		init(self);
 	#endif
@@ -274,7 +273,7 @@ void __z_map_init(struct zco_context_t *ctx, Self *self)
 #line 31 "z-map.zco"
 static void z_map_init(Self *self)
 {
- selfp->data = z_vector_new(CTX);
+ selfp->data = z_vector_new(CTX_FROM_OBJECT(self));
  z_vector_set_item_size(selfp->data, 2 * sizeof(void *));
 
  selfp->compare = NULL;
@@ -286,13 +285,13 @@ static void z_map_init(Self *self)
  z_vector_set_item_destruct(selfp->data, item_destroy);
  }
 #line 45 "z-map.zco"
-#define PARENT_HANDLER self->_global->__parent_reset
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_reset
 static void  z_map_reset(ZObject *object)
 {
  Self *self = (Self *) object;
 
  z_object_unref(Z_OBJECT(selfp->data));
- selfp->data = z_vector_new(CTX);
+ selfp->data = z_vector_new(CTX_FROM_OBJECT(self));
 
  //z_object_reset(Z_OBJECT(selfp->data));
 
@@ -310,7 +309,7 @@ static void  z_map_reset(ZObject *object)
  }
 #undef PARENT_HANDLER
 #line 67 "z-map.zco"
-#define PARENT_HANDLER self->_global->__parent_dispose
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_dispose
 static void  z_map_dispose(ZObject *object)
 {
  Self *self = (Self *) object;
@@ -345,7 +344,7 @@ void z_map_set_value_destruct(Self *self, ZMapItemCallback  value)
 ZMapIter * z_map_get_begin(Self *self)
 {
  ZVectorIter *ptr = z_vector_get_begin(selfp->data);
- ZMapIter *it = z_map_iter_new(CTX);
+ ZMapIter *it = z_map_iter_new(CTX_FROM_OBJECT(self));
 
  z_map_iter_set_index(it, z_vector_iter_get_absolute_index(ptr));
  z_object_unref(Z_OBJECT(ptr));
@@ -356,7 +355,7 @@ ZMapIter * z_map_get_begin(Self *self)
 ZMapIter * z_map_get_end(Self *self)
 {
  ZVectorIter *ptr = z_vector_get_end(selfp->data);
- ZMapIter *it = z_map_iter_new(CTX);
+ ZMapIter *it = z_map_iter_new(CTX_FROM_OBJECT(self));
 
  z_map_iter_set_index(it, z_vector_iter_get_absolute_index(ptr));
  z_object_unref(Z_OBJECT(ptr));
@@ -501,7 +500,7 @@ ZMapIter * z_map_find(Self *self,const void *key)
  return NULL;
 
  } else {
- it = z_map_iter_new(CTX);
+ it = z_map_iter_new(CTX_FROM_OBJECT(self));
  find_item(self, key, &bound, it);
 
  if (bound == 0) {

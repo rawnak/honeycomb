@@ -42,7 +42,7 @@ class ZDefaultObjectTracker : ZObject,ZObjectTracker
 
 	init(Self *self)
 	{
-                selfp->pools = z_map_new(CTX);
+                selfp->pools = z_map_new(CTX_FROM_OBJECT(self));
                 z_map_set_compare(selfp->pools, map_compare);
                 z_map_set_value_destruct(selfp->pools, (ZMapItemCallback) z_object_unref);
                 selfp->suspended = 0;
@@ -177,7 +177,7 @@ done:
 
                         } else {
                                 /* create the pool for the type */
-                                pool = z_vector_new(CTX);
+                                pool = z_vector_new(CTX_FROM_OBJECT(self));
                                 z_vector_set_item_size(pool, 0);
 
                                 /* insert the pool into the list of pools */

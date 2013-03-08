@@ -57,20 +57,20 @@ class ZGatewayApplication : ZObject
 		selfp->last_wakeup = 0;
 
 		/* set a default marshaller for the current context */
-		selfp->marshal = z_c_closure_marshal_new(CTX);
-		zco_context_set_marshal(CTX, selfp->marshal);
+		selfp->marshal = z_c_closure_marshal_new(CTX_FROM_OBJECT(self));
+		zco_context_set_marshal(CTX_FROM_OBJECT(self), selfp->marshal);
 
 		/* create a vector to hold on to the top level windows */
-		selfp->toplevels = z_vector_new(CTX);
+		selfp->toplevels = z_vector_new(CTX_FROM_OBJECT(self));
                 z_vector_set_item_size(selfp->toplevels, 0);
 		z_vector_set_item_destruct(selfp->toplevels, (ZVectorItemCallback) z_object_unref);
 
 		/* create the main window */
-		ZWindow *main_window = z_window_new(CTX);
+		ZWindow *main_window = z_window_new(CTX_FROM_OBJECT(self));
 		z_vector_push_back(selfp->toplevels, main_window);
 
 		/* connect the framework draw_event signal to the window's draw method */
-		ZFrameworkEvents *framework_events = (ZFrameworkEvents *) zco_context_get_framework_events(CTX);
+		ZFrameworkEvents *framework_events = (ZFrameworkEvents *) zco_context_get_framework_events(CTX_FROM_OBJECT(self));
 		z_object_connect(Z_OBJECT(framework_events), "draw_event", Z_OBJECT(main_window), "draw", NULL);
 	}
 
@@ -97,7 +97,7 @@ class ZGatewayApplication : ZObject
 	{
 		get
 		{
-			return CTX;
+			return CTX_FROM_OBJECT(self);
 		}
 	}
 
@@ -152,8 +152,8 @@ class ZGatewayApplication : ZObject
 		FCGX_FPrintF(out, "\r\n");
 
 		/* Raise the 'draw_event' signal */
-		ZString *message = z_string_new(CTX);
-		ZFrameworkEvents *framework_events = (ZFrameworkEvents *) zco_context_get_framework_events(CTX);
+		ZString *message = z_string_new(CTX_FROM_OBJECT(self));
+		ZFrameworkEvents *framework_events = (ZFrameworkEvents *) zco_context_get_framework_events(CTX_FROM_OBJECT(self));
 		z_framework_events_draw_event(framework_events, message);
 
 		/* Send message to the client */

@@ -37,7 +37,6 @@
 #define Self ZString
 #define selfp (&self->_priv)
 #define GET_NEW(ctx) __z_string_new(ctx)
-#define CTX self->_global->ctx
 #define INIT_EXISTS
 #line 36 "z-string.zco"
 #define init z_string_init
@@ -194,7 +193,7 @@ ZStringGlobal * z_string_get_type(struct zco_context_t *ctx)
 		struct ZStringGlobal *global = (ZStringGlobal *) malloc(sizeof(struct ZStringGlobal));
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZStringClass));
-		memset(global->_class, 0, sizeof(struct ZStringClass));
+		memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct ZStringClass));
 		global->name = "ZString";
 		global->vtable_off_list = NULL;
 		global->vtable_off_size = 0;
@@ -221,11 +220,11 @@ ZStringGlobal * z_string_get_type(struct zco_context_t *ctx)
 				p_class->vtable_off_size,
 				&temp,
 				&temp.parent_z_object);
-			memcpy((char *) global->_class + offset, p_class->_class, sizeof(struct ZObjectClass));
+			memcpy((char *) CLASS_FROM_GLOBAL(global) + offset, CLASS_FROM_GLOBAL(p_class), sizeof(struct ZObjectClass));
 			class_off_list[p_class->id] = offset;
 			offset += sizeof(struct ZObjectClass);
 		}
-		((ZObjectClass *) global->_class)->class_off_list = class_off_list;
+		((ZObjectClass *) CLASS_FROM_GLOBAL(global))->class_off_list = class_off_list;
 		if (z_string_type_id == -1)
 			z_string_type_id = zco_allocate_type_id();
 		global->id = z_string_type_id;
@@ -236,7 +235,7 @@ ZStringGlobal * z_string_get_type(struct zco_context_t *ctx)
 #line 45 "z-string.zco"
 		{
 #line 45 "z-string.zco"
-			ZObjectClass *p_class = &global->_class->parent_z_object;
+			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
 #line 45 "z-string.zco"
 			global->__parent_reset = p_class->__reset;
 #line 45 "z-string.zco"
@@ -246,14 +245,14 @@ ZStringGlobal * z_string_get_type(struct zco_context_t *ctx)
 #line 63 "z-string.zco"
 		{
 #line 63 "z-string.zco"
-			ZObjectClass *p_class = &global->_class->parent_z_object;
+			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
 #line 63 "z-string.zco"
 			global->__parent_dispose = p_class->__dispose;
 #line 63 "z-string.zco"
 			p_class->__dispose = z_string_dispose;
 #line 63 "z-string.zco"
 		}
-		__z_string_class_init(ctx, (ZStringClass *) global->_class);
+		__z_string_class_init(ctx, (ZStringClass *) CLASS_FROM_GLOBAL(global));
 		global->method_map = z_map_new(ctx);
 		z_map_set_compare(global->method_map, __map_compare);
 		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
@@ -337,8 +336,8 @@ void __z_string_init(struct zco_context_t *ctx, Self *self)
 	struct ZStringGlobal *_global = z_string_get_type(ctx);
 	self->_global = _global;
 	__z_object_init(ctx, (ZObject *) (self));
-	((ZObject *) self)->class_base = (void *) _global->_class;
-	((ZObjectClass *) _global->_class)->real_global = (void *) _global;
+	((ZObject *) self)->class_base = (void *) CLASS_FROM_GLOBAL(_global);
+	((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (void *) _global;
 	#ifdef INIT_EXISTS
 		init(self);
 	#endif
@@ -346,14 +345,14 @@ void __z_string_init(struct zco_context_t *ctx, Self *self)
 #line 36 "z-string.zco"
 static void z_string_init(Self *self)
 {
- selfp->data = z_vector_new(CTX);
+ selfp->data = z_vector_new(CTX_FROM_OBJECT(self));
  z_vector_set_item_size(selfp->data, sizeof(char));
 
  selfp->length = 0;
  selfp->token_it = 0;
  }
 #line 45 "z-string.zco"
-#define PARENT_HANDLER self->_global->__parent_reset
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_reset
 static void  z_string_reset(ZObject *object)
 {
  Self *self = (Self *) object;
@@ -362,7 +361,7 @@ static void  z_string_reset(ZObject *object)
  z_object_unref(Z_OBJECT(selfp->token_it));
 
  z_object_unref(Z_OBJECT(selfp->data));
- selfp->data = z_vector_new(CTX);
+ selfp->data = z_vector_new(CTX_FROM_OBJECT(self));
 
  z_vector_set_item_size(selfp->data, sizeof(char));
 
@@ -373,7 +372,7 @@ static void  z_string_reset(ZObject *object)
  }
 #undef PARENT_HANDLER
 #line 63 "z-string.zco"
-#define PARENT_HANDLER self->_global->__parent_dispose
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_dispose
 static void  z_string_dispose(ZObject *object)
 {
  Self *self = (Self *) object;
@@ -700,7 +699,7 @@ void  z_string_replace(Self *self,ZStringIter *first,ZStringIter *last,ZString *
 #line 386 "z-string.zco"
 void  z_string_append_cstring(Self *self,const char *s,int encoding)
 {
- Self *tmp = new(CTX);
+ Self *tmp = new(CTX_FROM_OBJECT(self));
 
  set_cstring(tmp, s, encoding);
  append(self, tmp, NULL, NULL);
@@ -1334,13 +1333,13 @@ int  z_string_get_length(Self *self)
 #line 1026 "z-string.zco"
 ZStringIter *  z_string_get_begin(Self *self)
 {
- ZStringIter *it = z_string_iter_new(CTX);
+ ZStringIter *it = z_string_iter_new(CTX_FROM_OBJECT(self));
  return it;
  }
 #line 1035 "z-string.zco"
 ZStringIter *  z_string_get_end(Self *self)
 {
- ZStringIter *it = z_string_iter_new(CTX);
+ ZStringIter *it = z_string_iter_new(CTX_FROM_OBJECT(self));
  z_string_iter_set_index(it, selfp->length);
  return it;
  }

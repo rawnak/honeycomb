@@ -34,7 +34,6 @@
 #define Self ZVectorSegment
 #define selfp (&self->_priv)
 #define GET_NEW(ctx) __z_vector_segment_new(ctx)
-#define CTX self->_global->ctx
 #define INIT_EXISTS
 #line 26 "z-vector-segment.zco"
 #define init z_vector_segment_init
@@ -115,7 +114,7 @@ ZVectorSegmentGlobal * z_vector_segment_get_type(struct zco_context_t *ctx)
 		struct ZVectorSegmentGlobal *global = (ZVectorSegmentGlobal *) malloc(sizeof(struct ZVectorSegmentGlobal));
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZVectorSegmentClass));
-		memset(global->_class, 0, sizeof(struct ZVectorSegmentClass));
+		memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct ZVectorSegmentClass));
 		global->name = "ZVectorSegment";
 		global->vtable_off_list = NULL;
 		global->vtable_off_size = 0;
@@ -142,11 +141,11 @@ ZVectorSegmentGlobal * z_vector_segment_get_type(struct zco_context_t *ctx)
 				p_class->vtable_off_size,
 				&temp,
 				&temp.parent_z_object);
-			memcpy((char *) global->_class + offset, p_class->_class, sizeof(struct ZObjectClass));
+			memcpy((char *) CLASS_FROM_GLOBAL(global) + offset, CLASS_FROM_GLOBAL(p_class), sizeof(struct ZObjectClass));
 			class_off_list[p_class->id] = offset;
 			offset += sizeof(struct ZObjectClass);
 		}
-		((ZObjectClass *) global->_class)->class_off_list = class_off_list;
+		((ZObjectClass *) CLASS_FROM_GLOBAL(global))->class_off_list = class_off_list;
 		if (z_vector_segment_type_id == -1)
 			z_vector_segment_type_id = zco_allocate_type_id();
 		global->id = z_vector_segment_type_id;
@@ -157,7 +156,7 @@ ZVectorSegmentGlobal * z_vector_segment_get_type(struct zco_context_t *ctx)
 #line 36 "z-vector-segment.zco"
 		{
 #line 36 "z-vector-segment.zco"
-			ZObjectClass *p_class = &global->_class->parent_z_object;
+			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
 #line 36 "z-vector-segment.zco"
 			global->__parent_reset = p_class->__reset;
 #line 36 "z-vector-segment.zco"
@@ -167,14 +166,14 @@ ZVectorSegmentGlobal * z_vector_segment_get_type(struct zco_context_t *ctx)
 #line 54 "z-vector-segment.zco"
 		{
 #line 54 "z-vector-segment.zco"
-			ZObjectClass *p_class = &global->_class->parent_z_object;
+			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
 #line 54 "z-vector-segment.zco"
 			global->__parent_dispose = p_class->__dispose;
 #line 54 "z-vector-segment.zco"
 			p_class->__dispose = z_vector_segment_dispose;
 #line 54 "z-vector-segment.zco"
 		}
-		__z_vector_segment_class_init(ctx, (ZVectorSegmentClass *) global->_class);
+		__z_vector_segment_class_init(ctx, (ZVectorSegmentClass *) CLASS_FROM_GLOBAL(global));
 		global->method_map = z_map_new(ctx);
 		z_map_set_compare(global->method_map, __map_compare);
 		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
@@ -218,8 +217,8 @@ void __z_vector_segment_init(struct zco_context_t *ctx, Self *self)
 	struct ZVectorSegmentGlobal *_global = z_vector_segment_get_type(ctx);
 	self->_global = _global;
 	__z_object_init(ctx, (ZObject *) (self));
-	((ZObject *) self)->class_base = (void *) _global->_class;
-	((ZObjectClass *) _global->_class)->real_global = (void *) _global;
+	((ZObject *) self)->class_base = (void *) CLASS_FROM_GLOBAL(_global);
+	((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (void *) _global;
 	#ifdef INIT_EXISTS
 		init(self);
 	#endif
@@ -235,7 +234,7 @@ static void z_vector_segment_init(Self *self)
  selfp->next = NULL;
  }
 #line 36 "z-vector-segment.zco"
-#define PARENT_HANDLER self->_global->__parent_reset
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_reset
 static void  z_vector_segment_reset(ZObject *object)
 {
  Self *self = (Self *) object;
@@ -255,7 +254,7 @@ static void  z_vector_segment_reset(ZObject *object)
  }
 #undef PARENT_HANDLER
 #line 54 "z-vector-segment.zco"
-#define PARENT_HANDLER self->_global->__parent_dispose
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_dispose
 static void  z_vector_segment_dispose(ZObject *object)
 {
  Self *self = (Self *) object;
@@ -389,8 +388,8 @@ static int  z_vector_segment_set_capacity(Self *self,int value,int item_size,int
  }
 
  if (value) {
- int min_segment_capacity_by_size = zco_context_get_min_segment_capacity_by_size(CTX);
- int min_segment_capacity_by_count = zco_context_get_min_segment_capacity_by_count(CTX);
+ int min_segment_capacity_by_size = zco_context_get_min_segment_capacity_by_size(CTX_FROM_OBJECT(self));
+ int min_segment_capacity_by_count = zco_context_get_min_segment_capacity_by_count(CTX_FROM_OBJECT(self));
 
  /* restrict minimum segment size by count */
  if (value < min_segment_capacity_by_count)
@@ -529,14 +528,14 @@ int  z_vector_segment_insert(Self *self,ZVectorIter *iter,int n,void *item,int i
 #line 357 "z-vector-segment.zco"
 ZVectorIter *  z_vector_segment_get_begin(Self *self)
 {
- ZVectorIter *iter = z_vector_iter_new(CTX);
+ ZVectorIter *iter = z_vector_iter_new(CTX_FROM_OBJECT(self));
  z_vector_iter_set_segment(iter, self);
  return iter;
  }
 #line 369 "z-vector-segment.zco"
 ZVectorIter *  z_vector_segment_get_end(Self *self)
 {
- ZVectorIter *iter = z_vector_iter_new(CTX);
+ ZVectorIter *iter = z_vector_iter_new(CTX_FROM_OBJECT(self));
  z_vector_iter_set_segment(iter, self);
  z_vector_iter_set_index(iter, get_size(self)-1);
  z_vector_iter_increment(iter);

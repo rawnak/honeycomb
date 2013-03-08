@@ -41,7 +41,7 @@ enum ZStringEncoding
 
 #include <zco-type.h>
 #define Self ZString
-#define Z_STRING(s) ((ZString *) ((char *) (s) + (s)->_global->vtable_off_list[z_string_type_id]))
+#define Z_STRING(s) ((ZString *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[z_string_type_id]))
 
 
 struct ZStringPrivate;

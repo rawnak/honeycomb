@@ -51,7 +51,6 @@ enum ZValueType {
 #define Self ZValue
 #define selfp (&self->_priv)
 #define GET_NEW(ctx) __z_value_new(ctx)
-#define CTX self->_global->ctx
 #define INIT_EXISTS
 #line 51 "z-value.zco"
 #define init z_value_init
@@ -172,7 +171,7 @@ ZValueGlobal * z_value_get_type(struct zco_context_t *ctx)
 		struct ZValueGlobal *global = (ZValueGlobal *) malloc(sizeof(struct ZValueGlobal));
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZValueClass));
-		memset(global->_class, 0, sizeof(struct ZValueClass));
+		memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct ZValueClass));
 		global->name = "ZValue";
 		global->vtable_off_list = NULL;
 		global->vtable_off_size = 0;
@@ -199,11 +198,11 @@ ZValueGlobal * z_value_get_type(struct zco_context_t *ctx)
 				p_class->vtable_off_size,
 				&temp,
 				&temp.parent_z_object);
-			memcpy((char *) global->_class + offset, p_class->_class, sizeof(struct ZObjectClass));
+			memcpy((char *) CLASS_FROM_GLOBAL(global) + offset, CLASS_FROM_GLOBAL(p_class), sizeof(struct ZObjectClass));
 			class_off_list[p_class->id] = offset;
 			offset += sizeof(struct ZObjectClass);
 		}
-		((ZObjectClass *) global->_class)->class_off_list = class_off_list;
+		((ZObjectClass *) CLASS_FROM_GLOBAL(global))->class_off_list = class_off_list;
 		if (z_value_type_id == -1)
 			z_value_type_id = zco_allocate_type_id();
 		global->id = z_value_type_id;
@@ -214,7 +213,7 @@ ZValueGlobal * z_value_get_type(struct zco_context_t *ctx)
 #line 75 "z-value.zco"
 		{
 #line 75 "z-value.zco"
-			ZObjectClass *p_class = &global->_class->parent_z_object;
+			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
 #line 75 "z-value.zco"
 			global->__parent_reset = p_class->__reset;
 #line 75 "z-value.zco"
@@ -224,14 +223,14 @@ ZValueGlobal * z_value_get_type(struct zco_context_t *ctx)
 #line 87 "z-value.zco"
 		{
 #line 87 "z-value.zco"
-			ZObjectClass *p_class = &global->_class->parent_z_object;
+			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
 #line 87 "z-value.zco"
 			global->__parent_dispose = p_class->__dispose;
 #line 87 "z-value.zco"
 			p_class->__dispose = z_value_dispose;
 #line 87 "z-value.zco"
 		}
-		__z_value_class_init(ctx, (ZValueClass *) global->_class);
+		__z_value_class_init(ctx, (ZValueClass *) CLASS_FROM_GLOBAL(global));
 		global->method_map = z_map_new(ctx);
 		z_map_set_compare(global->method_map, __map_compare);
 		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
@@ -259,8 +258,8 @@ void __z_value_init(struct zco_context_t *ctx, Self *self)
 	struct ZValueGlobal *_global = z_value_get_type(ctx);
 	self->_global = _global;
 	__z_object_init(ctx, (ZObject *) (self));
-	((ZObject *) self)->class_base = (void *) _global->_class;
-	((ZObjectClass *) _global->_class)->real_global = (void *) _global;
+	((ZObject *) self)->class_base = (void *) CLASS_FROM_GLOBAL(_global);
+	((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (void *) _global;
 	#ifdef INIT_EXISTS
 		init(self);
 	#endif
@@ -290,7 +289,7 @@ Self * z_value_dup(ZValue *src)
  return self;
  }
 #line 75 "z-value.zco"
-#define PARENT_HANDLER self->_global->__parent_reset
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_reset
 static void  z_value_reset(ZObject *object)
 {
  Self *self = (Self *) object;
@@ -304,7 +303,7 @@ static void  z_value_reset(ZObject *object)
  }
 #undef PARENT_HANDLER
 #line 87 "z-value.zco"
-#define PARENT_HANDLER self->_global->__parent_dispose
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_dispose
 static void  z_value_dispose(ZObject *object)
 {
  Self *self = (Self *) object;

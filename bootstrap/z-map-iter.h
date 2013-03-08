@@ -26,7 +26,7 @@
 
 #include <zco-type.h>
 #define Self ZMapIter
-#define Z_MAP_ITER(s) ((ZMapIter *) ((char *) (s) + (s)->_global->vtable_off_list[z_map_iter_type_id]))
+#define Z_MAP_ITER(s) ((ZMapIter *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[z_map_iter_type_id]))
 
 
 struct ZMapIterPrivate;

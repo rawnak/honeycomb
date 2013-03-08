@@ -22,6 +22,11 @@
 #ifndef _ZCO_H_
 #define _ZCO_H_
 
+#define GLOBAL_FROM_OBJECT(o) ((o)->_global)
+#define CLASS_FROM_GLOBAL(g)  ((g)->_class)
+#define CTX_FROM_GLOBAL(g)    ((g)->ctx)
+#define CTX_FROM_OBJECT(o)    CTX_FROM_GLOBAL(GLOBAL_FROM_OBJECT(o))
+
 struct zco_context_t {
         void **types;
         int type_count;

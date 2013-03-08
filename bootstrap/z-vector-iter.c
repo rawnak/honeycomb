@@ -31,7 +31,6 @@
 #define Self ZVectorIter
 #define selfp (&self->_priv)
 #define GET_NEW(ctx) __z_vector_iter_new(ctx)
-#define CTX self->_global->ctx
 #define INIT_EXISTS
 #line 18 "z-vector-iter.zco"
 #define init z_vector_iter_init
@@ -108,7 +107,7 @@ ZVectorIterGlobal * z_vector_iter_get_type(struct zco_context_t *ctx)
 		struct ZVectorIterGlobal *global = (ZVectorIterGlobal *) malloc(sizeof(struct ZVectorIterGlobal));
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZVectorIterClass));
-		memset(global->_class, 0, sizeof(struct ZVectorIterClass));
+		memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct ZVectorIterClass));
 		global->name = "ZVectorIter";
 		global->vtable_off_list = NULL;
 		global->vtable_off_size = 0;
@@ -135,11 +134,11 @@ ZVectorIterGlobal * z_vector_iter_get_type(struct zco_context_t *ctx)
 				p_class->vtable_off_size,
 				&temp,
 				&temp.parent_z_object);
-			memcpy((char *) global->_class + offset, p_class->_class, sizeof(struct ZObjectClass));
+			memcpy((char *) CLASS_FROM_GLOBAL(global) + offset, CLASS_FROM_GLOBAL(p_class), sizeof(struct ZObjectClass));
 			class_off_list[p_class->id] = offset;
 			offset += sizeof(struct ZObjectClass);
 		}
-		((ZObjectClass *) global->_class)->class_off_list = class_off_list;
+		((ZObjectClass *) CLASS_FROM_GLOBAL(global))->class_off_list = class_off_list;
 		if (z_vector_iter_type_id == -1)
 			z_vector_iter_type_id = zco_allocate_type_id();
 		global->id = z_vector_iter_type_id;
@@ -150,7 +149,7 @@ ZVectorIterGlobal * z_vector_iter_get_type(struct zco_context_t *ctx)
 #line 25 "z-vector-iter.zco"
 		{
 #line 25 "z-vector-iter.zco"
-			ZObjectClass *p_class = &global->_class->parent_z_object;
+			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
 #line 25 "z-vector-iter.zco"
 			global->__parent_reset = p_class->__reset;
 #line 25 "z-vector-iter.zco"
@@ -160,14 +159,14 @@ ZVectorIterGlobal * z_vector_iter_get_type(struct zco_context_t *ctx)
 #line 37 "z-vector-iter.zco"
 		{
 #line 37 "z-vector-iter.zco"
-			ZObjectClass *p_class = &global->_class->parent_z_object;
+			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
 #line 37 "z-vector-iter.zco"
 			global->__parent_dispose = p_class->__dispose;
 #line 37 "z-vector-iter.zco"
 			p_class->__dispose = z_vector_iter_dispose;
 #line 37 "z-vector-iter.zco"
 		}
-		__z_vector_iter_class_init(ctx, (ZVectorIterClass *) global->_class);
+		__z_vector_iter_class_init(ctx, (ZVectorIterClass *) CLASS_FROM_GLOBAL(global));
 		global->method_map = z_map_new(ctx);
 		z_map_set_compare(global->method_map, __map_compare);
 		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
@@ -211,8 +210,8 @@ void __z_vector_iter_init(struct zco_context_t *ctx, Self *self)
 	struct ZVectorIterGlobal *_global = z_vector_iter_get_type(ctx);
 	self->_global = _global;
 	__z_object_init(ctx, (ZObject *) (self));
-	((ZObject *) self)->class_base = (void *) _global->_class;
-	((ZObjectClass *) _global->_class)->real_global = (void *) _global;
+	((ZObject *) self)->class_base = (void *) CLASS_FROM_GLOBAL(_global);
+	((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (void *) _global;
 	#ifdef INIT_EXISTS
 		init(self);
 	#endif
@@ -225,7 +224,7 @@ static void z_vector_iter_init(Self *self)
  selfp->segment = 0;
  }
 #line 25 "z-vector-iter.zco"
-#define PARENT_HANDLER self->_global->__parent_reset
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_reset
 static void  z_vector_iter_reset(ZObject *object)
 {
  Self *self = (Self *) object;
@@ -239,7 +238,7 @@ static void  z_vector_iter_reset(ZObject *object)
  }
 #undef PARENT_HANDLER
 #line 37 "z-vector-iter.zco"
-#define PARENT_HANDLER self->_global->__parent_dispose
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_dispose
 static void  z_vector_iter_dispose(ZObject *object)
 {
  Self *self = (Self *) object;

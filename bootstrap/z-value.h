@@ -43,7 +43,7 @@ union ZValueDataType {
 
 #include <zco-type.h>
 #define Self ZValue
-#define Z_VALUE(s) ((ZValue *) ((char *) (s) + (s)->_global->vtable_off_list[z_value_type_id]))
+#define Z_VALUE(s) ((ZValue *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[z_value_type_id]))
 
 
 struct ZValuePrivate;

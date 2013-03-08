@@ -27,7 +27,7 @@
 
 #include <zco-type.h>
 #define Self ZFrameworkEvents
-#define Z_FRAMEWORK_EVENTS(s) ((ZFrameworkEvents *) ((char *) (s) + (s)->_global->vtable_off_list[z_framework_events_type_id]))
+#define Z_FRAMEWORK_EVENTS(s) ((ZFrameworkEvents *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[z_framework_events_type_id]))
 
 
 struct ZFrameworkEventsPrivate;

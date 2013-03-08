@@ -29,7 +29,7 @@
 
 #include <zco-type.h>
 #define Self ZClosure
-#define Z_CLOSURE(s) ((ZClosure *) ((char *) (s) + (s)->_global->vtable_off_list[z_closure_type_id]))
+#define Z_CLOSURE(s) ((ZClosure *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[z_closure_type_id]))
 
 
 struct ZClosurePrivate;

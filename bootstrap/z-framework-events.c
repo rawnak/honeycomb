@@ -32,7 +32,6 @@
 #define Self ZFrameworkEvents
 #define selfp (&self->_priv)
 #define GET_NEW(ctx) __z_framework_events_new(ctx)
-#define CTX self->_global->ctx
 #define INIT_EXISTS
 #line 11 "z-framework-events.zco"
 #define init z_framework_events_init
@@ -81,7 +80,7 @@ ZFrameworkEventsGlobal * z_framework_events_get_type(struct zco_context_t *ctx)
 		struct ZFrameworkEventsGlobal *global = (ZFrameworkEventsGlobal *) malloc(sizeof(struct ZFrameworkEventsGlobal));
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZFrameworkEventsClass));
-		memset(global->_class, 0, sizeof(struct ZFrameworkEventsClass));
+		memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct ZFrameworkEventsClass));
 		global->name = "ZFrameworkEvents";
 		global->vtable_off_list = NULL;
 		global->vtable_off_size = 0;
@@ -108,11 +107,11 @@ ZFrameworkEventsGlobal * z_framework_events_get_type(struct zco_context_t *ctx)
 				p_class->vtable_off_size,
 				&temp,
 				&temp.parent_z_object);
-			memcpy((char *) global->_class + offset, p_class->_class, sizeof(struct ZObjectClass));
+			memcpy((char *) CLASS_FROM_GLOBAL(global) + offset, CLASS_FROM_GLOBAL(p_class), sizeof(struct ZObjectClass));
 			class_off_list[p_class->id] = offset;
 			offset += sizeof(struct ZObjectClass);
 		}
-		((ZObjectClass *) global->_class)->class_off_list = class_off_list;
+		((ZObjectClass *) CLASS_FROM_GLOBAL(global))->class_off_list = class_off_list;
 		if (z_framework_events_type_id == -1)
 			z_framework_events_type_id = zco_allocate_type_id();
 		global->id = z_framework_events_type_id;
@@ -120,7 +119,7 @@ ZFrameworkEventsGlobal * z_framework_events_get_type(struct zco_context_t *ctx)
 		global_ptr = zco_get_ctx_type(ctx, z_framework_events_type_id);
 		*global_ptr = global;
 		
-		__z_framework_events_class_init(ctx, (ZFrameworkEventsClass *) global->_class);
+		__z_framework_events_class_init(ctx, (ZFrameworkEventsClass *) CLASS_FROM_GLOBAL(global));
 		global->method_map = z_map_new(ctx);
 		z_map_set_compare(global->method_map, __map_compare);
 		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
@@ -146,8 +145,8 @@ void __z_framework_events_init(struct zco_context_t *ctx, Self *self)
 	struct ZFrameworkEventsGlobal *_global = z_framework_events_get_type(ctx);
 	self->_global = _global;
 	__z_object_init(ctx, (ZObject *) (self));
-	((ZObject *) self)->class_base = (void *) _global->_class;
-	((ZObjectClass *) _global->_class)->real_global = (void *) _global;
+	((ZObject *) self)->class_base = (void *) CLASS_FROM_GLOBAL(_global);
+	((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (void *) _global;
 #line 22 "z-framework-events.zco"
 	z_object_register_signal(Z_OBJECT(self), "resize_event");
 #line 23 "z-framework-events.zco"
@@ -173,14 +172,14 @@ void  z_framework_events_resize_event(Self *self,ZString *output)
 #line 22 "z-framework-events.zco"
 {
 #line 22 "z-framework-events.zco"
-	ZVector *args = z_vector_new(CTX);
+	ZVector *args = z_vector_new(CTX_FROM_OBJECT(self));
 	z_vector_set_item_size(args, 0);
 #line 22 "z-framework-events.zco"
 	z_vector_set_item_destruct(args, (ZVectorItemCallback) z_object_unref);
 #line 22 "z-framework-events.zco"
 	{
 #line 22 "z-framework-events.zco"
-		ZValue *value = z_value_new(CTX);
+		ZValue *value = z_value_new(CTX_FROM_OBJECT(self));
 #line 22 "z-framework-events.zco"
 		z_value_set_as_object(value, Z_OBJECT(output));
 #line 22 "z-framework-events.zco"
@@ -198,14 +197,14 @@ void  z_framework_events_draw_event(Self *self,ZString *output)
 #line 23 "z-framework-events.zco"
 {
 #line 23 "z-framework-events.zco"
-	ZVector *args = z_vector_new(CTX);
+	ZVector *args = z_vector_new(CTX_FROM_OBJECT(self));
 	z_vector_set_item_size(args, 0);
 #line 23 "z-framework-events.zco"
 	z_vector_set_item_destruct(args, (ZVectorItemCallback) z_object_unref);
 #line 23 "z-framework-events.zco"
 	{
 #line 23 "z-framework-events.zco"
-		ZValue *value = z_value_new(CTX);
+		ZValue *value = z_value_new(CTX_FROM_OBJECT(self));
 #line 23 "z-framework-events.zco"
 		z_value_set_as_object(value, Z_OBJECT(output));
 #line 23 "z-framework-events.zco"
@@ -223,7 +222,7 @@ void  z_framework_events_io_event(Self *self)
 #line 24 "z-framework-events.zco"
 {
 #line 24 "z-framework-events.zco"
-	ZVector *args = z_vector_new(CTX);
+	ZVector *args = z_vector_new(CTX_FROM_OBJECT(self));
 	z_vector_set_item_size(args, 0);
 #line 24 "z-framework-events.zco"
 	z_vector_set_item_destruct(args, (ZVectorItemCallback) z_object_unref);

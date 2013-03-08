@@ -30,7 +30,6 @@
 #define Self ZClosureMarshal
 #define selfp (&self->_priv)
 #define GET_NEW(ctx) __z_closure_marshal_new(ctx)
-#define CTX self->_global->ctx
 #line 11 "z-closure-marshal.zco"
 #define invoke z_closure_marshal_invoke
 
@@ -70,7 +69,7 @@ ZClosureMarshalGlobal * z_closure_marshal_get_type(struct zco_context_t *ctx)
 		struct ZClosureMarshalGlobal *global = (ZClosureMarshalGlobal *) malloc(sizeof(struct ZClosureMarshalGlobal));
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZClosureMarshalClass));
-		memset(global->_class, 0, sizeof(struct ZClosureMarshalClass));
+		memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct ZClosureMarshalClass));
 		global->name = "ZClosureMarshal";
 		global->vtable_off_list = NULL;
 		global->vtable_off_size = 0;
@@ -87,8 +86,8 @@ ZClosureMarshalGlobal * z_closure_marshal_get_type(struct zco_context_t *ctx)
 		*global_ptr = global;
 		
 #line 11 "z-closure-marshal.zco"
-		global->_class->__invoke = z_closure_marshal_virtual_invoke;
-		__z_closure_marshal_class_init(ctx, (ZClosureMarshalClass *) global->_class);
+		CLASS_FROM_GLOBAL(global)->__invoke = z_closure_marshal_virtual_invoke;
+		__z_closure_marshal_class_init(ctx, (ZClosureMarshalClass *) CLASS_FROM_GLOBAL(global));
 		global->method_map = z_map_new(ctx);
 		z_map_set_compare(global->method_map, __map_compare);
 		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
@@ -120,8 +119,9 @@ void __z_closure_marshal_init(struct zco_context_t *ctx, Self *self)
 int  z_closure_marshal_invoke(Self *self,ZObject *target,ZObjectSignalHandler handler,ZVector *args,void *userdata)
 {
 	ZObject *obj = (ZObject *) self;
-	unsigned long offset = ((ZObjectClass *) obj->class_base)->class_off_list[z_closure_marshal_type_id];
-	((ZClosureMarshalClass *) ((char *) obj->class_base + offset))->__invoke(self,target,handler,args,userdata);
+	ZObjectClass *class_base = (ZObjectClass *) obj->class_base;
+	unsigned long offset = class_base->class_off_list[z_closure_marshal_type_id];
+	((ZClosureMarshalClass *) ((char *) class_base + offset))->__invoke(self,target,handler,args,userdata);
 }
 #line 11 "z-closure-marshal.zco"
 static int  z_closure_marshal_virtual_invoke(Self *self,ZObject *target,ZObjectSignalHandler handler,ZVector *args,void *userdata)

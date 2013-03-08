@@ -26,7 +26,7 @@
 
 #include <zco-type.h>
 #define Self ZStringIter
-#define Z_STRING_ITER(s) ((ZStringIter *) ((char *) (s) + (s)->_global->vtable_off_list[z_string_iter_type_id]))
+#define Z_STRING_ITER(s) ((ZStringIter *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[z_string_iter_type_id]))
 
 
 struct ZStringIterPrivate;

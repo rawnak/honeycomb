@@ -55,7 +55,7 @@ class ZString : ZObject
 	
 	init(Self *self)
 	{
-		selfp->data = z_vector_new(CTX);
+		selfp->data = z_vector_new(CTX_FROM_OBJECT(self));
                 z_vector_set_item_size(selfp->data, sizeof(char));
 
 		selfp->length = 0;
@@ -70,7 +70,7 @@ class ZString : ZObject
 			z_object_unref(Z_OBJECT(selfp->token_it));
 
 		z_object_unref(Z_OBJECT(selfp->data));
-		selfp->data = z_vector_new(CTX);
+		selfp->data = z_vector_new(CTX_FROM_OBJECT(self));
 
                 z_vector_set_item_size(selfp->data, sizeof(char));
 
@@ -405,7 +405,7 @@ class ZString : ZObject
 
 	public void append_cstring(Self *self, const char *s, int encoding)
 	{
-		Self *tmp = new(CTX);
+		Self *tmp = new(CTX_FROM_OBJECT(self));
 
 		set_cstring(tmp, s, encoding);
 		append(self, tmp, NULL, NULL);
@@ -1045,7 +1045,7 @@ class ZString : ZObject
 	{
 		get
 		{
-			ZStringIter *it = z_string_iter_new(CTX);
+			ZStringIter *it = z_string_iter_new(CTX_FROM_OBJECT(self));
 			return it;
 		}
 	}
@@ -1054,7 +1054,7 @@ class ZString : ZObject
 	{
 		get
 		{
-			ZStringIter *it = z_string_iter_new(CTX);
+			ZStringIter *it = z_string_iter_new(CTX_FROM_OBJECT(self));
 			z_string_iter_set_index(it, selfp->length);
 			return it;
 		}

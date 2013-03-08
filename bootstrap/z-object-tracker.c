@@ -30,7 +30,6 @@
 #define Self ZObjectTracker
 #define selfp (&self->_priv)
 #define GET_NEW(ctx) __z_object_tracker_new(ctx)
-#define CTX self->_global->ctx
 #line 10 "z-object-tracker.zco"
 #define create z_object_tracker_create
 #line 15 "z-object-tracker.zco"
@@ -78,7 +77,7 @@ ZObjectTrackerGlobal * z_object_tracker_get_type(struct zco_context_t *ctx)
 		struct ZObjectTrackerGlobal *global = (ZObjectTrackerGlobal *) malloc(sizeof(struct ZObjectTrackerGlobal));
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZObjectTrackerClass));
-		memset(global->_class, 0, sizeof(struct ZObjectTrackerClass));
+		memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct ZObjectTrackerClass));
 		global->name = "ZObjectTracker";
 		global->vtable_off_list = NULL;
 		global->vtable_off_size = 0;
@@ -95,12 +94,12 @@ ZObjectTrackerGlobal * z_object_tracker_get_type(struct zco_context_t *ctx)
 		*global_ptr = global;
 		
 #line 10 "z-object-tracker.zco"
-		global->_class->__create = z_object_tracker_virtual_create;
+		CLASS_FROM_GLOBAL(global)->__create = z_object_tracker_virtual_create;
 #line 15 "z-object-tracker.zco"
-		global->_class->__destroy = z_object_tracker_virtual_destroy;
+		CLASS_FROM_GLOBAL(global)->__destroy = z_object_tracker_virtual_destroy;
 #line 20 "z-object-tracker.zco"
-		global->_class->__garbage_collect = z_object_tracker_virtual_garbage_collect;
-		__z_object_tracker_class_init(ctx, (ZObjectTrackerClass *) global->_class);
+		CLASS_FROM_GLOBAL(global)->__garbage_collect = z_object_tracker_virtual_garbage_collect;
+		__z_object_tracker_class_init(ctx, (ZObjectTrackerClass *) CLASS_FROM_GLOBAL(global));
 		global->method_map = z_map_new(ctx);
 		z_map_set_compare(global->method_map, __map_compare);
 		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
@@ -136,8 +135,9 @@ void __z_object_tracker_init(struct zco_context_t *ctx, Self *self)
 ZObject *  z_object_tracker_create(Self *self,int type_id)
 {
 	ZObject *obj = (ZObject *) self;
-	unsigned long offset = ((ZObjectClass *) obj->class_base)->class_off_list[z_object_tracker_type_id];
-	((ZObjectTrackerClass *) ((char *) obj->class_base + offset))->__create(self,type_id);
+	ZObjectClass *class_base = (ZObjectClass *) obj->class_base;
+	unsigned long offset = class_base->class_off_list[z_object_tracker_type_id];
+	((ZObjectTrackerClass *) ((char *) class_base + offset))->__create(self,type_id);
 }
 #line 10 "z-object-tracker.zco"
 static ZObject *  z_object_tracker_virtual_create(Self *self,int type_id)
@@ -148,8 +148,9 @@ static ZObject *  z_object_tracker_virtual_create(Self *self,int type_id)
 int  z_object_tracker_destroy(Self *self,ZObject *target)
 {
 	ZObject *obj = (ZObject *) self;
-	unsigned long offset = ((ZObjectClass *) obj->class_base)->class_off_list[z_object_tracker_type_id];
-	((ZObjectTrackerClass *) ((char *) obj->class_base + offset))->__destroy(self,target);
+	ZObjectClass *class_base = (ZObjectClass *) obj->class_base;
+	unsigned long offset = class_base->class_off_list[z_object_tracker_type_id];
+	((ZObjectTrackerClass *) ((char *) class_base + offset))->__destroy(self,target);
 }
 #line 15 "z-object-tracker.zco"
 static int  z_object_tracker_virtual_destroy(Self *self,ZObject *target)
@@ -160,8 +161,9 @@ static int  z_object_tracker_virtual_destroy(Self *self,ZObject *target)
 int  z_object_tracker_garbage_collect(Self *self)
 {
 	ZObject *obj = (ZObject *) self;
-	unsigned long offset = ((ZObjectClass *) obj->class_base)->class_off_list[z_object_tracker_type_id];
-	((ZObjectTrackerClass *) ((char *) obj->class_base + offset))->__garbage_collect(self);
+	ZObjectClass *class_base = (ZObjectClass *) obj->class_base;
+	unsigned long offset = class_base->class_off_list[z_object_tracker_type_id];
+	((ZObjectTrackerClass *) ((char *) class_base + offset))->__garbage_collect(self);
 }
 #line 20 "z-object-tracker.zco"
 static int  z_object_tracker_virtual_garbage_collect(Self *self)

@@ -216,8 +216,8 @@ done:
                 }
 
                 if (value) {
-                        int min_segment_capacity_by_size = zco_context_get_min_segment_capacity_by_size(CTX);
-                        int min_segment_capacity_by_count = zco_context_get_min_segment_capacity_by_count(CTX);
+                        int min_segment_capacity_by_size = zco_context_get_min_segment_capacity_by_size(CTX_FROM_OBJECT(self));
+                        int min_segment_capacity_by_count = zco_context_get_min_segment_capacity_by_count(CTX_FROM_OBJECT(self));
 
                         /* restrict minimum segment size by count */
                         if (value < min_segment_capacity_by_count)
@@ -376,7 +376,7 @@ done:
 	{
 		get
 		{
-			ZVectorIter *iter = z_vector_iter_new(CTX);
+			ZVectorIter *iter = z_vector_iter_new(CTX_FROM_OBJECT(self));
                         z_vector_iter_set_segment(iter, self);
 			return iter;
 		}
@@ -388,7 +388,7 @@ done:
 	{
 		get
 		{
-			ZVectorIter *iter = z_vector_iter_new(CTX);
+			ZVectorIter *iter = z_vector_iter_new(CTX_FROM_OBJECT(self));
                         z_vector_iter_set_segment(iter, self);
 			z_vector_iter_set_index(iter, get_size(self)-1);
                         z_vector_iter_increment(iter);

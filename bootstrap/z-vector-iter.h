@@ -29,7 +29,7 @@ typedef struct ZVectorSegment ZVectorSegment;
 
 #include <zco-type.h>
 #define Self ZVectorIter
-#define Z_VECTOR_ITER(s) ((ZVectorIter *) ((char *) (s) + (s)->_global->vtable_off_list[z_vector_iter_type_id]))
+#define Z_VECTOR_ITER(s) ((ZVectorIter *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[z_vector_iter_type_id]))
 
 
 struct ZVectorIterPrivate;

@@ -31,7 +31,7 @@ typedef void(*ZVectorItemCallback)(void *item, void *userdata);
 
 #include <zco-type.h>
 #define Self ZVectorSegment
-#define Z_VECTOR_SEGMENT(s) ((ZVectorSegment *) ((char *) (s) + (s)->_global->vtable_off_list[z_vector_segment_type_id]))
+#define Z_VECTOR_SEGMENT(s) ((ZVectorSegment *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[z_vector_segment_type_id]))
 
 
 struct ZVectorSegmentPrivate;

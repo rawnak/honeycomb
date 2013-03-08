@@ -118,8 +118,8 @@ class ZObject
 	{
 		assert(selfp->ref_count > 0);
 		if (--selfp->ref_count == 0) {
-                        if (CTX->object_tracker) {
-                                ZObjectTracker *object_tracker = (ZObjectTracker *) CTX->object_tracker;
+                        if (CTX_FROM_OBJECT(self)->object_tracker) {
+                                ZObjectTracker *object_tracker = (ZObjectTracker *) CTX_FROM_OBJECT(self)->object_tracker;
                                 z_object_tracker_destroy(object_tracker, self);
                         } else {
                                 dispose(self);
@@ -148,7 +148,7 @@ class ZObject
 			if (offset == -1)
 				continue;
 
-			gbl = *((void **) zco_get_ctx_type(CTX, i));
+			gbl = *((void **) zco_get_ctx_type(CTX_FROM_OBJECT(self), i));
 			ZMap *method_map = (ZMap *) gbl->method_map;
 			ZMapIter *it = z_map_find(method_map, method_name);
 
@@ -178,9 +178,9 @@ class ZObject
 		assert(handler != NULL);
 
 		/* create a closure */
-		closure = z_closure_new(CTX);
+		closure = z_closure_new(CTX_FROM_OBJECT(self));
 
-		z_closure_set_marshal(closure, (ZClosureMarshal *) CTX->marshal);
+		z_closure_set_marshal(closure, (ZClosureMarshal *) CTX_FROM_OBJECT(self)->marshal);
 		z_closure_set_target(closure, target);
 		z_closure_set_handler(closure, handler);
 		z_closure_set_userdata(closure, userdata);
@@ -232,7 +232,7 @@ class ZObject
 	{
 		/* create signal map (if necessary) */
 		if (!selfp->signal_map) {
-			selfp->signal_map = z_map_new(CTX);
+			selfp->signal_map = z_map_new(CTX_FROM_OBJECT(self));
 			z_map_set_compare(selfp->signal_map, map_compare);
 			z_map_set_key_destruct(selfp->signal_map, (ZMapItemCallback) free);
 			z_map_set_value_destruct(selfp->signal_map, (ZMapItemCallback) unref);
@@ -242,7 +242,7 @@ class ZObject
 		ZMapIter *it = z_map_find(selfp->signal_map, name);
 
 		if (!it) {
-			ZVector *closure_list = z_vector_new(CTX);
+			ZVector *closure_list = z_vector_new(CTX_FROM_OBJECT(self));
                         z_vector_set_item_size(closure_list, 0);
 			z_vector_set_item_destruct(closure_list, (ZVectorItemCallback) unref);
 			z_map_insert(selfp->signal_map, strdup(name), closure_list);
@@ -285,7 +285,7 @@ class ZObject
 	public void add_attached_property_map(Self *self, void *map)
 	{
 		if (selfp->attached_properties == 0) {
-			selfp->attached_properties = z_vector_new(CTX);
+			selfp->attached_properties = z_vector_new(CTX_FROM_OBJECT(self));
                         z_vector_set_item_size(selfp->attached_properties, sizeof(void *));
                 }
 

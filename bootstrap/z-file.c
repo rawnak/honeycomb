@@ -31,7 +31,6 @@
 #define Self ZFile
 #define selfp (&self->_priv)
 #define GET_NEW(ctx) __z_file_new(ctx)
-#define CTX self->_global->ctx
 #define INIT_EXISTS
 #line 14 "z-file.zco"
 #define init z_file_init
@@ -84,7 +83,7 @@ ZFileGlobal * z_file_get_type(struct zco_context_t *ctx)
 		struct ZFileGlobal *global = (ZFileGlobal *) malloc(sizeof(struct ZFileGlobal));
 		global->ctx = ctx;
 		global->_class = malloc(sizeof(struct ZFileClass));
-		memset(global->_class, 0, sizeof(struct ZFileClass));
+		memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct ZFileClass));
 		global->name = "ZFile";
 		global->vtable_off_list = NULL;
 		global->vtable_off_size = 0;
@@ -111,11 +110,11 @@ ZFileGlobal * z_file_get_type(struct zco_context_t *ctx)
 				p_class->vtable_off_size,
 				&temp,
 				&temp.parent_z_object);
-			memcpy((char *) global->_class + offset, p_class->_class, sizeof(struct ZObjectClass));
+			memcpy((char *) CLASS_FROM_GLOBAL(global) + offset, CLASS_FROM_GLOBAL(p_class), sizeof(struct ZObjectClass));
 			class_off_list[p_class->id] = offset;
 			offset += sizeof(struct ZObjectClass);
 		}
-		((ZObjectClass *) global->_class)->class_off_list = class_off_list;
+		((ZObjectClass *) CLASS_FROM_GLOBAL(global))->class_off_list = class_off_list;
 		if (z_file_type_id == -1)
 			z_file_type_id = zco_allocate_type_id();
 		global->id = z_file_type_id;
@@ -123,7 +122,7 @@ ZFileGlobal * z_file_get_type(struct zco_context_t *ctx)
 		global_ptr = zco_get_ctx_type(ctx, z_file_type_id);
 		*global_ptr = global;
 		
-		__z_file_class_init(ctx, (ZFileClass *) global->_class);
+		__z_file_class_init(ctx, (ZFileClass *) CLASS_FROM_GLOBAL(global));
 		global->method_map = z_map_new(ctx);
 		z_map_set_compare(global->method_map, __map_compare);
 		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
@@ -159,8 +158,8 @@ void __z_file_init(struct zco_context_t *ctx, Self *self)
 	struct ZFileGlobal *_global = z_file_get_type(ctx);
 	self->_global = _global;
 	__z_object_init(ctx, (ZObject *) (self));
-	((ZObject *) self)->class_base = (void *) _global->_class;
-	((ZObjectClass *) _global->_class)->real_global = (void *) _global;
+	((ZObject *) self)->class_base = (void *) CLASS_FROM_GLOBAL(_global);
+	((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (void *) _global;
 	#ifdef INIT_EXISTS
 		init(self);
 	#endif
@@ -201,7 +200,7 @@ void  z_file_write(Self *self,const char *str)
 #line 47 "z-file.zco"
 int  z_file_write_vformat(Self *self,const char *fmt,va_list ap)
 {
- ZString *temp = z_string_new(CTX);
+ ZString *temp = z_string_new(CTX_FROM_OBJECT(self));
  
  /* create a formatted string */
  z_string_append_vformat(temp, fmt, ap);
