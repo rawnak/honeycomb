@@ -75,7 +75,7 @@ static void cleanup_signal_arg(void *item, void *userdata)
 }
 ZFileGlobal * z_file_get_type(struct zco_context_t *ctx)
 {
-	void **global_ptr = NULL;
+	ZCommonGlobal **global_ptr = NULL;
 	if (z_file_type_id != -1) {
 		global_ptr = zco_get_ctx_type(ctx, z_file_type_id);
 	}
@@ -120,7 +120,7 @@ ZFileGlobal * z_file_get_type(struct zco_context_t *ctx)
 		global->common.id = z_file_type_id;
 		zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, z_file_type_id);
 		global_ptr = zco_get_ctx_type(ctx, z_file_type_id);
-		*global_ptr = global;
+		*global_ptr = (ZCommonGlobal *) global;
 		
 		__z_file_class_init(ctx, (ZFileClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx);
@@ -159,7 +159,7 @@ void __z_file_init(struct zco_context_t *ctx, Self *self)
 	self->_global = _global;
 	__z_object_init(ctx, (ZObject *) (self));
 	((ZObject *) self)->class_base = (void *) CLASS_FROM_GLOBAL(_global);
-	((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (void *) _global;
+	((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (ZCommonGlobal *) _global;
 	#ifdef INIT_EXISTS
 		init(self);
 	#endif

@@ -64,7 +64,7 @@ struct ZObjectGlobal {
 
 struct ZObjectClass {
 	unsigned long * class_off_list;
-	void * real_global;
+	ZCommonGlobal * real_global;
 #line 40 "z-object.zco"
 	void  (*__reset)(Self *self);
 #line 55 "z-object.zco"

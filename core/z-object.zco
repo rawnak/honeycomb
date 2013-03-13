@@ -44,7 +44,7 @@ class ZObject
 	private void *attached_properties;
 	private void *signal_map;
 	public virtual unsigned long *class_off_list;
-	public virtual void *real_global;
+	public virtual ZCommonGlobal *real_global;
 
 	init(Self *self)
 	{
@@ -133,11 +133,11 @@ class ZObject
 		   are common between the source (unknown) *Global type and
 		   ZObjectGlobal. Since we are interested in the vtable information,
 		   we can perform the cast */
-		ZObjectGlobal *gbl = ((ZObjectClass *) self->class_base)->real_global;
+		ZCommonGlobal *gbl = ((ZObjectClass *) self->class_base)->real_global;
 
 
-		int *vtable_off_list = gbl->common.vtable_off_list;
-		int vtable_off_size = gbl->common.vtable_off_size;
+		int *vtable_off_list = gbl->vtable_off_list;
+		int vtable_off_size = gbl->vtable_off_size;
 		int i;
 
 		for (i=vtable_off_size-1; i>=0; --i) {
@@ -148,8 +148,8 @@ class ZObject
 			if (offset == -1)
 				continue;
 
-			gbl = *((void **) zco_get_ctx_type(CTX_FROM_OBJECT(self), i));
-			ZMap *method_map = (ZMap *) gbl->common.method_map;
+			gbl = *((ZCommonGlobal **) zco_get_ctx_type(CTX_FROM_OBJECT(self), i));
+			ZMap *method_map = (ZMap *) gbl->method_map;
 			ZMapIter *it = z_map_find(method_map, method_name);
 
 			if (it) {

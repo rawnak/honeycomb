@@ -27,16 +27,6 @@
 #define CTX_FROM_GLOBAL(g)    ((g)->common.ctx)
 #define CTX_FROM_OBJECT(o)    CTX_FROM_GLOBAL(GLOBAL_FROM_OBJECT(o))
 
-struct zco_context_t {
-        void **types;
-        int type_count;
-        void *marshal;                  /* ZClosureMarshal object */
-        void *framework_events;         /* ZFrameworkEvents object */
-        void *object_tracker;           /* ZObjectTracker object */
-        int min_segment_cap_by_size;    /* Minimum vector segment capacity */
-        int min_segment_cap_by_count;   /* Minimum vector segment capacity */
-};
-
 struct ZCommonGlobal {
 	int *vtable_off_list;
 	int vtable_off_size;
@@ -46,6 +36,18 @@ struct ZCommonGlobal {
 	int id;
 	void *method_map;
 };
+typedef struct ZCommonGlobal ZCommonGlobal;
+
+struct zco_context_t {
+        ZCommonGlobal **types;
+        int type_count;
+        void *marshal;                  /* ZClosureMarshal object */
+        void *framework_events;         /* ZFrameworkEvents object */
+        void *object_tracker;           /* ZObjectTracker object */
+        int min_segment_cap_by_size;    /* Minimum vector segment capacity */
+        int min_segment_cap_by_count;   /* Minimum vector segment capacity */
+};
+
 
 void    zco_context_init(struct zco_context_t *ctx);
 void    zco_context_destroy(struct zco_context_t *ctx);
@@ -58,10 +60,10 @@ int     zco_context_get_min_segment_capacity_by_count(struct zco_context_t *ctx)
 void    zco_context_set_min_segment_capacity_by_count(struct zco_context_t *ctx, int value);
 
 
-void ** zco_get_ctx_type(struct zco_context_t *ctx, int type_id);
-int     zco_allocate_type_id();
-void    zco_inherit_vtable(int **list, int *size, int *src_list, int src_size, void *base, void *target);
-void    zco_add_to_vtable(int **list, int *size, int type_id);
+ZCommonGlobal ** zco_get_ctx_type(struct zco_context_t *ctx, int type_id);
+int              zco_allocate_type_id();
+void             zco_inherit_vtable(int **list, int *size, int *src_list, int src_size, void *base, void *target);
+void             zco_add_to_vtable(int **list, int *size, int type_id);
 
 #endif
 

@@ -214,7 +214,7 @@ static void cleanup_signal_arg(void *item, void *userdata)
 }
 ZZcoSourceGeneratorGlobal * z_zco_source_generator_get_type(struct zco_context_t *ctx)
 {
-	void **global_ptr = NULL;
+	ZCommonGlobal **global_ptr = NULL;
 	if (z_zco_source_generator_type_id != -1) {
 		global_ptr = zco_get_ctx_type(ctx, z_zco_source_generator_type_id);
 	}
@@ -259,7 +259,7 @@ ZZcoSourceGeneratorGlobal * z_zco_source_generator_get_type(struct zco_context_t
 		global->common.id = z_zco_source_generator_type_id;
 		zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, z_zco_source_generator_type_id);
 		global_ptr = zco_get_ctx_type(ctx, z_zco_source_generator_type_id);
-		*global_ptr = global;
+		*global_ptr = (ZCommonGlobal *) global;
 		
 #line 199 "z-zco-source-generator.zco"
 		{
@@ -352,7 +352,7 @@ void __z_zco_source_generator_init(struct zco_context_t *ctx, Self *self)
 	self->_global = _global;
 	__z_object_init(ctx, (ZObject *) (self));
 	((ZObject *) self)->class_base = (void *) CLASS_FROM_GLOBAL(_global);
-	((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (void *) _global;
+	((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (ZCommonGlobal *) _global;
 	#ifdef INIT_EXISTS
 		init(self);
 	#endif
@@ -1809,7 +1809,7 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
  /* define get_type */
  z_file_write_format(selfp->source_file, "%SGlobal * %S_get_type(struct zco_context_t *ctx)\n"
  "\x7b\n"
- "\tvoid **global_ptr = NULL;\n"
+ "\tZCommonGlobal **global_ptr = NULL;\n"
  "\tif (%S_type_id != -1) \x7b\n"
  "\t\tglobal_ptr = zco_get_ctx_type(ctx, %S_type_id);\n"
  "\t\x7d\n"
@@ -1900,7 +1900,7 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
  "\t\tglobal->common.id = %S_type_id;\n"
  "\t\tzco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, %S_type_id);\n"
  "\t\tglobal_ptr = zco_get_ctx_type(ctx, %S_type_id);\n"
- "\t\t*global_ptr = global;\n"
+ "\t\t*global_ptr = (ZCommonGlobal *) global;\n"
  "\t\t\n",
  selfp->current_class_name_lowercase,
  selfp->current_class_name_lowercase,
@@ -2014,7 +2014,7 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
  if (!selfp->is_interface) {
  z_file_write(selfp->source_file,
  "\t((ZObject *) self)->class_base = (void *) CLASS_FROM_GLOBAL(_global);\n"
- "\t((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (void *) _global;\n");
+ "\t((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (ZCommonGlobal *) _global;\n");
  }
 
  z_file_write_format(selfp->source_file, "%S", selfp->signal_registrations);

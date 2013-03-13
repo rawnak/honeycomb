@@ -69,7 +69,7 @@ static void cleanup_signal_arg(void *item, void *userdata)
 }
 ZObjectTrackerGlobal * z_object_tracker_get_type(struct zco_context_t *ctx)
 {
-	void **global_ptr = NULL;
+	ZCommonGlobal **global_ptr = NULL;
 	if (z_object_tracker_type_id != -1) {
 		global_ptr = zco_get_ctx_type(ctx, z_object_tracker_type_id);
 	}
@@ -91,7 +91,7 @@ ZObjectTrackerGlobal * z_object_tracker_get_type(struct zco_context_t *ctx)
 		global->common.id = z_object_tracker_type_id;
 		zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, z_object_tracker_type_id);
 		global_ptr = zco_get_ctx_type(ctx, z_object_tracker_type_id);
-		*global_ptr = global;
+		*global_ptr = (ZCommonGlobal *) global;
 		
 #line 10 "z-object-tracker.zco"
 		CLASS_FROM_GLOBAL(global)->__create = z_object_tracker_virtual_create;

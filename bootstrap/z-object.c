@@ -100,7 +100,7 @@ static void cleanup_signal_arg(void *item, void *userdata)
 }
 ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
 {
-	void **global_ptr = NULL;
+	ZCommonGlobal **global_ptr = NULL;
 	if (z_object_type_id != -1) {
 		global_ptr = zco_get_ctx_type(ctx, z_object_type_id);
 	}
@@ -127,7 +127,7 @@ ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
 		global->common.id = z_object_type_id;
 		zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, z_object_type_id);
 		global_ptr = zco_get_ctx_type(ctx, z_object_type_id);
-		*global_ptr = global;
+		*global_ptr = (ZCommonGlobal *) global;
 		
 #line 40 "z-object.zco"
 		CLASS_FROM_GLOBAL(global)->__reset = z_object_virtual_reset;
@@ -174,7 +174,7 @@ void __z_object_init(struct zco_context_t *ctx, Self *self)
 	struct ZObjectGlobal *_global = z_object_get_type(ctx);
 	self->_global = _global;
 	((ZObject *) self)->class_base = (void *) CLASS_FROM_GLOBAL(_global);
-	((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (void *) _global;
+	((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (ZCommonGlobal *) _global;
 	#ifdef INIT_EXISTS
 		init(self);
 	#endif
@@ -279,11 +279,11 @@ static ZObjectSignalHandler  z_object_lookup_method(Self *self,char *method_name
 		   are common between the source (unknown) *Global type and
 		   ZObjectGlobal. Since we are interested in the vtable information,
 		   we can perform the cast */
- ZObjectGlobal *gbl = ((ZObjectClass *) self->class_base)->real_global;
+ ZCommonGlobal *gbl = ((ZObjectClass *) self->class_base)->real_global;
 
 
- int *vtable_off_list = gbl->common.vtable_off_list;
- int vtable_off_size = gbl->common.vtable_off_size;
+ int *vtable_off_list = gbl->vtable_off_list;
+ int vtable_off_size = gbl->vtable_off_size;
  int i;
 
  for (i=vtable_off_size-1; i>=0; --i) {
@@ -294,8 +294,8 @@ static ZObjectSignalHandler  z_object_lookup_method(Self *self,char *method_name
  if (offset == -1)
  continue;
 
- gbl = *((void **) zco_get_ctx_type(CTX_FROM_OBJECT(self), i));
- ZMap *method_map = (ZMap *) gbl->common.method_map;
+ gbl = *((ZCommonGlobal **) zco_get_ctx_type(CTX_FROM_OBJECT(self), i));
+ ZMap *method_map = (ZMap *) gbl->method_map;
  ZMapIter *it = z_map_find(method_map, method_name);
 
  if (it) {

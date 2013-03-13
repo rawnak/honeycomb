@@ -1601,7 +1601,7 @@ class ZZcoSourceGenerator : ZObject
                 /* define get_type */
                 z_file_write_format(selfp->source_file, "%SGlobal * %S_get_type(struct zco_context_t *ctx)\n"
                                 "\x7b\n"
-                                "\tvoid **global_ptr = NULL;\n"
+                                "\tZCommonGlobal **global_ptr = NULL;\n"
                                 "\tif (%S_type_id != -1) \x7b\n"
                                 "\t\tglobal_ptr = zco_get_ctx_type(ctx, %S_type_id);\n"
                                 "\t\x7d\n"
@@ -1692,7 +1692,7 @@ class ZZcoSourceGenerator : ZObject
                                 "\t\tglobal->common.id = %S_type_id;\n"
                                 "\t\tzco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, %S_type_id);\n"
                                 "\t\tglobal_ptr = zco_get_ctx_type(ctx, %S_type_id);\n"
-                                "\t\t*global_ptr = global;\n"
+                                "\t\t*global_ptr = (ZCommonGlobal *) global;\n"
                                 "\t\t\n",
                                 selfp->current_class_name_lowercase,
                                 selfp->current_class_name_lowercase,
@@ -1806,7 +1806,7 @@ class ZZcoSourceGenerator : ZObject
                 if (!selfp->is_interface) {
                         z_file_write(selfp->source_file,
                                         "\t((ZObject *) self)->class_base = (void *) CLASS_FROM_GLOBAL(_global);\n"
-					"\t((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (void *) _global;\n");
+					"\t((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (ZCommonGlobal *) _global;\n");
                 }
 
                 z_file_write_format(selfp->source_file, "%S", selfp->signal_registrations);

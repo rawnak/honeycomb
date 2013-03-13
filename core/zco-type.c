@@ -88,25 +88,26 @@ void zco_context_destroy(struct zco_context_t *ctx)
 	}
 
 	for (i=0; i < ctx->type_count; ++i) {
-		struct ZObjectGlobal *global = ctx->types[i];
+		struct ZCommonGlobal *global = ctx->types[i];
 
 		if (global)
-			z_object_unref((ZObject *) global->common.method_map);
+			z_object_unref((ZObject *) global->method_map);
 	}
 
 	for (i=0; i < ctx->type_count; ++i) {
-		struct ZObjectGlobal *global = ctx->types[i];
+		struct ZCommonGlobal *global = ctx->types[i];
 
 		if (global) {
-			if (global->common.is_object) {
-				free(global->_class->class_off_list);
+                        struct ZObjectGlobal *obj_global = ((ZObjectGlobal *) global);
+
+			if (global->is_object) {
+				free(CLASS_FROM_GLOBAL(obj_global)->class_off_list);
 			}
-			free(global->_class);
-			free(global->common.vtable_off_list);
+			free(obj_global->_class);
+			free(global->vtable_off_list);
 			free(global);
 		}
 	}
-
 
 	free(ctx->types);
 	ctx->types = NULL;
@@ -122,12 +123,12 @@ void zco_context_set_marshal(struct zco_context_t *ctx, void *marshal)
 	z_object_ref((ZObject *) marshal);
 }
 
-void **zco_get_ctx_type(struct zco_context_t *ctx, int type_id)
+ZCommonGlobal **zco_get_ctx_type(struct zco_context_t *ctx, int type_id)
 {
 	if (ctx->type_count <= type_id) {
 		int new_size = type_id + 1;
 
-		ctx->types = (void **) realloc(ctx->types, new_size * sizeof(void *));
+		ctx->types = (ZCommonGlobal **) realloc(ctx->types, new_size * sizeof(void *));
 		memset(ctx->types + ctx->type_count, 0, (new_size - ctx->type_count) * sizeof(void *));
 		ctx->type_count = new_size;
 	}
