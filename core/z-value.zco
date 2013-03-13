@@ -81,7 +81,7 @@ class ZValue : ZObject
 
 	public Self *dup(ZValue *src)
 	{
-		Self *self = GET_NEW(src->_global->ctx);
+		Self *self = GET_NEW(CTX_FROM_OBJECT(src));
 
 		selfp->data = src->_priv.data;
 		selfp->tag = src->_priv.tag;

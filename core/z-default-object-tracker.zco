@@ -164,7 +164,7 @@ done:
                         selfp->suspended = 1;
 
                         /* TODO: Accessing data like this is terrible. Come up with a better solution later */
-                        int id = ((ZObjectGlobal *) ((ZObjectClass *) target->class_base)->real_global)->id;
+                        int id = ((ZObjectGlobal *) ((ZObjectClass *) target->class_base)->real_global)->common.id;
 
                         ZMapIter *pos;
                         ZVector *pool;

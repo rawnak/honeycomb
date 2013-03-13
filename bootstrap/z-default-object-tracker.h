@@ -29,7 +29,7 @@
 
 #include <zco-type.h>
 #define Self ZDefaultObjectTracker
-#define Z_DEFAULT_OBJECT_TRACKER(s) ((ZDefaultObjectTracker *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[z_default_object_tracker_type_id]))
+#define Z_DEFAULT_OBJECT_TRACKER(s) ((ZDefaultObjectTracker *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->common.vtable_off_list[z_default_object_tracker_type_id]))
 
 
 struct ZDefaultObjectTrackerPrivate;
@@ -55,14 +55,8 @@ struct ZDefaultObjectTrackerProtected {
 };
 
 struct ZDefaultObjectTrackerGlobal {
-	int *vtable_off_list;
-	int vtable_off_size;
-	int is_object;
+	struct ZCommonGlobal common;
 	struct ZDefaultObjectTrackerClass *_class;
-	struct zco_context_t *ctx;
-	const char *name;
-	int id;
-	void *method_map;
 #line 49 "z-default-object-tracker.zco"
 	void  (*__parent_dispose)(ZObject *object);
 #line 79 "z-default-object-tracker.zco"

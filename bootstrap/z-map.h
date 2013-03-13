@@ -34,7 +34,7 @@ typedef void(*ZMapItemCallback)(void *item, void *userdata);
 
 #include <zco-type.h>
 #define Self ZMap
-#define Z_MAP(s) ((ZMap *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[z_map_type_id]))
+#define Z_MAP(s) ((ZMap *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->common.vtable_off_list[z_map_type_id]))
 
 
 struct ZMapPrivate;
@@ -66,14 +66,8 @@ struct ZMapProtected {
 };
 
 struct ZMapGlobal {
-	int *vtable_off_list;
-	int vtable_off_size;
-	int is_object;
+	struct ZCommonGlobal common;
 	struct ZMapClass *_class;
-	struct zco_context_t *ctx;
-	const char *name;
-	int id;
-	void *method_map;
 #line 45 "z-map.zco"
 	void  (*__parent_reset)(ZObject *object);
 #line 67 "z-map.zco"

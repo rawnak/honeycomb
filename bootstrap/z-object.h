@@ -30,7 +30,7 @@ typedef void(*ZObjectSignalHandler)(struct ZObject *self, ...);
 
 #include <zco-type.h>
 #define Self ZObject
-#define Z_OBJECT(s) ((ZObject *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[z_object_type_id]))
+#define Z_OBJECT(s) ((ZObject *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->common.vtable_off_list[z_object_type_id]))
 
 
 struct ZObjectPrivate;
@@ -58,14 +58,8 @@ struct ZObjectProtected {
 };
 
 struct ZObjectGlobal {
-	int *vtable_off_list;
-	int vtable_off_size;
-	int is_object;
+	struct ZCommonGlobal common;
 	struct ZObjectClass *_class;
-	struct zco_context_t *ctx;
-	const char *name;
-	int id;
-	void *method_map;
 };
 
 struct ZObjectClass {

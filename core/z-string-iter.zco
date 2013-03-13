@@ -50,7 +50,7 @@ class ZStringIter : ZObject
 
 	public Self *dup(ZStringIter *src)
 	{
-		Self *self = GET_NEW(src->_global->ctx);
+		Self *self = GET_NEW(CTX_FROM_OBJECT(src));
 		
 		set_index(self, get_index(src));
 		return self;

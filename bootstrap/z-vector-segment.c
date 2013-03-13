@@ -112,13 +112,13 @@ ZVectorSegmentGlobal * z_vector_segment_get_type(struct zco_context_t *ctx)
 	}
 	if (!global_ptr || !*global_ptr) {
 		struct ZVectorSegmentGlobal *global = (ZVectorSegmentGlobal *) malloc(sizeof(struct ZVectorSegmentGlobal));
-		global->ctx = ctx;
+		global->common.ctx = ctx;
 		global->_class = malloc(sizeof(struct ZVectorSegmentClass));
 		memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct ZVectorSegmentClass));
-		global->name = "ZVectorSegment";
-		global->vtable_off_list = NULL;
-		global->vtable_off_size = 0;
-		global->is_object = 1;
+		global->common.name = "ZVectorSegment";
+		global->common.vtable_off_list = NULL;
+		global->common.vtable_off_size = 0;
+		global->common.is_object = 1;
 
 		struct ZVectorSegment temp;
 		unsigned long offset = 0;
@@ -128,28 +128,28 @@ ZVectorSegmentGlobal * z_vector_segment_get_type(struct zco_context_t *ctx)
 
 		{
 			struct ZObjectGlobal *p_class = z_object_get_type(ctx);
-			if (p_class->id > class_off_size)
-				class_off_size = p_class->id;
+			if (p_class->common.id > class_off_size)
+				class_off_size = p_class->common.id;
 		}
 		class_off_list = malloc(sizeof(unsigned long) * (class_off_size+1));
 		{
 			struct ZObjectGlobal *p_class = z_object_get_type(ctx);
 			zco_inherit_vtable(
-				&global->vtable_off_list,
-				&global->vtable_off_size,
-				p_class->vtable_off_list,
-				p_class->vtable_off_size,
+				&global->common.vtable_off_list,
+				&global->common.vtable_off_size,
+				p_class->common.vtable_off_list,
+				p_class->common.vtable_off_size,
 				&temp,
 				&temp.parent_z_object);
 			memcpy((char *) CLASS_FROM_GLOBAL(global) + offset, CLASS_FROM_GLOBAL(p_class), sizeof(struct ZObjectClass));
-			class_off_list[p_class->id] = offset;
+			class_off_list[p_class->common.id] = offset;
 			offset += sizeof(struct ZObjectClass);
 		}
 		((ZObjectClass *) CLASS_FROM_GLOBAL(global))->class_off_list = class_off_list;
 		if (z_vector_segment_type_id == -1)
 			z_vector_segment_type_id = zco_allocate_type_id();
-		global->id = z_vector_segment_type_id;
-		zco_add_to_vtable(&global->vtable_off_list, &global->vtable_off_size, z_vector_segment_type_id);
+		global->common.id = z_vector_segment_type_id;
+		zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, z_vector_segment_type_id);
 		global_ptr = zco_get_ctx_type(ctx, z_vector_segment_type_id);
 		*global_ptr = global;
 		
@@ -174,29 +174,29 @@ ZVectorSegmentGlobal * z_vector_segment_get_type(struct zco_context_t *ctx)
 #line 54 "z-vector-segment.zco"
 		}
 		__z_vector_segment_class_init(ctx, (ZVectorSegmentClass *) CLASS_FROM_GLOBAL(global));
-		global->method_map = z_map_new(ctx);
-		z_map_set_compare(global->method_map, __map_compare);
-		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
+		global->common.method_map = z_map_new(ctx);
+		z_map_set_compare(global->common.method_map, __map_compare);
+		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
 #line 69 "z-vector-segment.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("new"), (ZObjectSignalHandler) new);
+		z_map_insert((ZMap *) global->common.method_map, strdup("new"), (ZObjectSignalHandler) new);
 #line 122 "z-vector-segment.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("get_size"), (ZObjectSignalHandler) get_size);
+		z_map_insert((ZMap *) global->common.method_map, strdup("get_size"), (ZObjectSignalHandler) get_size);
 #line 127 "z-vector-segment.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("set_size"), (ZObjectSignalHandler) set_size);
+		z_map_insert((ZMap *) global->common.method_map, strdup("set_size"), (ZObjectSignalHandler) set_size);
 #line 185 "z-vector-segment.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("get_capacity"), (ZObjectSignalHandler) get_capacity);
+		z_map_insert((ZMap *) global->common.method_map, strdup("get_capacity"), (ZObjectSignalHandler) get_capacity);
 #line 230 "z-vector-segment.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("is_in_bound"), (ZObjectSignalHandler) is_in_bound);
+		z_map_insert((ZMap *) global->common.method_map, strdup("is_in_bound"), (ZObjectSignalHandler) is_in_bound);
 #line 243 "z-vector-segment.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("get_item"), (ZObjectSignalHandler) get_item);
+		z_map_insert((ZMap *) global->common.method_map, strdup("get_item"), (ZObjectSignalHandler) get_item);
 #line 263 "z-vector-segment.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("set_item"), (ZObjectSignalHandler) set_item);
+		z_map_insert((ZMap *) global->common.method_map, strdup("set_item"), (ZObjectSignalHandler) set_item);
 #line 290 "z-vector-segment.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("insert"), (ZObjectSignalHandler) insert);
+		z_map_insert((ZMap *) global->common.method_map, strdup("insert"), (ZObjectSignalHandler) insert);
 #line 398 "z-vector-segment.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("insert_range"), (ZObjectSignalHandler) insert_range);
+		z_map_insert((ZMap *) global->common.method_map, strdup("insert_range"), (ZObjectSignalHandler) insert_range);
 #line 502 "z-vector-segment.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("erase"), (ZObjectSignalHandler) erase);
+		z_map_insert((ZMap *) global->common.method_map, strdup("erase"), (ZObjectSignalHandler) erase);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZVectorSegmentGlobal *) global);
 		#endif

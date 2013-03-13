@@ -650,7 +650,7 @@ class ZZcoSourceGenerator : ZObject
                                         /* register method in look up table */
                                         print_line_number(self, selfp->function_registrations);
                                         z_string_append_format(selfp->function_registrations,
-                                                        "\t\tz_map_insert((ZMap *) global->method_map, strdup(\"%S\"), (ZObjectSignalHandler) %S);\n",
+                                                        "\t\tz_map_insert((ZMap *) global->common.method_map, strdup(\"%S\"), (ZObjectSignalHandler) %S);\n",
                                                         symbol, symbol);
                                 }
 
@@ -747,7 +747,7 @@ class ZZcoSourceGenerator : ZObject
                 code = z_string_new(CTX_FROM_OBJECT(self));
                 z_string_format(code,
                                 "\x7b\n"
-	                        "\tstruct %SGlobal *_global = %S_get_type(GLOBAL_FROM_OBJECT(object)->ctx);\n"
+	                        "\tstruct %SGlobal *_global = %S_get_type(GLOBAL_FROM_OBJECT(object)->common.ctx);\n"
                                 "\tZMap *map = (ZMap *) _global->_attached_%S;\n"
                                 "\tZMapIter *it = z_map_find(map, object);\n"
                                 "\tvoid *value = z_map_get_value(map, it);\n"
@@ -795,7 +795,7 @@ class ZZcoSourceGenerator : ZObject
                 code = z_string_new(CTX_FROM_OBJECT(self));
                 z_string_format(code,
                                 "\x7b\n"
-	                        "\tstruct %SGlobal *_global = %S_get_type(GLOBAL_FROM_OBJECT(object)->ctx);\n"
+	                        "\tstruct %SGlobal *_global = %S_get_type(GLOBAL_FROM_OBJECT(object)->common.ctx);\n"
                                 "\tZMap *map = (ZMap *) _global->_attached_%S;\n"
                                 "\tif (z_map_assign(map, object, (void *) (unsigned long) value) == 0)\n"
                                 "\t\tz_object_add_attached_property_map(object, map);\n"
@@ -1188,7 +1188,7 @@ class ZZcoSourceGenerator : ZObject
                 z_string_append_format(selfp->h_macros_head, "#define Self %S\n", class_name);
 
                 /* define the macro to upcast a derived object */
-                z_string_append_format(selfp->h_macros_head, "#define %S(s) ((%S *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[%S_type_id]))\n\n",
+                z_string_append_format(selfp->h_macros_head, "#define %S(s) ((%S *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->common.vtable_off_list[%S_type_id]))\n\n",
                                 current_class_name_uppercase,
                                 selfp->current_class_name_pascal,
                                 selfp->current_class_name_lowercase);
@@ -1207,14 +1207,9 @@ class ZZcoSourceGenerator : ZObject
                 /* start the global data structure */
                 z_string_append_format(selfp->global_data,
                                 "struct %SGlobal \x7b\n"
-                                "\tint *vtable_off_list;\n"
-                                "\tint vtable_off_size;\n"
-                                "\tint is_object;\n"
-                                "\tstruct %SClass *_class;\n"
-                                "\tstruct zco_context_t *ctx;\n"
-                                "\tconst char *name;\n"
-                                "\tint id;\n"
-                                "\tvoid *method_map;\n", class_name, class_name);
+                                "\tstruct ZCommonGlobal common;\n"
+                                "\tstruct %SClass *_class;\n",
+                                class_name, class_name);
 
                 /* start the klass data structure */
                 z_string_append_format(selfp->class_data, "struct %SClass \x7b\n", class_name);
@@ -1289,7 +1284,7 @@ class ZZcoSourceGenerator : ZObject
                 z_string_append_format(selfp->h_macros_head, "#define Self %S\n", interface_name);
 
                 /* define the macro to upcast a derived object */
-                z_string_append_format(selfp->h_macros_head, "#define %S(s) ((%S *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[%S_type_id]))\n\n",
+                z_string_append_format(selfp->h_macros_head, "#define %S(s) ((%S *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->common.vtable_off_list[%S_type_id]))\n\n",
                                 current_class_name_uppercase,
                                 selfp->current_class_name_pascal,
                                 selfp->current_class_name_lowercase);
@@ -1308,14 +1303,8 @@ class ZZcoSourceGenerator : ZObject
                 /* start the global data structure */
                 z_string_append_format(selfp->global_data,
                                 "struct %SGlobal \x7b\n"
-                                "\tint *vtable_off_list;\n"
-                                "\tint vtable_off_size;\n"
-                                "\tint is_object;\n"
-                                "\tstruct %SClass *_class;\n"
-                                "\tstruct zco_context_t *ctx;\n"
-                                "\tconst char *name;\n"
-                                "\tint id;\n"
-                                "\tvoid *method_map;\n",
+                                "\tstruct ZCommonGlobal common;\n"
+                                "\tstruct %SClass *_class;\n",
                                 interface_name, interface_name);
 
                 /* start the klass data structure */
@@ -1618,13 +1607,13 @@ class ZZcoSourceGenerator : ZObject
                                 "\t\x7d\n"
                                 "\tif (!global_ptr || !*global_ptr) \x7b\n"
                                 "\t\tstruct %SGlobal *global = (%SGlobal *) malloc(sizeof(struct %SGlobal));\n"
-                                "\t\tglobal->ctx = ctx;\n"
+                                "\t\tglobal->common.ctx = ctx;\n"
                                 "\t\tglobal->_class = malloc(sizeof(struct %SClass));\n"
                                 "\t\tmemset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct %SClass));\n"
-                                "\t\tglobal->name = \"%S\";\n"
-                                "\t\tglobal->vtable_off_list = NULL;\n"
-                                "\t\tglobal->vtable_off_size = 0;\n"
-                                "\t\tglobal->is_object = %d;\n"
+                                "\t\tglobal->common.name = \"%S\";\n"
+                                "\t\tglobal->common.vtable_off_list = NULL;\n"
+                                "\t\tglobal->common.vtable_off_size = 0;\n"
+                                "\t\tglobal->common.is_object = %d;\n"
                                 "\n"
                                 "\t\tstruct %S temp;\n"
 				"\t\tunsigned long offset = 0;\n"
@@ -1651,8 +1640,8 @@ class ZZcoSourceGenerator : ZObject
 				z_file_write_format(selfp->source_file,
 						"\t\t\x7b\n"
 						"\t\t\tstruct %SGlobal *p_class = %S_get_type(ctx);\n"
-						"\t\t\tif (p_class->id > class_off_size)\n"
-						"\t\t\t\tclass_off_size = p_class->id;\n"
+						"\t\t\tif (p_class->common.id > class_off_size)\n"
+						"\t\t\t\tclass_off_size = p_class->common.id;\n"
 						"\t\t\x7d\n",
 						selfp->parent_class_name_pascal[i],
 						selfp->parent_class_name_lowercase[i]);
@@ -1667,10 +1656,10 @@ class ZZcoSourceGenerator : ZObject
                                         "\t\t\x7b\n"
                                         "\t\t\tstruct %SGlobal *p_class = %S_get_type(ctx);\n"
                                         "\t\t\tzco_inherit_vtable(\n"
-                                        "\t\t\t\t&global->vtable_off_list,\n"
-                                        "\t\t\t\t&global->vtable_off_size,\n"
-                                        "\t\t\t\tp_class->vtable_off_list,\n"
-                                        "\t\t\t\tp_class->vtable_off_size,\n"
+                                        "\t\t\t\t&global->common.vtable_off_list,\n"
+                                        "\t\t\t\t&global->common.vtable_off_size,\n"
+                                        "\t\t\t\tp_class->common.vtable_off_list,\n"
+                                        "\t\t\t\tp_class->common.vtable_off_size,\n"
                                         "\t\t\t\t&temp,\n"
                                         "\t\t\t\t&temp.parent_%S);\n",
                                         selfp->parent_class_name_pascal[i],
@@ -1683,7 +1672,7 @@ class ZZcoSourceGenerator : ZObject
 
 			if (is_object) {
 				z_file_write_format(selfp->source_file,
-						"\t\t\tclass_off_list[p_class->id] = offset;\n");
+						"\t\t\tclass_off_list[p_class->common.id] = offset;\n");
 			}
 
                         z_file_write_format(selfp->source_file,
@@ -1700,8 +1689,8 @@ class ZZcoSourceGenerator : ZObject
                 z_file_write_format(selfp->source_file,
                                 "\t\tif (%S_type_id == -1)\n"
                                 "\t\t\t%S_type_id = zco_allocate_type_id();\n"
-                                "\t\tglobal->id = %S_type_id;\n"
-                                "\t\tzco_add_to_vtable(&global->vtable_off_list, &global->vtable_off_size, %S_type_id);\n"
+                                "\t\tglobal->common.id = %S_type_id;\n"
+                                "\t\tzco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, %S_type_id);\n"
                                 "\t\tglobal_ptr = zco_get_ctx_type(ctx, %S_type_id);\n"
                                 "\t\t*global_ptr = global;\n"
                                 "\t\t\n",
@@ -1724,9 +1713,9 @@ class ZZcoSourceGenerator : ZObject
 
                 /* register methods */
                 z_file_write(selfp->source_file,
-                                "\t\tglobal->method_map = z_map_new(ctx);\n"
-                                "\t\tz_map_set_compare(global->method_map, __map_compare);\n"
-                                "\t\tz_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);\n");
+                                "\t\tglobal->common.method_map = z_map_new(ctx);\n"
+                                "\t\tz_map_set_compare(global->common.method_map, __map_compare);\n"
+                                "\t\tz_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);\n");
 
                 z_file_write_format(selfp->source_file, "%S", selfp->function_registrations);
 

@@ -69,7 +69,7 @@ class ZVectorIter : ZObject
 
 	public Self *dup(ZVectorIter *src)
 	{
-		Self *self = GET_NEW(src->_global->ctx);
+		Self *self = GET_NEW(CTX_FROM_OBJECT(src));
                 assign(self, src);
 		return self;
 	}

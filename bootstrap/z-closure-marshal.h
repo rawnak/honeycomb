@@ -27,7 +27,7 @@
 
 #include <zco-type.h>
 #define Self ZClosureMarshal
-#define Z_CLOSURE_MARSHAL(s) ((ZClosureMarshal *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[z_closure_marshal_type_id]))
+#define Z_CLOSURE_MARSHAL(s) ((ZClosureMarshal *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->common.vtable_off_list[z_closure_marshal_type_id]))
 
 
 struct ZClosureMarshalPrivate;
@@ -49,14 +49,8 @@ struct ZClosureMarshalProtected {
 };
 
 struct ZClosureMarshalGlobal {
-	int *vtable_off_list;
-	int vtable_off_size;
-	int is_object;
+	struct ZCommonGlobal common;
 	struct ZClosureMarshalClass *_class;
-	struct zco_context_t *ctx;
-	const char *name;
-	int id;
-	void *method_map;
 };
 
 struct ZClosureMarshalClass {

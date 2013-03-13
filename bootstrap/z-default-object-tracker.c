@@ -97,13 +97,13 @@ ZDefaultObjectTrackerGlobal * z_default_object_tracker_get_type(struct zco_conte
 	}
 	if (!global_ptr || !*global_ptr) {
 		struct ZDefaultObjectTrackerGlobal *global = (ZDefaultObjectTrackerGlobal *) malloc(sizeof(struct ZDefaultObjectTrackerGlobal));
-		global->ctx = ctx;
+		global->common.ctx = ctx;
 		global->_class = malloc(sizeof(struct ZDefaultObjectTrackerClass));
 		memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct ZDefaultObjectTrackerClass));
-		global->name = "ZDefaultObjectTracker";
-		global->vtable_off_list = NULL;
-		global->vtable_off_size = 0;
-		global->is_object = 1;
+		global->common.name = "ZDefaultObjectTracker";
+		global->common.vtable_off_list = NULL;
+		global->common.vtable_off_size = 0;
+		global->common.is_object = 1;
 
 		struct ZDefaultObjectTracker temp;
 		unsigned long offset = 0;
@@ -113,46 +113,46 @@ ZDefaultObjectTrackerGlobal * z_default_object_tracker_get_type(struct zco_conte
 
 		{
 			struct ZObjectGlobal *p_class = z_object_get_type(ctx);
-			if (p_class->id > class_off_size)
-				class_off_size = p_class->id;
+			if (p_class->common.id > class_off_size)
+				class_off_size = p_class->common.id;
 		}
 		{
 			struct ZObjectTrackerGlobal *p_class = z_object_tracker_get_type(ctx);
-			if (p_class->id > class_off_size)
-				class_off_size = p_class->id;
+			if (p_class->common.id > class_off_size)
+				class_off_size = p_class->common.id;
 		}
 		class_off_list = malloc(sizeof(unsigned long) * (class_off_size+1));
 		{
 			struct ZObjectGlobal *p_class = z_object_get_type(ctx);
 			zco_inherit_vtable(
-				&global->vtable_off_list,
-				&global->vtable_off_size,
-				p_class->vtable_off_list,
-				p_class->vtable_off_size,
+				&global->common.vtable_off_list,
+				&global->common.vtable_off_size,
+				p_class->common.vtable_off_list,
+				p_class->common.vtable_off_size,
 				&temp,
 				&temp.parent_z_object);
 			memcpy((char *) CLASS_FROM_GLOBAL(global) + offset, CLASS_FROM_GLOBAL(p_class), sizeof(struct ZObjectClass));
-			class_off_list[p_class->id] = offset;
+			class_off_list[p_class->common.id] = offset;
 			offset += sizeof(struct ZObjectClass);
 		}
 		{
 			struct ZObjectTrackerGlobal *p_class = z_object_tracker_get_type(ctx);
 			zco_inherit_vtable(
-				&global->vtable_off_list,
-				&global->vtable_off_size,
-				p_class->vtable_off_list,
-				p_class->vtable_off_size,
+				&global->common.vtable_off_list,
+				&global->common.vtable_off_size,
+				p_class->common.vtable_off_list,
+				p_class->common.vtable_off_size,
 				&temp,
 				&temp.parent_z_object_tracker);
 			memcpy((char *) CLASS_FROM_GLOBAL(global) + offset, CLASS_FROM_GLOBAL(p_class), sizeof(struct ZObjectTrackerClass));
-			class_off_list[p_class->id] = offset;
+			class_off_list[p_class->common.id] = offset;
 			offset += sizeof(struct ZObjectTrackerClass);
 		}
 		((ZObjectClass *) CLASS_FROM_GLOBAL(global))->class_off_list = class_off_list;
 		if (z_default_object_tracker_type_id == -1)
 			z_default_object_tracker_type_id = zco_allocate_type_id();
-		global->id = z_default_object_tracker_type_id;
-		zco_add_to_vtable(&global->vtable_off_list, &global->vtable_off_size, z_default_object_tracker_type_id);
+		global->common.id = z_default_object_tracker_type_id;
+		zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, z_default_object_tracker_type_id);
 		global_ptr = zco_get_ctx_type(ctx, z_default_object_tracker_type_id);
 		*global_ptr = global;
 		
@@ -197,11 +197,11 @@ ZDefaultObjectTrackerGlobal * z_default_object_tracker_get_type(struct zco_conte
 #line 226 "z-default-object-tracker.zco"
 		}
 		__z_default_object_tracker_class_init(ctx, (ZDefaultObjectTrackerClass *) CLASS_FROM_GLOBAL(global));
-		global->method_map = z_map_new(ctx);
-		z_map_set_compare(global->method_map, __map_compare);
-		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
+		global->common.method_map = z_map_new(ctx);
+		z_map_set_compare(global->common.method_map, __map_compare);
+		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
 #line 31 "z-default-object-tracker.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("new"), (ZObjectSignalHandler) new);
+		z_map_insert((ZMap *) global->common.method_map, strdup("new"), (ZObjectSignalHandler) new);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZDefaultObjectTrackerGlobal *) global);
 		#endif
@@ -357,7 +357,7 @@ static int  z_default_object_tracker_destroy(ZObjectTracker *tracker,ZObject *ta
  selfp->suspended = 1;
 
  /* TODO: Accessing data like this is terrible. Come up with a better solution later */
- int id = ((ZObjectGlobal *) ((ZObjectClass *) target->class_base)->real_global)->id;
+ int id = ((ZObjectGlobal *) ((ZObjectClass *) target->class_base)->real_global)->common.id;
 
  ZMapIter *pos;
  ZVector *pool;

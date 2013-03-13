@@ -29,7 +29,7 @@
 
 #include <zco-type.h>
 #define Self ZClosure
-#define Z_CLOSURE(s) ((ZClosure *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[z_closure_type_id]))
+#define Z_CLOSURE(s) ((ZClosure *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->common.vtable_off_list[z_closure_type_id]))
 
 
 struct ZClosurePrivate;
@@ -59,14 +59,8 @@ struct ZClosureProtected {
 };
 
 struct ZClosureGlobal {
-	int *vtable_off_list;
-	int vtable_off_size;
-	int is_object;
+	struct ZCommonGlobal common;
 	struct ZClosureClass *_class;
-	struct zco_context_t *ctx;
-	const char *name;
-	int id;
-	void *method_map;
 #line 27 "z-closure.zco"
 	void  (*__parent_reset)(ZObject *object);
 #line 45 "z-closure.zco"

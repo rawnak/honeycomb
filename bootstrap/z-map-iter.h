@@ -26,7 +26,7 @@
 
 #include <zco-type.h>
 #define Self ZMapIter
-#define Z_MAP_ITER(s) ((ZMapIter *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[z_map_iter_type_id]))
+#define Z_MAP_ITER(s) ((ZMapIter *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->common.vtable_off_list[z_map_iter_type_id]))
 
 
 struct ZMapIterPrivate;
@@ -50,14 +50,8 @@ struct ZMapIterProtected {
 };
 
 struct ZMapIterGlobal {
-	int *vtable_off_list;
-	int vtable_off_size;
-	int is_object;
+	struct ZCommonGlobal common;
 	struct ZMapIterClass *_class;
-	struct zco_context_t *ctx;
-	const char *name;
-	int id;
-	void *method_map;
 #line 17 "z-map-iter.zco"
 	void  (*__parent_reset)(ZObject *object);
 };

@@ -24,7 +24,7 @@
 
 #define GLOBAL_FROM_OBJECT(o) ((o)->_global)
 #define CLASS_FROM_GLOBAL(g)  ((g)->_class)
-#define CTX_FROM_GLOBAL(g)    ((g)->ctx)
+#define CTX_FROM_GLOBAL(g)    ((g)->common.ctx)
 #define CTX_FROM_OBJECT(o)    CTX_FROM_GLOBAL(GLOBAL_FROM_OBJECT(o))
 
 struct zco_context_t {
@@ -35,6 +35,16 @@ struct zco_context_t {
         void *object_tracker;           /* ZObjectTracker object */
         int min_segment_cap_by_size;    /* Minimum vector segment capacity */
         int min_segment_cap_by_count;   /* Minimum vector segment capacity */
+};
+
+struct ZCommonGlobal {
+	int *vtable_off_list;
+	int vtable_off_size;
+	int is_object;
+	struct zco_context_t *ctx;
+	const char *name;
+	int id;
+	void *method_map;
 };
 
 void    zco_context_init(struct zco_context_t *ctx);

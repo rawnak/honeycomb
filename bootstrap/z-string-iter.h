@@ -26,7 +26,7 @@
 
 #include <zco-type.h>
 #define Self ZStringIter
-#define Z_STRING_ITER(s) ((ZStringIter *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[z_string_iter_type_id]))
+#define Z_STRING_ITER(s) ((ZStringIter *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->common.vtable_off_list[z_string_iter_type_id]))
 
 
 struct ZStringIterPrivate;
@@ -50,14 +50,8 @@ struct ZStringIterProtected {
 };
 
 struct ZStringIterGlobal {
-	int *vtable_off_list;
-	int vtable_off_size;
-	int is_object;
+	struct ZCommonGlobal common;
 	struct ZStringIterClass *_class;
-	struct zco_context_t *ctx;
-	const char *name;
-	int id;
-	void *method_map;
 #line 17 "z-string-iter.zco"
 	void  (*__parent_reset)(ZObject *object);
 };

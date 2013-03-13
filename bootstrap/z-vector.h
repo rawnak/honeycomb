@@ -30,7 +30,7 @@ typedef void(*ZVectorItemCallback)(void *item, void *userdata);
 
 #include <zco-type.h>
 #define Self ZVector
-#define Z_VECTOR(s) ((ZVector *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[z_vector_type_id]))
+#define Z_VECTOR(s) ((ZVector *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->common.vtable_off_list[z_vector_type_id]))
 
 
 struct ZVectorPrivate;
@@ -72,14 +72,8 @@ struct ZVectorProtected {
 };
 
 struct ZVectorGlobal {
-	int *vtable_off_list;
-	int vtable_off_size;
-	int is_object;
+	struct ZCommonGlobal common;
 	struct ZVectorClass *_class;
-	struct zco_context_t *ctx;
-	const char *name;
-	int id;
-	void *method_map;
 #line 43 "z-vector.zco"
 	void  (*__parent_reset)(ZObject *object);
 #line 69 "z-vector.zco"

@@ -29,7 +29,7 @@ typedef struct ZVectorSegment ZVectorSegment;
 
 #include <zco-type.h>
 #define Self ZVectorIter
-#define Z_VECTOR_ITER(s) ((ZVectorIter *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[z_vector_iter_type_id]))
+#define Z_VECTOR_ITER(s) ((ZVectorIter *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->common.vtable_off_list[z_vector_iter_type_id]))
 
 
 struct ZVectorIterPrivate;
@@ -57,14 +57,8 @@ struct ZVectorIterProtected {
 };
 
 struct ZVectorIterGlobal {
-	int *vtable_off_list;
-	int vtable_off_size;
-	int is_object;
+	struct ZCommonGlobal common;
 	struct ZVectorIterClass *_class;
-	struct zco_context_t *ctx;
-	const char *name;
-	int id;
-	void *method_map;
 #line 25 "z-vector-iter.zco"
 	void  (*__parent_reset)(ZObject *object);
 #line 37 "z-vector-iter.zco"

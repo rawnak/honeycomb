@@ -27,7 +27,7 @@
 
 #include <zco-type.h>
 #define Self ZFrameworkEvents
-#define Z_FRAMEWORK_EVENTS(s) ((ZFrameworkEvents *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[z_framework_events_type_id]))
+#define Z_FRAMEWORK_EVENTS(s) ((ZFrameworkEvents *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->common.vtable_off_list[z_framework_events_type_id]))
 
 
 struct ZFrameworkEventsPrivate;
@@ -49,14 +49,8 @@ struct ZFrameworkEventsProtected {
 };
 
 struct ZFrameworkEventsGlobal {
-	int *vtable_off_list;
-	int vtable_off_size;
-	int is_object;
+	struct ZCommonGlobal common;
 	struct ZFrameworkEventsClass *_class;
-	struct zco_context_t *ctx;
-	const char *name;
-	int id;
-	void *method_map;
 };
 
 struct ZFrameworkEventsClass {

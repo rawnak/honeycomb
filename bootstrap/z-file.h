@@ -27,7 +27,7 @@
 
 #include <zco-type.h>
 #define Self ZFile
-#define Z_FILE(s) ((ZFile *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[z_file_type_id]))
+#define Z_FILE(s) ((ZFile *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->common.vtable_off_list[z_file_type_id]))
 
 
 struct ZFilePrivate;
@@ -51,14 +51,8 @@ struct ZFileProtected {
 };
 
 struct ZFileGlobal {
-	int *vtable_off_list;
-	int vtable_off_size;
-	int is_object;
+	struct ZCommonGlobal common;
 	struct ZFileClass *_class;
-	struct zco_context_t *ctx;
-	const char *name;
-	int id;
-	void *method_map;
 };
 
 struct ZFileClass {

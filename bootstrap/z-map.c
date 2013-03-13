@@ -153,13 +153,13 @@ ZMapGlobal * z_map_get_type(struct zco_context_t *ctx)
 	}
 	if (!global_ptr || !*global_ptr) {
 		struct ZMapGlobal *global = (ZMapGlobal *) malloc(sizeof(struct ZMapGlobal));
-		global->ctx = ctx;
+		global->common.ctx = ctx;
 		global->_class = malloc(sizeof(struct ZMapClass));
 		memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct ZMapClass));
-		global->name = "ZMap";
-		global->vtable_off_list = NULL;
-		global->vtable_off_size = 0;
-		global->is_object = 1;
+		global->common.name = "ZMap";
+		global->common.vtable_off_list = NULL;
+		global->common.vtable_off_size = 0;
+		global->common.is_object = 1;
 
 		struct ZMap temp;
 		unsigned long offset = 0;
@@ -169,28 +169,28 @@ ZMapGlobal * z_map_get_type(struct zco_context_t *ctx)
 
 		{
 			struct ZObjectGlobal *p_class = z_object_get_type(ctx);
-			if (p_class->id > class_off_size)
-				class_off_size = p_class->id;
+			if (p_class->common.id > class_off_size)
+				class_off_size = p_class->common.id;
 		}
 		class_off_list = malloc(sizeof(unsigned long) * (class_off_size+1));
 		{
 			struct ZObjectGlobal *p_class = z_object_get_type(ctx);
 			zco_inherit_vtable(
-				&global->vtable_off_list,
-				&global->vtable_off_size,
-				p_class->vtable_off_list,
-				p_class->vtable_off_size,
+				&global->common.vtable_off_list,
+				&global->common.vtable_off_size,
+				p_class->common.vtable_off_list,
+				p_class->common.vtable_off_size,
 				&temp,
 				&temp.parent_z_object);
 			memcpy((char *) CLASS_FROM_GLOBAL(global) + offset, CLASS_FROM_GLOBAL(p_class), sizeof(struct ZObjectClass));
-			class_off_list[p_class->id] = offset;
+			class_off_list[p_class->common.id] = offset;
 			offset += sizeof(struct ZObjectClass);
 		}
 		((ZObjectClass *) CLASS_FROM_GLOBAL(global))->class_off_list = class_off_list;
 		if (z_map_type_id == -1)
 			z_map_type_id = zco_allocate_type_id();
-		global->id = z_map_type_id;
-		zco_add_to_vtable(&global->vtable_off_list, &global->vtable_off_size, z_map_type_id);
+		global->common.id = z_map_type_id;
+		zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, z_map_type_id);
 		global_ptr = zco_get_ctx_type(ctx, z_map_type_id);
 		*global_ptr = global;
 		
@@ -215,35 +215,35 @@ ZMapGlobal * z_map_get_type(struct zco_context_t *ctx)
 #line 67 "z-map.zco"
 		}
 		__z_map_class_init(ctx, (ZMapClass *) CLASS_FROM_GLOBAL(global));
-		global->method_map = z_map_new(ctx);
-		z_map_set_compare(global->method_map, __map_compare);
-		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
+		global->common.method_map = z_map_new(ctx);
+		z_map_set_compare(global->common.method_map, __map_compare);
+		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
 #line 76 "z-map.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("new"), (ZObjectSignalHandler) new);
+		z_map_insert((ZMap *) global->common.method_map, strdup("new"), (ZObjectSignalHandler) new);
 #line 150 "z-map.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("clear"), (ZObjectSignalHandler) clear);
+		z_map_insert((ZMap *) global->common.method_map, strdup("clear"), (ZObjectSignalHandler) clear);
 #line 268 "z-map.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("find"), (ZObjectSignalHandler) find);
+		z_map_insert((ZMap *) global->common.method_map, strdup("find"), (ZObjectSignalHandler) find);
 #line 309 "z-map.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("get_key"), (ZObjectSignalHandler) get_key);
+		z_map_insert((ZMap *) global->common.method_map, strdup("get_key"), (ZObjectSignalHandler) get_key);
 #line 320 "z-map.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("get_value"), (ZObjectSignalHandler) get_value);
+		z_map_insert((ZMap *) global->common.method_map, strdup("get_value"), (ZObjectSignalHandler) get_value);
 #line 331 "z-map.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("set_value"), (ZObjectSignalHandler) set_value);
+		z_map_insert((ZMap *) global->common.method_map, strdup("set_value"), (ZObjectSignalHandler) set_value);
 #line 419 "z-map.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("assign"), (ZObjectSignalHandler) assign);
+		z_map_insert((ZMap *) global->common.method_map, strdup("assign"), (ZObjectSignalHandler) assign);
 #line 424 "z-map.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("insert"), (ZObjectSignalHandler) insert);
+		z_map_insert((ZMap *) global->common.method_map, strdup("insert"), (ZObjectSignalHandler) insert);
 #line 429 "z-map.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("erase"), (ZObjectSignalHandler) erase);
+		z_map_insert((ZMap *) global->common.method_map, strdup("erase"), (ZObjectSignalHandler) erase);
 #line 459 "z-map.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("erase1"), (ZObjectSignalHandler) erase1);
+		z_map_insert((ZMap *) global->common.method_map, strdup("erase1"), (ZObjectSignalHandler) erase1);
 #line 469 "z-map.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("erase1_inc"), (ZObjectSignalHandler) erase1_inc);
+		z_map_insert((ZMap *) global->common.method_map, strdup("erase1_inc"), (ZObjectSignalHandler) erase1_inc);
 #line 489 "z-map.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("lower_bound"), (ZObjectSignalHandler) lower_bound);
+		z_map_insert((ZMap *) global->common.method_map, strdup("lower_bound"), (ZObjectSignalHandler) lower_bound);
 #line 507 "z-map.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("upper_bound"), (ZObjectSignalHandler) upper_bound);
+		z_map_insert((ZMap *) global->common.method_map, strdup("upper_bound"), (ZObjectSignalHandler) upper_bound);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZMapGlobal *) global);
 		#endif

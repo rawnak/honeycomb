@@ -53,8 +53,8 @@ void zco_context_init(struct zco_context_t *ctx)
            (by convention). Loading the object tracker at the end of the context
            initialization and unloading it at the start of the context destruction
            ensures that we consistently use the correct tracker for every object. */
-        ZObjectTracker *tracker = (ZObjectTracker *) z_default_object_tracker_new(ctx);
-        zco_context_set_object_tracker(ctx, (void *) tracker);
+        //ZObjectTracker *tracker = (ZObjectTracker *) z_default_object_tracker_new(ctx);
+        //zco_context_set_object_tracker(ctx, (void *) tracker);
 }
 
 void zco_context_destroy(struct zco_context_t *ctx)
@@ -91,18 +91,18 @@ void zco_context_destroy(struct zco_context_t *ctx)
 		struct ZObjectGlobal *global = ctx->types[i];
 
 		if (global)
-			z_object_unref((ZObject *) global->method_map);
+			z_object_unref((ZObject *) global->common.method_map);
 	}
 
 	for (i=0; i < ctx->type_count; ++i) {
 		struct ZObjectGlobal *global = ctx->types[i];
 
 		if (global) {
-			if (global->is_object) {
+			if (global->common.is_object) {
 				free(global->_class->class_off_list);
 			}
 			free(global->_class);
-			free(global->vtable_off_list);
+			free(global->common.vtable_off_list);
 			free(global);
 		}
 	}

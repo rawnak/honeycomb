@@ -43,7 +43,7 @@ union ZValueDataType {
 
 #include <zco-type.h>
 #define Self ZValue
-#define Z_VALUE(s) ((ZValue *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[z_value_type_id]))
+#define Z_VALUE(s) ((ZValue *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->common.vtable_off_list[z_value_type_id]))
 
 
 struct ZValuePrivate;
@@ -69,14 +69,8 @@ struct ZValueProtected {
 };
 
 struct ZValueGlobal {
-	int *vtable_off_list;
-	int vtable_off_size;
-	int is_object;
+	struct ZCommonGlobal common;
 	struct ZValueClass *_class;
-	struct zco_context_t *ctx;
-	const char *name;
-	int id;
-	void *method_map;
 #line 75 "z-value.zco"
 	void  (*__parent_reset)(ZObject *object);
 #line 87 "z-value.zco"

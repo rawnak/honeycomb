@@ -75,21 +75,21 @@ ZObjectTrackerGlobal * z_object_tracker_get_type(struct zco_context_t *ctx)
 	}
 	if (!global_ptr || !*global_ptr) {
 		struct ZObjectTrackerGlobal *global = (ZObjectTrackerGlobal *) malloc(sizeof(struct ZObjectTrackerGlobal));
-		global->ctx = ctx;
+		global->common.ctx = ctx;
 		global->_class = malloc(sizeof(struct ZObjectTrackerClass));
 		memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct ZObjectTrackerClass));
-		global->name = "ZObjectTracker";
-		global->vtable_off_list = NULL;
-		global->vtable_off_size = 0;
-		global->is_object = 0;
+		global->common.name = "ZObjectTracker";
+		global->common.vtable_off_list = NULL;
+		global->common.vtable_off_size = 0;
+		global->common.is_object = 0;
 
 		struct ZObjectTracker temp;
 		unsigned long offset = 0;
 
 		if (z_object_tracker_type_id == -1)
 			z_object_tracker_type_id = zco_allocate_type_id();
-		global->id = z_object_tracker_type_id;
-		zco_add_to_vtable(&global->vtable_off_list, &global->vtable_off_size, z_object_tracker_type_id);
+		global->common.id = z_object_tracker_type_id;
+		zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, z_object_tracker_type_id);
 		global_ptr = zco_get_ctx_type(ctx, z_object_tracker_type_id);
 		*global_ptr = global;
 		
@@ -100,15 +100,15 @@ ZObjectTrackerGlobal * z_object_tracker_get_type(struct zco_context_t *ctx)
 #line 20 "z-object-tracker.zco"
 		CLASS_FROM_GLOBAL(global)->__garbage_collect = z_object_tracker_virtual_garbage_collect;
 		__z_object_tracker_class_init(ctx, (ZObjectTrackerClass *) CLASS_FROM_GLOBAL(global));
-		global->method_map = z_map_new(ctx);
-		z_map_set_compare(global->method_map, __map_compare);
-		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
+		global->common.method_map = z_map_new(ctx);
+		z_map_set_compare(global->common.method_map, __map_compare);
+		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
 #line 10 "z-object-tracker.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("create"), (ZObjectSignalHandler) create);
+		z_map_insert((ZMap *) global->common.method_map, strdup("create"), (ZObjectSignalHandler) create);
 #line 15 "z-object-tracker.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("destroy"), (ZObjectSignalHandler) destroy);
+		z_map_insert((ZMap *) global->common.method_map, strdup("destroy"), (ZObjectSignalHandler) destroy);
 #line 20 "z-object-tracker.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("garbage_collect"), (ZObjectSignalHandler) garbage_collect);
+		z_map_insert((ZMap *) global->common.method_map, strdup("garbage_collect"), (ZObjectSignalHandler) garbage_collect);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZObjectTrackerGlobal *) global);
 		#endif

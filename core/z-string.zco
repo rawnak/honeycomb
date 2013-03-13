@@ -100,7 +100,7 @@ class ZString : ZObject
 
 	public Self *dup(Self *src)
 	{
-		Self *self = GET_NEW(src->_global->ctx);
+		Self *self = GET_NEW(CTX_FROM_OBJECT(src));
 		append(self, src, NULL, NULL);
 		return self;
 	}

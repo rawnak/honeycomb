@@ -67,32 +67,32 @@ ZClosureMarshalGlobal * z_closure_marshal_get_type(struct zco_context_t *ctx)
 	}
 	if (!global_ptr || !*global_ptr) {
 		struct ZClosureMarshalGlobal *global = (ZClosureMarshalGlobal *) malloc(sizeof(struct ZClosureMarshalGlobal));
-		global->ctx = ctx;
+		global->common.ctx = ctx;
 		global->_class = malloc(sizeof(struct ZClosureMarshalClass));
 		memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct ZClosureMarshalClass));
-		global->name = "ZClosureMarshal";
-		global->vtable_off_list = NULL;
-		global->vtable_off_size = 0;
-		global->is_object = 0;
+		global->common.name = "ZClosureMarshal";
+		global->common.vtable_off_list = NULL;
+		global->common.vtable_off_size = 0;
+		global->common.is_object = 0;
 
 		struct ZClosureMarshal temp;
 		unsigned long offset = 0;
 
 		if (z_closure_marshal_type_id == -1)
 			z_closure_marshal_type_id = zco_allocate_type_id();
-		global->id = z_closure_marshal_type_id;
-		zco_add_to_vtable(&global->vtable_off_list, &global->vtable_off_size, z_closure_marshal_type_id);
+		global->common.id = z_closure_marshal_type_id;
+		zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, z_closure_marshal_type_id);
 		global_ptr = zco_get_ctx_type(ctx, z_closure_marshal_type_id);
 		*global_ptr = global;
 		
 #line 11 "z-closure-marshal.zco"
 		CLASS_FROM_GLOBAL(global)->__invoke = z_closure_marshal_virtual_invoke;
 		__z_closure_marshal_class_init(ctx, (ZClosureMarshalClass *) CLASS_FROM_GLOBAL(global));
-		global->method_map = z_map_new(ctx);
-		z_map_set_compare(global->method_map, __map_compare);
-		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
+		global->common.method_map = z_map_new(ctx);
+		z_map_set_compare(global->common.method_map, __map_compare);
+		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
 #line 11 "z-closure-marshal.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("invoke"), (ZObjectSignalHandler) invoke);
+		z_map_insert((ZMap *) global->common.method_map, strdup("invoke"), (ZObjectSignalHandler) invoke);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZClosureMarshalGlobal *) global);
 		#endif

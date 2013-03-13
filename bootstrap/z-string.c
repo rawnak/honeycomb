@@ -191,13 +191,13 @@ ZStringGlobal * z_string_get_type(struct zco_context_t *ctx)
 	}
 	if (!global_ptr || !*global_ptr) {
 		struct ZStringGlobal *global = (ZStringGlobal *) malloc(sizeof(struct ZStringGlobal));
-		global->ctx = ctx;
+		global->common.ctx = ctx;
 		global->_class = malloc(sizeof(struct ZStringClass));
 		memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct ZStringClass));
-		global->name = "ZString";
-		global->vtable_off_list = NULL;
-		global->vtable_off_size = 0;
-		global->is_object = 1;
+		global->common.name = "ZString";
+		global->common.vtable_off_list = NULL;
+		global->common.vtable_off_size = 0;
+		global->common.is_object = 1;
 
 		struct ZString temp;
 		unsigned long offset = 0;
@@ -207,28 +207,28 @@ ZStringGlobal * z_string_get_type(struct zco_context_t *ctx)
 
 		{
 			struct ZObjectGlobal *p_class = z_object_get_type(ctx);
-			if (p_class->id > class_off_size)
-				class_off_size = p_class->id;
+			if (p_class->common.id > class_off_size)
+				class_off_size = p_class->common.id;
 		}
 		class_off_list = malloc(sizeof(unsigned long) * (class_off_size+1));
 		{
 			struct ZObjectGlobal *p_class = z_object_get_type(ctx);
 			zco_inherit_vtable(
-				&global->vtable_off_list,
-				&global->vtable_off_size,
-				p_class->vtable_off_list,
-				p_class->vtable_off_size,
+				&global->common.vtable_off_list,
+				&global->common.vtable_off_size,
+				p_class->common.vtable_off_list,
+				p_class->common.vtable_off_size,
 				&temp,
 				&temp.parent_z_object);
 			memcpy((char *) CLASS_FROM_GLOBAL(global) + offset, CLASS_FROM_GLOBAL(p_class), sizeof(struct ZObjectClass));
-			class_off_list[p_class->id] = offset;
+			class_off_list[p_class->common.id] = offset;
 			offset += sizeof(struct ZObjectClass);
 		}
 		((ZObjectClass *) CLASS_FROM_GLOBAL(global))->class_off_list = class_off_list;
 		if (z_string_type_id == -1)
 			z_string_type_id = zco_allocate_type_id();
-		global->id = z_string_type_id;
-		zco_add_to_vtable(&global->vtable_off_list, &global->vtable_off_size, z_string_type_id);
+		global->common.id = z_string_type_id;
+		zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, z_string_type_id);
 		global_ptr = zco_get_ctx_type(ctx, z_string_type_id);
 		*global_ptr = global;
 		
@@ -253,69 +253,69 @@ ZStringGlobal * z_string_get_type(struct zco_context_t *ctx)
 #line 63 "z-string.zco"
 		}
 		__z_string_class_init(ctx, (ZStringClass *) CLASS_FROM_GLOBAL(global));
-		global->method_map = z_map_new(ctx);
-		z_map_set_compare(global->method_map, __map_compare);
-		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
+		global->common.method_map = z_map_new(ctx);
+		z_map_set_compare(global->common.method_map, __map_compare);
+		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
 #line 75 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("new"), (ZObjectSignalHandler) new);
+		z_map_insert((ZMap *) global->common.method_map, strdup("new"), (ZObjectSignalHandler) new);
 #line 81 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("dup"), (ZObjectSignalHandler) dup);
+		z_map_insert((ZMap *) global->common.method_map, strdup("dup"), (ZObjectSignalHandler) dup);
 #line 88 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("is_in_bound"), (ZObjectSignalHandler) is_in_bound);
+		z_map_insert((ZMap *) global->common.method_map, strdup("is_in_bound"), (ZObjectSignalHandler) is_in_bound);
 #line 94 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("validate"), (ZObjectSignalHandler) validate);
+		z_map_insert((ZMap *) global->common.method_map, strdup("validate"), (ZObjectSignalHandler) validate);
 #line 138 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("get_char"), (ZObjectSignalHandler) get_char);
+		z_map_insert((ZMap *) global->common.method_map, strdup("get_char"), (ZObjectSignalHandler) get_char);
 #line 147 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("set_char"), (ZObjectSignalHandler) set_char);
+		z_map_insert((ZMap *) global->common.method_map, strdup("set_char"), (ZObjectSignalHandler) set_char);
 #line 211 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("set_cstring"), (ZObjectSignalHandler) set_cstring);
+		z_map_insert((ZMap *) global->common.method_map, strdup("set_cstring"), (ZObjectSignalHandler) set_cstring);
 #line 249 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("get_cstring"), (ZObjectSignalHandler) get_cstring);
+		z_map_insert((ZMap *) global->common.method_map, strdup("get_cstring"), (ZObjectSignalHandler) get_cstring);
 #line 309 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("append"), (ZObjectSignalHandler) append);
+		z_map_insert((ZMap *) global->common.method_map, strdup("append"), (ZObjectSignalHandler) append);
 #line 316 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("insert"), (ZObjectSignalHandler) insert);
+		z_map_insert((ZMap *) global->common.method_map, strdup("insert"), (ZObjectSignalHandler) insert);
 #line 349 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("erase"), (ZObjectSignalHandler) erase);
+		z_map_insert((ZMap *) global->common.method_map, strdup("erase"), (ZObjectSignalHandler) erase);
 #line 374 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("replace_with_chars"), (ZObjectSignalHandler) replace_with_chars);
+		z_map_insert((ZMap *) global->common.method_map, strdup("replace_with_chars"), (ZObjectSignalHandler) replace_with_chars);
 #line 380 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("replace"), (ZObjectSignalHandler) replace);
+		z_map_insert((ZMap *) global->common.method_map, strdup("replace"), (ZObjectSignalHandler) replace);
 #line 386 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("append_cstring"), (ZObjectSignalHandler) append_cstring);
+		z_map_insert((ZMap *) global->common.method_map, strdup("append_cstring"), (ZObjectSignalHandler) append_cstring);
 #line 912 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("push_back"), (ZObjectSignalHandler) push_back);
+		z_map_insert((ZMap *) global->common.method_map, strdup("push_back"), (ZObjectSignalHandler) push_back);
 #line 931 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("insert_char"), (ZObjectSignalHandler) insert_char);
+		z_map_insert((ZMap *) global->common.method_map, strdup("insert_char"), (ZObjectSignalHandler) insert_char);
 #line 965 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("compare"), (ZObjectSignalHandler) compare);
+		z_map_insert((ZMap *) global->common.method_map, strdup("compare"), (ZObjectSignalHandler) compare);
 #line 1043 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("clear"), (ZObjectSignalHandler) clear);
+		z_map_insert((ZMap *) global->common.method_map, strdup("clear"), (ZObjectSignalHandler) clear);
 #line 1057 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("find"), (ZObjectSignalHandler) find);
+		z_map_insert((ZMap *) global->common.method_map, strdup("find"), (ZObjectSignalHandler) find);
 #line 1103 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("find_char"), (ZObjectSignalHandler) find_char);
+		z_map_insert((ZMap *) global->common.method_map, strdup("find_char"), (ZObjectSignalHandler) find_char);
 #line 1157 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("find_any_char"), (ZObjectSignalHandler) find_any_char);
+		z_map_insert((ZMap *) global->common.method_map, strdup("find_any_char"), (ZObjectSignalHandler) find_any_char);
 #line 1204 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("get_real64"), (ZObjectSignalHandler) get_real64);
+		z_map_insert((ZMap *) global->common.method_map, strdup("get_real64"), (ZObjectSignalHandler) get_real64);
 #line 1285 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("get_int64"), (ZObjectSignalHandler) get_int64);
+		z_map_insert((ZMap *) global->common.method_map, strdup("get_int64"), (ZObjectSignalHandler) get_int64);
 #line 1385 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("get_uint64"), (ZObjectSignalHandler) get_uint64);
+		z_map_insert((ZMap *) global->common.method_map, strdup("get_uint64"), (ZObjectSignalHandler) get_uint64);
 #line 1622 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("append_vformat"), (ZObjectSignalHandler) append_vformat);
+		z_map_insert((ZMap *) global->common.method_map, strdup("append_vformat"), (ZObjectSignalHandler) append_vformat);
 #line 1689 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("vformat"), (ZObjectSignalHandler) vformat);
+		z_map_insert((ZMap *) global->common.method_map, strdup("vformat"), (ZObjectSignalHandler) vformat);
 #line 1695 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("append_format"), (ZObjectSignalHandler) append_format);
+		z_map_insert((ZMap *) global->common.method_map, strdup("append_format"), (ZObjectSignalHandler) append_format);
 #line 1704 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("format"), (ZObjectSignalHandler) format);
+		z_map_insert((ZMap *) global->common.method_map, strdup("format"), (ZObjectSignalHandler) format);
 #line 1713 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("token_start"), (ZObjectSignalHandler) token_start);
+		z_map_insert((ZMap *) global->common.method_map, strdup("token_start"), (ZObjectSignalHandler) token_start);
 #line 1721 "z-string.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("token_next"), (ZObjectSignalHandler) token_next);
+		z_map_insert((ZMap *) global->common.method_map, strdup("token_next"), (ZObjectSignalHandler) token_next);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZStringGlobal *) global);
 		#endif
@@ -394,7 +394,7 @@ Self * z_string_new(struct zco_context_t *ctx)
 #line 81 "z-string.zco"
 Self * z_string_dup(Self *src)
 {
- Self *self = GET_NEW(src->_global->ctx);
+ Self *self = GET_NEW(CTX_FROM_OBJECT(src));
  append(self, src, NULL, NULL);
  return self;
  }

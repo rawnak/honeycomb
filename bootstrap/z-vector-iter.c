@@ -105,13 +105,13 @@ ZVectorIterGlobal * z_vector_iter_get_type(struct zco_context_t *ctx)
 	}
 	if (!global_ptr || !*global_ptr) {
 		struct ZVectorIterGlobal *global = (ZVectorIterGlobal *) malloc(sizeof(struct ZVectorIterGlobal));
-		global->ctx = ctx;
+		global->common.ctx = ctx;
 		global->_class = malloc(sizeof(struct ZVectorIterClass));
 		memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct ZVectorIterClass));
-		global->name = "ZVectorIter";
-		global->vtable_off_list = NULL;
-		global->vtable_off_size = 0;
-		global->is_object = 1;
+		global->common.name = "ZVectorIter";
+		global->common.vtable_off_list = NULL;
+		global->common.vtable_off_size = 0;
+		global->common.is_object = 1;
 
 		struct ZVectorIter temp;
 		unsigned long offset = 0;
@@ -121,28 +121,28 @@ ZVectorIterGlobal * z_vector_iter_get_type(struct zco_context_t *ctx)
 
 		{
 			struct ZObjectGlobal *p_class = z_object_get_type(ctx);
-			if (p_class->id > class_off_size)
-				class_off_size = p_class->id;
+			if (p_class->common.id > class_off_size)
+				class_off_size = p_class->common.id;
 		}
 		class_off_list = malloc(sizeof(unsigned long) * (class_off_size+1));
 		{
 			struct ZObjectGlobal *p_class = z_object_get_type(ctx);
 			zco_inherit_vtable(
-				&global->vtable_off_list,
-				&global->vtable_off_size,
-				p_class->vtable_off_list,
-				p_class->vtable_off_size,
+				&global->common.vtable_off_list,
+				&global->common.vtable_off_size,
+				p_class->common.vtable_off_list,
+				p_class->common.vtable_off_size,
 				&temp,
 				&temp.parent_z_object);
 			memcpy((char *) CLASS_FROM_GLOBAL(global) + offset, CLASS_FROM_GLOBAL(p_class), sizeof(struct ZObjectClass));
-			class_off_list[p_class->id] = offset;
+			class_off_list[p_class->common.id] = offset;
 			offset += sizeof(struct ZObjectClass);
 		}
 		((ZObjectClass *) CLASS_FROM_GLOBAL(global))->class_off_list = class_off_list;
 		if (z_vector_iter_type_id == -1)
 			z_vector_iter_type_id = zco_allocate_type_id();
-		global->id = z_vector_iter_type_id;
-		zco_add_to_vtable(&global->vtable_off_list, &global->vtable_off_size, z_vector_iter_type_id);
+		global->common.id = z_vector_iter_type_id;
+		zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, z_vector_iter_type_id);
 		global_ptr = zco_get_ctx_type(ctx, z_vector_iter_type_id);
 		*global_ptr = global;
 		
@@ -167,29 +167,29 @@ ZVectorIterGlobal * z_vector_iter_get_type(struct zco_context_t *ctx)
 #line 37 "z-vector-iter.zco"
 		}
 		__z_vector_iter_class_init(ctx, (ZVectorIterClass *) CLASS_FROM_GLOBAL(global));
-		global->method_map = z_map_new(ctx);
-		z_map_set_compare(global->method_map, __map_compare);
-		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
+		global->common.method_map = z_map_new(ctx);
+		z_map_set_compare(global->common.method_map, __map_compare);
+		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
 #line 44 "z-vector-iter.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("new"), (ZObjectSignalHandler) new);
+		z_map_insert((ZMap *) global->common.method_map, strdup("new"), (ZObjectSignalHandler) new);
 #line 50 "z-vector-iter.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("dup"), (ZObjectSignalHandler) dup);
+		z_map_insert((ZMap *) global->common.method_map, strdup("dup"), (ZObjectSignalHandler) dup);
 #line 124 "z-vector-iter.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("assign"), (ZObjectSignalHandler) assign);
+		z_map_insert((ZMap *) global->common.method_map, strdup("assign"), (ZObjectSignalHandler) assign);
 #line 135 "z-vector-iter.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("advance"), (ZObjectSignalHandler) advance);
+		z_map_insert((ZMap *) global->common.method_map, strdup("advance"), (ZObjectSignalHandler) advance);
 #line 180 "z-vector-iter.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("increment"), (ZObjectSignalHandler) increment);
+		z_map_insert((ZMap *) global->common.method_map, strdup("increment"), (ZObjectSignalHandler) increment);
 #line 215 "z-vector-iter.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("decrement"), (ZObjectSignalHandler) decrement);
+		z_map_insert((ZMap *) global->common.method_map, strdup("decrement"), (ZObjectSignalHandler) decrement);
 #line 233 "z-vector-iter.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("is_equal"), (ZObjectSignalHandler) is_equal);
+		z_map_insert((ZMap *) global->common.method_map, strdup("is_equal"), (ZObjectSignalHandler) is_equal);
 #line 238 "z-vector-iter.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("is_lte"), (ZObjectSignalHandler) is_lte);
+		z_map_insert((ZMap *) global->common.method_map, strdup("is_lte"), (ZObjectSignalHandler) is_lte);
 #line 259 "z-vector-iter.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("is_gte"), (ZObjectSignalHandler) is_gte);
+		z_map_insert((ZMap *) global->common.method_map, strdup("is_gte"), (ZObjectSignalHandler) is_gte);
 #line 282 "z-vector-iter.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("is_in_bound"), (ZObjectSignalHandler) is_in_bound);
+		z_map_insert((ZMap *) global->common.method_map, strdup("is_in_bound"), (ZObjectSignalHandler) is_in_bound);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZVectorIterGlobal *) global);
 		#endif
@@ -255,7 +255,7 @@ Self * z_vector_iter_new(struct zco_context_t *ctx)
 #line 50 "z-vector-iter.zco"
 Self * z_vector_iter_dup(ZVectorIter *src)
 {
- Self *self = GET_NEW(src->_global->ctx);
+ Self *self = GET_NEW(CTX_FROM_OBJECT(src));
  assign(self, src);
  return self;
  }

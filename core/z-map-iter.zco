@@ -49,7 +49,7 @@ class ZMapIter : ZObject
 
 	public Self *dup(ZMapIter *src)
 	{
-		Self *self = GET_NEW(src->_global->ctx);
+		Self *self = GET_NEW(CTX_FROM_OBJECT(src));
 
 		set_index(self, get_index(src));
 		return self;

@@ -31,7 +31,7 @@ typedef void(*ZVectorItemCallback)(void *item, void *userdata);
 
 #include <zco-type.h>
 #define Self ZVectorSegment
-#define Z_VECTOR_SEGMENT(s) ((ZVectorSegment *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->vtable_off_list[z_vector_segment_type_id]))
+#define Z_VECTOR_SEGMENT(s) ((ZVectorSegment *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->common.vtable_off_list[z_vector_segment_type_id]))
 
 
 struct ZVectorSegmentPrivate;
@@ -65,14 +65,8 @@ struct ZVectorSegmentProtected {
 };
 
 struct ZVectorSegmentGlobal {
-	int *vtable_off_list;
-	int vtable_off_size;
-	int is_object;
+	struct ZCommonGlobal common;
 	struct ZVectorSegmentClass *_class;
-	struct zco_context_t *ctx;
-	const char *name;
-	int id;
-	void *method_map;
 #line 36 "z-vector-segment.zco"
 	void  (*__parent_reset)(ZObject *object);
 #line 54 "z-vector-segment.zco"

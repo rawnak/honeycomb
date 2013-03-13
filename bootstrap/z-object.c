@@ -106,13 +106,13 @@ ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
 	}
 	if (!global_ptr || !*global_ptr) {
 		struct ZObjectGlobal *global = (ZObjectGlobal *) malloc(sizeof(struct ZObjectGlobal));
-		global->ctx = ctx;
+		global->common.ctx = ctx;
 		global->_class = malloc(sizeof(struct ZObjectClass));
 		memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct ZObjectClass));
-		global->name = "ZObject";
-		global->vtable_off_list = NULL;
-		global->vtable_off_size = 0;
-		global->is_object = 1;
+		global->common.name = "ZObject";
+		global->common.vtable_off_list = NULL;
+		global->common.vtable_off_size = 0;
+		global->common.is_object = 1;
 
 		struct ZObject temp;
 		unsigned long offset = 0;
@@ -124,8 +124,8 @@ ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
 		((ZObjectClass *) CLASS_FROM_GLOBAL(global))->class_off_list = class_off_list;
 		if (z_object_type_id == -1)
 			z_object_type_id = zco_allocate_type_id();
-		global->id = z_object_type_id;
-		zco_add_to_vtable(&global->vtable_off_list, &global->vtable_off_size, z_object_type_id);
+		global->common.id = z_object_type_id;
+		zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, z_object_type_id);
 		global_ptr = zco_get_ctx_type(ctx, z_object_type_id);
 		*global_ptr = global;
 		
@@ -134,27 +134,27 @@ ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
 #line 55 "z-object.zco"
 		CLASS_FROM_GLOBAL(global)->__dispose = z_object_virtual_dispose;
 		__z_object_class_init(ctx, (ZObjectClass *) CLASS_FROM_GLOBAL(global));
-		global->method_map = z_map_new(ctx);
-		z_map_set_compare(global->method_map, __map_compare);
-		z_map_set_key_destruct(global->method_map, (ZMapItemCallback) free);
+		global->common.method_map = z_map_new(ctx);
+		z_map_set_compare(global->common.method_map, __map_compare);
+		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
 #line 40 "z-object.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("reset"), (ZObjectSignalHandler) reset);
+		z_map_insert((ZMap *) global->common.method_map, strdup("reset"), (ZObjectSignalHandler) reset);
 #line 55 "z-object.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("dispose"), (ZObjectSignalHandler) dispose);
+		z_map_insert((ZMap *) global->common.method_map, strdup("dispose"), (ZObjectSignalHandler) dispose);
 #line 92 "z-object.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("ref"), (ZObjectSignalHandler) ref);
+		z_map_insert((ZMap *) global->common.method_map, strdup("ref"), (ZObjectSignalHandler) ref);
 #line 97 "z-object.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("unref"), (ZObjectSignalHandler) unref);
+		z_map_insert((ZMap *) global->common.method_map, strdup("unref"), (ZObjectSignalHandler) unref);
 #line 145 "z-object.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("connect"), (ZObjectSignalHandler) connect);
+		z_map_insert((ZMap *) global->common.method_map, strdup("connect"), (ZObjectSignalHandler) connect);
 #line 180 "z-object.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("disconnect"), (ZObjectSignalHandler) disconnect);
+		z_map_insert((ZMap *) global->common.method_map, strdup("disconnect"), (ZObjectSignalHandler) disconnect);
 #line 211 "z-object.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("register_signal"), (ZObjectSignalHandler) register_signal);
+		z_map_insert((ZMap *) global->common.method_map, strdup("register_signal"), (ZObjectSignalHandler) register_signal);
 #line 235 "z-object.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("emit_signal"), (ZObjectSignalHandler) emit_signal);
+		z_map_insert((ZMap *) global->common.method_map, strdup("emit_signal"), (ZObjectSignalHandler) emit_signal);
 #line 265 "z-object.zco"
-		z_map_insert((ZMap *) global->method_map, strdup("add_attached_property_map"), (ZObjectSignalHandler) add_attached_property_map);
+		z_map_insert((ZMap *) global->common.method_map, strdup("add_attached_property_map"), (ZObjectSignalHandler) add_attached_property_map);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZObjectGlobal *) global);
 		#endif
@@ -282,8 +282,8 @@ static ZObjectSignalHandler  z_object_lookup_method(Self *self,char *method_name
  ZObjectGlobal *gbl = ((ZObjectClass *) self->class_base)->real_global;
 
 
- int *vtable_off_list = gbl->vtable_off_list;
- int vtable_off_size = gbl->vtable_off_size;
+ int *vtable_off_list = gbl->common.vtable_off_list;
+ int vtable_off_size = gbl->common.vtable_off_size;
  int i;
 
  for (i=vtable_off_size-1; i>=0; --i) {
@@ -295,7 +295,7 @@ static ZObjectSignalHandler  z_object_lookup_method(Self *self,char *method_name
  continue;
 
  gbl = *((void **) zco_get_ctx_type(CTX_FROM_OBJECT(self), i));
- ZMap *method_map = (ZMap *) gbl->method_map;
+ ZMap *method_map = (ZMap *) gbl->common.method_map;
  ZMapIter *it = z_map_find(method_map, method_name);
 
  if (it) {
