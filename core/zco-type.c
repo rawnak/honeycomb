@@ -94,14 +94,14 @@ void zco_context_destroy(struct zco_context_t *ctx)
 			z_object_unref((ZObject *) global->method_map);
 	}
 
-	for (i=0; i < ctx->type_count; ++i) {
+	for (i=ctx->type_count - 1; i >= 0; --i) {
 		struct ZCommonGlobal *global = ctx->types[i];
 
 		if (global) {
                         struct ZObjectGlobal *obj_global = ((ZObjectGlobal *) global);
 
 			if (global->is_object) {
-                                //z_object_destroy_class(obj_global);
+                                z_object_class_destroy(obj_global);
 				free(CLASS_FROM_GLOBAL(obj_global)->class_off_list);
 			}
 			free(obj_global->_class);
