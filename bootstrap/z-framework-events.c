@@ -64,6 +64,8 @@ static int __map_compare(ZMap *map, const void *a, const void *b)
 }
 #line 11 "z-framework-events.zco"
 static void z_framework_events_init(Self *self);
+#line 25 "z-framework-events.zco"
+static void z_framework_events_class_destroy(ZObjectGlobal *gbl);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
@@ -119,6 +121,16 @@ ZFrameworkEventsGlobal * z_framework_events_get_type(struct zco_context_t *ctx)
 		global_ptr = zco_get_ctx_type(ctx, z_framework_events_type_id);
 		*global_ptr = (ZCommonGlobal *) global;
 		
+#line 25 "z-framework-events.zco"
+		{
+#line 25 "z-framework-events.zco"
+			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
+#line 25 "z-framework-events.zco"
+			global->__parent_class_destroy = p_class->__class_destroy;
+#line 25 "z-framework-events.zco"
+			p_class->__class_destroy = z_framework_events_class_destroy;
+#line 25 "z-framework-events.zco"
+		}
 		__z_framework_events_class_init(ctx, (ZFrameworkEventsClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx);
 		z_map_set_compare(global->common.method_map, __map_compare);
@@ -232,6 +244,15 @@ void  z_framework_events_io_event(Self *self)
 	z_object_unref(Z_OBJECT(args));
 #line 24 "z-framework-events.zco"
 }
+#line 25 "z-framework-events.zco"
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
+static void z_framework_events_class_destroy(ZObjectGlobal *gbl)
+{
+	ZFrameworkEventsGlobal *_global = (ZFrameworkEventsGlobal *) gbl;
+
+}
+
+#undef PARENT_HANDLER
 
 #line 25 "z-framework-events.zco"
 

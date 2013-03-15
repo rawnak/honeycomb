@@ -54,6 +54,8 @@ struct ZMapIterGlobal {
 	struct ZMapIterClass *_class;
 #line 17 "z-map-iter.zco"
 	void  (*__parent_reset)(ZObject *object);
+#line 79 "z-map-iter.zco"
+	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
 };
 
 struct ZMapIterClass {

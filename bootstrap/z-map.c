@@ -139,6 +139,8 @@ static void  z_map_set_value_internal(void *item,void *value);
 static void  z_map_item_destroy(void *item,void *userdata);
 #line 361 "z-map.zco"
 static int  z_map_add_item(Self *self,void *key,void *value,int allow_replace);
+#line 550 "z-map.zco"
+static void z_map_class_destroy(ZObjectGlobal *gbl);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
@@ -213,6 +215,16 @@ ZMapGlobal * z_map_get_type(struct zco_context_t *ctx)
 #line 67 "z-map.zco"
 			p_class->__dispose = z_map_dispose;
 #line 67 "z-map.zco"
+		}
+#line 550 "z-map.zco"
+		{
+#line 550 "z-map.zco"
+			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
+#line 550 "z-map.zco"
+			global->__parent_class_destroy = p_class->__class_destroy;
+#line 550 "z-map.zco"
+			p_class->__class_destroy = z_map_class_destroy;
+#line 550 "z-map.zco"
 		}
 		__z_map_class_init(ctx, (ZMapClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx);
@@ -770,6 +782,15 @@ void z_map_set_compare(Self *self, ZMapCompareFunc  value)
 {
  selfp->compare = value;
  }
+#line 550 "z-map.zco"
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
+static void z_map_class_destroy(ZObjectGlobal *gbl)
+{
+	ZMapGlobal *_global = (ZMapGlobal *) gbl;
+
+}
+
+#undef PARENT_HANDLER
 
 #line 550 "z-map.zco"
 

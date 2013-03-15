@@ -53,9 +53,9 @@ class ZObject
 		selfp->signal_map = 0;
 	}
 
-//        global virtual void class_destroy(ZObjectClass *klass)
-//        {
-//        }
+        global virtual void class_destroy(ZObjectGlobal *gbl)
+        {
+        }
         
         public virtual void reset(Self *self)
         {

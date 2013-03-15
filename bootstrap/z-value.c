@@ -155,6 +155,8 @@ static void z_value_init(Self *self);
 static void  z_value_reset(ZObject *object);
 #line 87 "z-value.zco"
 static void  z_value_dispose(ZObject *object);
+#line 407 "z-value.zco"
+static void z_value_class_destroy(ZObjectGlobal *gbl);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
@@ -229,6 +231,16 @@ ZValueGlobal * z_value_get_type(struct zco_context_t *ctx)
 #line 87 "z-value.zco"
 			p_class->__dispose = z_value_dispose;
 #line 87 "z-value.zco"
+		}
+#line 407 "z-value.zco"
+		{
+#line 407 "z-value.zco"
+			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
+#line 407 "z-value.zco"
+			global->__parent_class_destroy = p_class->__class_destroy;
+#line 407 "z-value.zco"
+			p_class->__class_destroy = z_value_class_destroy;
+#line 407 "z-value.zco"
 		}
 		__z_value_class_init(ctx, (ZValueClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx);
@@ -557,6 +569,15 @@ void z_value_set_as_real64(Self *self, double  value)
  selfp->tag = Real64;
  selfp->data._real64 = value;
  }
+#line 407 "z-value.zco"
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
+static void z_value_class_destroy(ZObjectGlobal *gbl)
+{
+	ZValueGlobal *_global = (ZValueGlobal *) gbl;
+
+}
+
+#undef PARENT_HANDLER
 
 #line 407 "z-value.zco"
 

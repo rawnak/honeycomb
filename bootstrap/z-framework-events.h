@@ -51,6 +51,8 @@ struct ZFrameworkEventsProtected {
 struct ZFrameworkEventsGlobal {
 	struct ZCommonGlobal common;
 	struct ZFrameworkEventsClass *_class;
+#line 25 "z-framework-events.zco"
+	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
 };
 
 struct ZFrameworkEventsClass {

@@ -83,6 +83,8 @@ static int  z_default_object_tracker_destroy(ZObjectTracker *tracker,ZObject *ta
 static int  z_default_object_tracker_garbage_collect_pool(Self *self,ZVector *pool);
 #line 226 "z-default-object-tracker.zco"
 static int  z_default_object_tracker_garbage_collect(ZObjectTracker *tracker);
+#line 258 "z-default-object-tracker.zco"
+static void z_default_object_tracker_class_destroy(ZObjectGlobal *gbl);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
@@ -195,6 +197,16 @@ ZDefaultObjectTrackerGlobal * z_default_object_tracker_get_type(struct zco_conte
 #line 226 "z-default-object-tracker.zco"
 			p_class->__garbage_collect = z_default_object_tracker_garbage_collect;
 #line 226 "z-default-object-tracker.zco"
+		}
+#line 258 "z-default-object-tracker.zco"
+		{
+#line 258 "z-default-object-tracker.zco"
+			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
+#line 258 "z-default-object-tracker.zco"
+			global->__parent_class_destroy = p_class->__class_destroy;
+#line 258 "z-default-object-tracker.zco"
+			p_class->__class_destroy = z_default_object_tracker_class_destroy;
+#line 258 "z-default-object-tracker.zco"
 		}
 		__z_default_object_tracker_class_init(ctx, (ZDefaultObjectTrackerClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx);
@@ -469,6 +481,15 @@ static int  z_default_object_tracker_garbage_collect(ZObjectTracker *tracker)
 
  return count;
  }
+#undef PARENT_HANDLER
+#line 258 "z-default-object-tracker.zco"
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
+static void z_default_object_tracker_class_destroy(ZObjectGlobal *gbl)
+{
+	ZDefaultObjectTrackerGlobal *_global = (ZDefaultObjectTrackerGlobal *) gbl;
+
+}
+
 #undef PARENT_HANDLER
 
 #line 258 "z-default-object-tracker.zco"

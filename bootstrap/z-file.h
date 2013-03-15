@@ -53,6 +53,8 @@ struct ZFileProtected {
 struct ZFileGlobal {
 	struct ZCommonGlobal common;
 	struct ZFileClass *_class;
+#line 73 "z-file.zco"
+	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
 };
 
 struct ZFileClass {

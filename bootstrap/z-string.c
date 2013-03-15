@@ -177,6 +177,8 @@ static void  z_string_append_int(Self *self,int val);
 static void  z_string_append_hex(Self *self,unsigned int val,int uppercase);
 #line 1560 "z-string.zco"
 static void  z_string_append_ptr(Self *self,void *val,int uppercase);
+#line 1741 "z-string.zco"
+static void z_string_class_destroy(ZObjectGlobal *gbl);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
@@ -251,6 +253,16 @@ ZStringGlobal * z_string_get_type(struct zco_context_t *ctx)
 #line 63 "z-string.zco"
 			p_class->__dispose = z_string_dispose;
 #line 63 "z-string.zco"
+		}
+#line 1741 "z-string.zco"
+		{
+#line 1741 "z-string.zco"
+			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
+#line 1741 "z-string.zco"
+			global->__parent_class_destroy = p_class->__class_destroy;
+#line 1741 "z-string.zco"
+			p_class->__class_destroy = z_string_class_destroy;
+#line 1741 "z-string.zco"
 		}
 		__z_string_class_init(ctx, (ZStringClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx);
@@ -2039,6 +2051,15 @@ int  z_string_token_next(Self *self,ZString *separator,ZStringIter *first,ZStrin
  return 0;
 
  }
+#line 1741 "z-string.zco"
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
+static void z_string_class_destroy(ZObjectGlobal *gbl)
+{
+	ZStringGlobal *_global = (ZStringGlobal *) gbl;
+
+}
+
+#undef PARENT_HANDLER
 
 #line 1741 "z-string.zco"
 

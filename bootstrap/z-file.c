@@ -67,6 +67,8 @@ static int __map_compare(ZMap *map, const void *a, const void *b)
 }
 #line 14 "z-file.zco"
 static void z_file_init(Self *self);
+#line 73 "z-file.zco"
+static void z_file_class_destroy(ZObjectGlobal *gbl);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
@@ -122,6 +124,16 @@ ZFileGlobal * z_file_get_type(struct zco_context_t *ctx)
 		global_ptr = zco_get_ctx_type(ctx, z_file_type_id);
 		*global_ptr = (ZCommonGlobal *) global;
 		
+#line 73 "z-file.zco"
+		{
+#line 73 "z-file.zco"
+			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
+#line 73 "z-file.zco"
+			global->__parent_class_destroy = p_class->__class_destroy;
+#line 73 "z-file.zco"
+			p_class->__class_destroy = z_file_class_destroy;
+#line 73 "z-file.zco"
+		}
 		__z_file_class_init(ctx, (ZFileClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx);
 		z_map_set_compare(global->common.method_map, __map_compare);
@@ -223,6 +235,15 @@ void  z_file_write_format(Self *self,const char *fmt,...)
  write_vformat(self, fmt, ap);
  va_end(ap);
  }
+#line 73 "z-file.zco"
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
+static void z_file_class_destroy(ZObjectGlobal *gbl)
+{
+	ZFileGlobal *_global = (ZFileGlobal *) gbl;
+
+}
+
+#undef PARENT_HANDLER
 
 #line 73 "z-file.zco"
 

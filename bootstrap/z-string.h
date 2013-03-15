@@ -75,6 +75,8 @@ struct ZStringGlobal {
 	void  (*__parent_reset)(ZObject *object);
 #line 63 "z-string.zco"
 	void  (*__parent_dispose)(ZObject *object);
+#line 1741 "z-string.zco"
+	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
 };
 
 struct ZStringClass {

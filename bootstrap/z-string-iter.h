@@ -54,6 +54,8 @@ struct ZStringIterGlobal {
 	struct ZStringIterClass *_class;
 #line 17 "z-string-iter.zco"
 	void  (*__parent_reset)(ZObject *object);
+#line 80 "z-string-iter.zco"
+	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
 };
 
 struct ZStringIterClass {

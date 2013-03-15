@@ -41,6 +41,8 @@
 #define INIT_EXISTS
 #line 29 "z-object.zco"
 #define init z_object_init
+#line 36 "z-object.zco"
+#define class_destroy z_object_class_destroy
 #line 40 "z-object.zco"
 #define reset z_object_reset
 #line 55 "z-object.zco"
@@ -84,6 +86,8 @@ static int __map_compare(ZMap *map, const void *a, const void *b)
 }
 #line 29 "z-object.zco"
 static void z_object_init(Self *self);
+#line 36 "z-object.zco"
+static void  z_object_virtual_class_destroy(ZObjectGlobal *gbl);
 #line 40 "z-object.zco"
 static void  z_object_virtual_reset(Self *self);
 #line 55 "z-object.zco"
@@ -129,6 +133,8 @@ ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
 		global_ptr = zco_get_ctx_type(ctx, z_object_type_id);
 		*global_ptr = (ZCommonGlobal *) global;
 		
+#line 36 "z-object.zco"
+		CLASS_FROM_GLOBAL(global)->__class_destroy = z_object_virtual_class_destroy;
 #line 40 "z-object.zco"
 		CLASS_FROM_GLOBAL(global)->__reset = z_object_virtual_reset;
 #line 55 "z-object.zco"
@@ -185,6 +191,17 @@ static void z_object_init(Self *self)
  selfp->ref_count = 1;
  selfp->attached_properties = 0;
  selfp->signal_map = 0;
+ }
+#line 36 "z-object.zco"
+void  z_object_class_destroy(ZObjectGlobal *gbl)
+{
+	ZObjectClass *class_base = CLASS_FROM_GLOBAL(gbl);
+	unsigned long offset = class_base->class_off_list[z_object_type_id];
+	((ZObjectClass *) ((char *) class_base + offset))->__class_destroy(gbl);
+}
+#line 36 "z-object.zco"
+static void  z_object_virtual_class_destroy(ZObjectGlobal *gbl)
+{
  }
 #line 40 "z-object.zco"
 void  z_object_reset(Self *self)

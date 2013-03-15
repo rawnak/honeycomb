@@ -65,6 +65,8 @@ struct ZClosureGlobal {
 	void  (*__parent_reset)(ZObject *object);
 #line 45 "z-closure.zco"
 	void  (*__parent_dispose)(ZObject *object);
+#line 126 "z-closure.zco"
+	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
 };
 
 struct ZClosureClass {

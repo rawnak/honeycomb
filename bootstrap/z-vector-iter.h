@@ -63,6 +63,8 @@ struct ZVectorIterGlobal {
 	void  (*__parent_reset)(ZObject *object);
 #line 37 "z-vector-iter.zco"
 	void  (*__parent_dispose)(ZObject *object);
+#line 286 "z-vector-iter.zco"
+	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
 };
 
 struct ZVectorIterClass {

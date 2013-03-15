@@ -77,6 +77,8 @@ static void z_closure_init(Self *self);
 static void  z_closure_reset(ZObject *object);
 #line 45 "z-closure.zco"
 static void  z_closure_dispose(ZObject *object);
+#line 126 "z-closure.zco"
+static void z_closure_class_destroy(ZObjectGlobal *gbl);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
@@ -151,6 +153,16 @@ ZClosureGlobal * z_closure_get_type(struct zco_context_t *ctx)
 #line 45 "z-closure.zco"
 			p_class->__dispose = z_closure_dispose;
 #line 45 "z-closure.zco"
+		}
+#line 126 "z-closure.zco"
+		{
+#line 126 "z-closure.zco"
+			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
+#line 126 "z-closure.zco"
+			global->__parent_class_destroy = p_class->__class_destroy;
+#line 126 "z-closure.zco"
+			p_class->__class_destroy = z_closure_class_destroy;
+#line 126 "z-closure.zco"
 		}
 		__z_closure_class_init(ctx, (ZClosureClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx);
@@ -290,6 +302,15 @@ int  z_closure_invoke(Self *self,ZVector *args)
 {
  return z_closure_marshal_invoke(selfp->marshal, selfp->target, selfp->handler, args, selfp->userdata);
  }
+#line 126 "z-closure.zco"
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
+static void z_closure_class_destroy(ZObjectGlobal *gbl)
+{
+	ZClosureGlobal *_global = (ZClosureGlobal *) gbl;
+
+}
+
+#undef PARENT_HANDLER
 
 #line 126 "z-closure.zco"
 

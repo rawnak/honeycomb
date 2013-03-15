@@ -98,6 +98,8 @@ static void  z_vector_segment_reset(ZObject *object);
 static void  z_vector_segment_dispose(ZObject *object);
 #line 190 "z-vector-segment.zco"
 static int  z_vector_segment_set_capacity(Self *self,int value,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_construct,ZVectorItemCallback item_destruct);
+#line 576 "z-vector-segment.zco"
+static void z_vector_segment_class_destroy(ZObjectGlobal *gbl);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
@@ -172,6 +174,16 @@ ZVectorSegmentGlobal * z_vector_segment_get_type(struct zco_context_t *ctx)
 #line 54 "z-vector-segment.zco"
 			p_class->__dispose = z_vector_segment_dispose;
 #line 54 "z-vector-segment.zco"
+		}
+#line 576 "z-vector-segment.zco"
+		{
+#line 576 "z-vector-segment.zco"
+			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
+#line 576 "z-vector-segment.zco"
+			global->__parent_class_destroy = p_class->__class_destroy;
+#line 576 "z-vector-segment.zco"
+			p_class->__class_destroy = z_vector_segment_class_destroy;
+#line 576 "z-vector-segment.zco"
 		}
 		__z_vector_segment_class_init(ctx, (ZVectorSegmentClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx);
@@ -717,6 +729,15 @@ int  z_vector_segment_erase(Self *self,ZVectorIter *start,ZVectorIter *end,int i
 
  return n;
  }
+#line 576 "z-vector-segment.zco"
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
+static void z_vector_segment_class_destroy(ZObjectGlobal *gbl)
+{
+	ZVectorSegmentGlobal *_global = (ZVectorSegmentGlobal *) gbl;
+
+}
+
+#undef PARENT_HANDLER
 
 #line 576 "z-vector-segment.zco"
 

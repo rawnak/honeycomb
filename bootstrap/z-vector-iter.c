@@ -91,6 +91,8 @@ static void z_vector_iter_init(Self *self);
 static void  z_vector_iter_reset(ZObject *object);
 #line 37 "z-vector-iter.zco"
 static void  z_vector_iter_dispose(ZObject *object);
+#line 286 "z-vector-iter.zco"
+static void z_vector_iter_class_destroy(ZObjectGlobal *gbl);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
@@ -165,6 +167,16 @@ ZVectorIterGlobal * z_vector_iter_get_type(struct zco_context_t *ctx)
 #line 37 "z-vector-iter.zco"
 			p_class->__dispose = z_vector_iter_dispose;
 #line 37 "z-vector-iter.zco"
+		}
+#line 286 "z-vector-iter.zco"
+		{
+#line 286 "z-vector-iter.zco"
+			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
+#line 286 "z-vector-iter.zco"
+			global->__parent_class_destroy = p_class->__class_destroy;
+#line 286 "z-vector-iter.zco"
+			p_class->__class_destroy = z_vector_iter_class_destroy;
+#line 286 "z-vector-iter.zco"
 		}
 		__z_vector_iter_class_init(ctx, (ZVectorIterClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx);
@@ -480,6 +492,15 @@ int  z_vector_iter_is_in_bound(ZVectorIter *self)
 {
  return z_vector_segment_is_in_bound(selfp->segment, self);
  }
+#line 286 "z-vector-iter.zco"
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
+static void z_vector_iter_class_destroy(ZObjectGlobal *gbl)
+{
+	ZVectorIterGlobal *_global = (ZVectorIterGlobal *) gbl;
+
+}
+
+#undef PARENT_HANDLER
 
 #line 286 "z-vector-iter.zco"
 

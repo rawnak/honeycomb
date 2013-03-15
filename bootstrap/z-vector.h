@@ -78,6 +78,8 @@ struct ZVectorGlobal {
 	void  (*__parent_reset)(ZObject *object);
 #line 69 "z-vector.zco"
 	void  (*__parent_dispose)(ZObject *object);
+#line 948 "z-vector.zco"
+	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
 };
 
 struct ZVectorClass {

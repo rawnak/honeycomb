@@ -72,6 +72,8 @@ struct ZMapGlobal {
 	void  (*__parent_reset)(ZObject *object);
 #line 67 "z-map.zco"
 	void  (*__parent_dispose)(ZObject *object);
+#line 550 "z-map.zco"
+	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
 };
 
 struct ZMapClass {

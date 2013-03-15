@@ -75,6 +75,8 @@ struct ZValueGlobal {
 	void  (*__parent_reset)(ZObject *object);
 #line 87 "z-value.zco"
 	void  (*__parent_dispose)(ZObject *object);
+#line 407 "z-value.zco"
+	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
 };
 
 struct ZValueClass {

@@ -101,6 +101,7 @@ void zco_context_destroy(struct zco_context_t *ctx)
                         struct ZObjectGlobal *obj_global = ((ZObjectGlobal *) global);
 
 			if (global->is_object) {
+                                //z_object_destroy_class(obj_global);
 				free(CLASS_FROM_GLOBAL(obj_global)->class_off_list);
 			}
 			free(obj_global->_class);

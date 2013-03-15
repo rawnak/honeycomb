@@ -76,6 +76,8 @@ static int __map_compare(ZMap *map, const void *a, const void *b)
 static void z_map_iter_init(Self *self);
 #line 17 "z-map-iter.zco"
 static void  z_map_iter_reset(ZObject *object);
+#line 79 "z-map-iter.zco"
+static void z_map_iter_class_destroy(ZObjectGlobal *gbl);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
@@ -140,6 +142,16 @@ ZMapIterGlobal * z_map_iter_get_type(struct zco_context_t *ctx)
 #line 17 "z-map-iter.zco"
 			p_class->__reset = z_map_iter_reset;
 #line 17 "z-map-iter.zco"
+		}
+#line 79 "z-map-iter.zco"
+		{
+#line 79 "z-map-iter.zco"
+			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
+#line 79 "z-map-iter.zco"
+			global->__parent_class_destroy = p_class->__class_destroy;
+#line 79 "z-map-iter.zco"
+			p_class->__class_destroy = z_map_iter_class_destroy;
+#line 79 "z-map-iter.zco"
 		}
 		__z_map_iter_class_init(ctx, (ZMapIterClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx);
@@ -255,6 +267,15 @@ int  z_map_iter_is_gte(Self *self,Self *other)
 {
  return selfp->index >= get_index(other);
  }
+#line 79 "z-map-iter.zco"
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
+static void z_map_iter_class_destroy(ZObjectGlobal *gbl)
+{
+	ZMapIterGlobal *_global = (ZMapIterGlobal *) gbl;
+
+}
+
+#undef PARENT_HANDLER
 
 #line 79 "z-map-iter.zco"
 

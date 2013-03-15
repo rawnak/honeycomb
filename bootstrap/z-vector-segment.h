@@ -71,6 +71,8 @@ struct ZVectorSegmentGlobal {
 	void  (*__parent_reset)(ZObject *object);
 #line 54 "z-vector-segment.zco"
 	void  (*__parent_dispose)(ZObject *object);
+#line 576 "z-vector-segment.zco"
+	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
 };
 
 struct ZVectorSegmentClass {

@@ -65,6 +65,8 @@ struct ZDefaultObjectTrackerGlobal {
 	int  (*__parent_destroy)(ZObjectTracker *tracker,ZObject *target);
 #line 226 "z-default-object-tracker.zco"
 	int  (*__parent_garbage_collect)(ZObjectTracker *tracker);
+#line 258 "z-default-object-tracker.zco"
+	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
 };
 
 struct ZDefaultObjectTrackerClass {

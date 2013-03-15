@@ -226,6 +226,8 @@ struct ZZcoSourceGeneratorGlobal {
 	struct ZZcoSourceGeneratorClass *_class;
 #line 199 "z-zco-source-generator.zco"
 	void  (*__parent_dispose)(ZObject *object);
+#line 2043 "z-zco-source-generator.zco"
+	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
 };
 
 struct ZZcoSourceGeneratorClass {
@@ -254,49 +256,49 @@ void  z_zco_source_generator_property_decl(Self *self,ZString *get_or_set,ZStrin
 void  z_zco_source_generator_add_parent(Self *self,ZString *name_in_pascal);
 #line 1074 "z-zco-source-generator.zco"
 void  z_zco_source_generator_record_line_number(Self *self);
-#line 1135 "z-zco-source-generator.zco"
+#line 1127 "z-zco-source-generator.zco"
 void  z_zco_source_generator_prepare_class(Self *self,ZString *class_name);
-#line 1231 "z-zco-source-generator.zco"
+#line 1223 "z-zco-source-generator.zco"
 void  z_zco_source_generator_prepare_interface(Self *self,ZString *interface_name);
-#line 1375 "z-zco-source-generator.zco"
+#line 1367 "z-zco-source-generator.zco"
 void  z_zco_source_generator_finalize_class_definition(Self *self);
-#line 1380 "z-zco-source-generator.zco"
+#line 1372 "z-zco-source-generator.zco"
 void  z_zco_source_generator_finalize_interface_definition(Self *self);
-#line 1834 "z-zco-source-generator.zco"
+#line 1836 "z-zco-source-generator.zco"
 void  z_zco_source_generator_write_header_block(Self *self,ZString *s);
-#line 1842 "z-zco-source-generator.zco"
+#line 1844 "z-zco-source-generator.zco"
 void  z_zco_source_generator_write_source_block(Self *self,ZString *s);
-#line 1850 "z-zco-source-generator.zco"
+#line 1852 "z-zco-source-generator.zco"
 void  z_zco_source_generator_class_declaration(Self *self);
-#line 1859 "z-zco-source-generator.zco"
+#line 1861 "z-zco-source-generator.zco"
 void  z_zco_source_generator_interface_declaration(Self *self);
-#line 1868 "z-zco-source-generator.zco"
+#line 1870 "z-zco-source-generator.zco"
 void  z_zco_source_generator_enable_virtual_mode(Self *self);
-#line 1877 "z-zco-source-generator.zco"
+#line 1879 "z-zco-source-generator.zco"
 void  z_zco_source_generator_enable_override_mode(Self *self,ZString *s);
-#line 1890 "z-zco-source-generator.zco"
+#line 1892 "z-zco-source-generator.zco"
 void  z_zco_source_generator_set_access_mode(Self *self,int mode);
-#line 1895 "z-zco-source-generator.zco"
+#line 1897 "z-zco-source-generator.zco"
 void  z_zco_source_generator_set_type_name(Self *self,ZString *s);
-#line 1904 "z-zco-source-generator.zco"
+#line 1906 "z-zco-source-generator.zco"
 void  z_zco_source_generator_set_symbol_name(Self *self,ZString *s);
-#line 1917 "z-zco-source-generator.zco"
+#line 1919 "z-zco-source-generator.zco"
 void  z_zco_source_generator_add_class_data_member(Self *self);
-#line 1922 "z-zco-source-generator.zco"
+#line 1924 "z-zco-source-generator.zco"
 void  z_zco_source_generator_add_class_virtual_data_member(Self *self);
-#line 1927 "z-zco-source-generator.zco"
+#line 1929 "z-zco-source-generator.zco"
 void  z_zco_source_generator_class_virtual_member_function_decl(Self *self,ZString *s1,ZString *s2,ZString *s3);
-#line 1932 "z-zco-source-generator.zco"
+#line 1934 "z-zco-source-generator.zco"
 void  z_zco_source_generator_class_override_member_function_decl(Self *self,ZString *s1,ZString *s2,ZString *s3);
-#line 1937 "z-zco-source-generator.zco"
+#line 1939 "z-zco-source-generator.zco"
 void  z_zco_source_generator_class_member_function_decl(Self *self,ZString *s1,ZString *s2,ZString *s3);
-#line 1942 "z-zco-source-generator.zco"
+#line 1944 "z-zco-source-generator.zco"
 void  z_zco_source_generator_class_signal_decl(Self *self,ZString *s1,ZString *s2);
-#line 1947 "z-zco-source-generator.zco"
+#line 1949 "z-zco-source-generator.zco"
 void  z_zco_source_generator_finalize_property(Self *self);
-#line 1972 "z-zco-source-generator.zco"
+#line 1974 "z-zco-source-generator.zco"
 void  z_zco_source_generator_enable_attached_property(Self *self);
-#line 1977 "z-zco-source-generator.zco"
+#line 1979 "z-zco-source-generator.zco"
 int  z_zco_source_generator_setup(Self *self,int argc,char **argv);
 
 #undef Self

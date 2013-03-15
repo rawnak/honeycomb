@@ -65,6 +65,8 @@ struct ZObjectGlobal {
 struct ZObjectClass {
 	unsigned long * class_off_list;
 	ZCommonGlobal * real_global;
+#line 36 "z-object.zco"
+	void  (*__class_destroy)(ZObjectGlobal *gbl);
 #line 40 "z-object.zco"
 	void  (*__reset)(Self *self);
 #line 55 "z-object.zco"
@@ -84,6 +86,8 @@ extern int z_object_type_id;
 ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx);
 void __z_object_init(struct zco_context_t *ctx, ZObject *self);
 void __z_object_class_init(struct zco_context_t *ctx, ZObjectClass *_class);
+#line 36 "z-object.zco"
+void  z_object_class_destroy(ZObjectGlobal *gbl);
 #line 40 "z-object.zco"
 void  z_object_reset(Self *self);
 #line 55 "z-object.zco"
