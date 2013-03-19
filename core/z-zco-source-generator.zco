@@ -300,12 +300,12 @@ class ZZcoSourceGenerator : ZObject
 
         private void print_line_number(Self *self, ZString *str)
         {
-                z_string_append_format(str, "#line %d \"%s\"\n", selfp->real_lineno, selfp->zco_filename);
+                //z_string_append_format(str, "#line %d \"%s\"\n", selfp->real_lineno, selfp->zco_filename);
         }
 
         private void print_line_number_on_file(Self *self, ZFile *file)
         {
-                z_file_write_format(file, "#line %d \"%s\"\n", selfp->real_lineno, selfp->zco_filename);
+                //z_file_write_format(file, "#line %d \"%s\"\n", selfp->real_lineno, selfp->zco_filename);
         }
 
         public void special_member_function_decl(Self *self, ZString *symbol, ZString *arglist, ZString *code)
@@ -1649,7 +1649,8 @@ class ZZcoSourceGenerator : ZObject
 						selfp->parent_class_name_lowercase[i]);
 			}
 
-			z_file_write_format(selfp->source_file, "\t\tclass_off_list = malloc(sizeof(unsigned long) * (class_off_size+1));\n");
+			// FIXME: Why +1? It should be based on the number of virtual static methdos in the class
+			z_file_write_format(selfp->source_file, "\t\tclass_off_list = malloc(sizeof(unsigned long) * (zco_get_type_count()+1));\n");
 		}
 
                 /* inherit the vtable from the parent class */
@@ -1682,10 +1683,10 @@ class ZZcoSourceGenerator : ZObject
 					"\t\t\x7d\n",
                                         selfp->parent_class_name_pascal[i]);
                 }
+
 		
 		if (is_object) {
-			z_file_write_format(selfp->source_file,
-					"\t\t((ZObjectClass *) CLASS_FROM_GLOBAL(global))->class_off_list = class_off_list;\n");
+			z_file_write_format(selfp->source_file, "\t\t((ZObjectClass *) CLASS_FROM_GLOBAL(global))->class_off_list = class_off_list;\n");
 		}
 
                 z_file_write_format(selfp->source_file,
@@ -1701,6 +1702,11 @@ class ZZcoSourceGenerator : ZObject
                                 selfp->current_class_name_lowercase,
                                 selfp->current_class_name_lowercase,
                                 selfp->current_class_name_lowercase);
+
+		if (is_object) {
+			// FIXME: this is causing an addition unref() for some reason. do a full rebuild to see it
+			z_file_write_format(selfp->source_file, "\t\tclass_off_list[global->common.id] = offset;\n");
+		}
 
                 /* assign the virtual function pointers */
                 z_file_write_format(selfp->source_file, "%S", selfp->virtual_function_ptr_inits);

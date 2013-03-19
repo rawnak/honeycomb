@@ -45,7 +45,6 @@ void zco_context_init(struct zco_context_t *ctx)
            segment holds a single item, it is nothing more than a linked list. */
         zco_context_set_min_segment_capacity_by_count(ctx, 2);
 
-
 	ctx->framework_events = z_framework_events_new(ctx);
 
         /* Load the default object tracker
@@ -53,8 +52,8 @@ void zco_context_init(struct zco_context_t *ctx)
            (by convention). Loading the object tracker at the end of the context
            initialization and unloading it at the start of the context destruction
            ensures that we consistently use the correct tracker for every object. */
-        //ZObjectTracker *tracker = (ZObjectTracker *) z_default_object_tracker_new(ctx);
-        //zco_context_set_object_tracker(ctx, (void *) tracker);
+        ZObjectTracker *tracker = (ZObjectTracker *) z_default_object_tracker_new(ctx);
+        zco_context_set_object_tracker(ctx, (void *) tracker);
 }
 
 void zco_context_destroy(struct zco_context_t *ctx)
@@ -101,7 +100,7 @@ void zco_context_destroy(struct zco_context_t *ctx)
                         struct ZObjectGlobal *obj_global = ((ZObjectGlobal *) global);
 
 			if (global->is_object) {
-                                z_object_class_destroy(obj_global);
+				z_object_class_destroy(obj_global);
 				free(CLASS_FROM_GLOBAL(obj_global)->class_off_list);
 			}
 			free(obj_global->_class);
@@ -140,6 +139,11 @@ ZCommonGlobal **zco_get_ctx_type(struct zco_context_t *ctx, int type_id)
 int zco_allocate_type_id()
 {
 	return ++next_id;
+}
+
+int zco_get_type_count()
+{
+	return next_id+1;
 }
 
 void zco_inherit_vtable(int **list, int *size, int *src_list, int src_size, void *base, void *target)

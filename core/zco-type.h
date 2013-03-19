@@ -62,6 +62,7 @@ void    zco_context_set_min_segment_capacity_by_count(struct zco_context_t *ctx,
 
 ZCommonGlobal ** zco_get_ctx_type(struct zco_context_t *ctx, int type_id);
 int              zco_allocate_type_id();
+int              zco_get_type_count();
 void             zco_inherit_vtable(int **list, int *size, int *src_list, int src_size, void *base, void *target);
 void             zco_add_to_vtable(int **list, int *size, int type_id);
 

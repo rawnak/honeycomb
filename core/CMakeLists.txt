@@ -7,7 +7,7 @@ find_package(FLEX)
 include_directories(
       ${CMAKE_CURRENT_SOURCE_DIR}            # core header files
       ${CMAKE_CURRENT_BINARY_DIR}            # generated core header files
-      /usr/lib/libffi-3.0.11/include         # libffi
+      /usr/lib/libffi-3.0.12/include         # libffi
       )
 
 add_definitions(-pipe -g -fstack-protector-all -O0 -std=gnu99)

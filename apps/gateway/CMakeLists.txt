@@ -9,7 +9,7 @@ include_directories(
       ${CMAKE_BINARY_DIR}/core	       # generated core header files
       ${CMAKE_BINARY_DIR}/widgets      # generated widget header files
       ${CMAKE_CURRENT_BINARY_DIR}      # generated application header files
-      /usr/lib/libffi-3.0.11/include   # libffi
+      /usr/lib/libffi-3.0.12/include   # libffi
       )
 
 add_definitions(-pipe -g -fstack-protector-all -O0 -std=gnu99)

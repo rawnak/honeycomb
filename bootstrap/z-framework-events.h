@@ -20,7 +20,6 @@
 
 #ifndef _Z_FRAMEWORK_EVENTS_H_
 #define _Z_FRAMEWORK_EVENTS_H_
-#line 4 "z-framework-events.zco"
 
 #include <z-object.h>
 #include <z-string.h>
@@ -51,7 +50,6 @@ struct ZFrameworkEventsProtected {
 struct ZFrameworkEventsGlobal {
 	struct ZCommonGlobal common;
 	struct ZFrameworkEventsClass *_class;
-#line 25 "z-framework-events.zco"
 	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
 };
 
@@ -69,13 +67,9 @@ extern int z_framework_events_type_id;
 ZFrameworkEventsGlobal * z_framework_events_get_type(struct zco_context_t *ctx);
 void __z_framework_events_init(struct zco_context_t *ctx, ZFrameworkEvents *self);
 void __z_framework_events_class_init(struct zco_context_t *ctx, ZFrameworkEventsClass *_class);
-#line 15 "z-framework-events.zco"
 Self * z_framework_events_new(struct zco_context_t *ctx);
-#line 22 "z-framework-events.zco"
 void  z_framework_events_resize_event(Self *self,ZString *output);
-#line 23 "z-framework-events.zco"
 void  z_framework_events_draw_event(Self *self,ZString *output);
-#line 24 "z-framework-events.zco"
 void  z_framework_events_io_event(Self *self);
 
 #undef Self

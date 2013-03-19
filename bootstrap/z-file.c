@@ -32,19 +32,12 @@
 #define selfp (&self->_priv)
 #define GET_NEW(ctx) __z_file_new(ctx)
 #define INIT_EXISTS
-#line 14 "z-file.zco"
 #define init z_file_init
-#line 19 "z-file.zco"
 #define new z_file_new
-#line 25 "z-file.zco"
 #define open z_file_open
-#line 31 "z-file.zco"
 #define close z_file_close
-#line 42 "z-file.zco"
 #define write z_file_write
-#line 47 "z-file.zco"
 #define write_vformat z_file_write_vformat
-#line 64 "z-file.zco"
 #define write_format z_file_write_format
 
 int z_file_type_id = -1;
@@ -65,9 +58,7 @@ static int __map_compare(ZMap *map, const void *a, const void *b)
 {
 	return strcmp(a, b);
 }
-#line 14 "z-file.zco"
 static void z_file_init(Self *self);
-#line 73 "z-file.zco"
 static void z_file_class_destroy(ZObjectGlobal *gbl);
 
 static void cleanup_signal_arg(void *item, void *userdata)
@@ -102,7 +93,7 @@ ZFileGlobal * z_file_get_type(struct zco_context_t *ctx)
 			if (p_class->common.id > class_off_size)
 				class_off_size = p_class->common.id;
 		}
-		class_off_list = malloc(sizeof(unsigned long) * (class_off_size+1));
+		class_off_list = malloc(sizeof(unsigned long) * (zco_get_type_count()+1));
 		{
 			struct ZObjectGlobal *p_class = z_object_get_type(ctx);
 			zco_inherit_vtable(
@@ -124,31 +115,21 @@ ZFileGlobal * z_file_get_type(struct zco_context_t *ctx)
 		global_ptr = zco_get_ctx_type(ctx, z_file_type_id);
 		*global_ptr = (ZCommonGlobal *) global;
 		
-#line 73 "z-file.zco"
+		class_off_list[global->common.id] = offset;
 		{
-#line 73 "z-file.zco"
 			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
-#line 73 "z-file.zco"
 			global->__parent_class_destroy = p_class->__class_destroy;
-#line 73 "z-file.zco"
 			p_class->__class_destroy = z_file_class_destroy;
-#line 73 "z-file.zco"
 		}
 		__z_file_class_init(ctx, (ZFileClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx);
 		z_map_set_compare(global->common.method_map, __map_compare);
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
-#line 19 "z-file.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("new"), (ZObjectSignalHandler) new);
-#line 25 "z-file.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("open"), (ZObjectSignalHandler) open);
-#line 31 "z-file.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("close"), (ZObjectSignalHandler) close);
-#line 42 "z-file.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("write"), (ZObjectSignalHandler) write);
-#line 47 "z-file.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("write_vformat"), (ZObjectSignalHandler) write_vformat);
-#line 64 "z-file.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("write_format"), (ZObjectSignalHandler) write_format);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZFileGlobal *) global);
@@ -176,24 +157,20 @@ void __z_file_init(struct zco_context_t *ctx, Self *self)
 		init(self);
 	#endif
 }
-#line 14 "z-file.zco"
 static void z_file_init(Self *self)
 {
  selfp->file = NULL;
  }
-#line 19 "z-file.zco"
 Self * z_file_new(struct zco_context_t *ctx)
 {
  Self *self = GET_NEW(ctx);
  return self;
  }
-#line 25 "z-file.zco"
 int  z_file_open(Self *self,const char *filename,const char *mode)
 {
  selfp->file = fopen(filename, mode);
  return selfp->file? 0 : -1;
  }
-#line 31 "z-file.zco"
 int  z_file_close(Self *self)
 {
  if (selfp->file) {
@@ -204,12 +181,10 @@ int  z_file_close(Self *self)
 
  return -1;
  }
-#line 42 "z-file.zco"
 void  z_file_write(Self *self,const char *str)
 {
  fputs(str, selfp->file);
  }
-#line 47 "z-file.zco"
 int  z_file_write_vformat(Self *self,const char *fmt,va_list ap)
 {
  ZString *temp = z_string_new(CTX_FROM_OBJECT(self));
@@ -226,7 +201,6 @@ int  z_file_write_vformat(Self *self,const char *fmt,va_list ap)
  /* release temporary string */
  z_object_unref(Z_OBJECT(temp));
  }
-#line 64 "z-file.zco"
 void  z_file_write_format(Self *self,const char *fmt,...)
 {
  va_list ap;
@@ -235,7 +209,6 @@ void  z_file_write_format(Self *self,const char *fmt,...)
  write_vformat(self, fmt, ap);
  va_end(ap);
  }
-#line 73 "z-file.zco"
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
 static void z_file_class_destroy(ZObjectGlobal *gbl)
 {
@@ -245,6 +218,5 @@ static void z_file_class_destroy(ZObjectGlobal *gbl)
 
 #undef PARENT_HANDLER
 
-#line 73 "z-file.zco"
 
 

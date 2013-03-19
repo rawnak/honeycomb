@@ -39,31 +39,18 @@
 #define selfp (&self->_priv)
 #define GET_NEW(ctx) __z_object_new(ctx)
 #define INIT_EXISTS
-#line 29 "z-object.zco"
 #define init z_object_init
-#line 36 "z-object.zco"
 #define class_destroy z_object_class_destroy
-#line 40 "z-object.zco"
 #define reset z_object_reset
-#line 55 "z-object.zco"
 #define dispose z_object_dispose
-#line 92 "z-object.zco"
 #define ref z_object_ref
-#line 97 "z-object.zco"
 #define unref z_object_unref
-#line 110 "z-object.zco"
 #define lookup_method z_object_lookup_method
-#line 145 "z-object.zco"
 #define connect z_object_connect
-#line 180 "z-object.zco"
 #define disconnect z_object_disconnect
-#line 211 "z-object.zco"
 #define register_signal z_object_register_signal
-#line 235 "z-object.zco"
 #define emit_signal z_object_emit_signal
-#line 265 "z-object.zco"
 #define add_attached_property_map z_object_add_attached_property_map
-#line 276 "z-object.zco"
 #define map_compare z_object_map_compare
 
 int z_object_type_id = -1;
@@ -84,17 +71,11 @@ static int __map_compare(ZMap *map, const void *a, const void *b)
 {
 	return strcmp(a, b);
 }
-#line 29 "z-object.zco"
 static void z_object_init(Self *self);
-#line 36 "z-object.zco"
 static void  z_object_virtual_class_destroy(ZObjectGlobal *gbl);
-#line 40 "z-object.zco"
 static void  z_object_virtual_reset(Self *self);
-#line 55 "z-object.zco"
 static void  z_object_virtual_dispose(Self *self);
-#line 110 "z-object.zco"
 static ZObjectSignalHandler  z_object_lookup_method(Self *self,char *method_name);
-#line 276 "z-object.zco"
 static int  z_object_map_compare(ZMap *map,const void *a,const void *b);
 
 static void cleanup_signal_arg(void *item, void *userdata)
@@ -124,7 +105,7 @@ ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
 		unsigned long *class_off_list;
 		unsigned long class_off_size = 0;
 
-		class_off_list = malloc(sizeof(unsigned long) * (class_off_size+1));
+		class_off_list = malloc(sizeof(unsigned long) * (zco_get_type_count()+1));
 		((ZObjectClass *) CLASS_FROM_GLOBAL(global))->class_off_list = class_off_list;
 		if (z_object_type_id == -1)
 			z_object_type_id = zco_allocate_type_id();
@@ -133,33 +114,22 @@ ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
 		global_ptr = zco_get_ctx_type(ctx, z_object_type_id);
 		*global_ptr = (ZCommonGlobal *) global;
 		
-#line 36 "z-object.zco"
+		class_off_list[global->common.id] = offset;
 		CLASS_FROM_GLOBAL(global)->__class_destroy = z_object_virtual_class_destroy;
-#line 40 "z-object.zco"
 		CLASS_FROM_GLOBAL(global)->__reset = z_object_virtual_reset;
-#line 55 "z-object.zco"
 		CLASS_FROM_GLOBAL(global)->__dispose = z_object_virtual_dispose;
 		__z_object_class_init(ctx, (ZObjectClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx);
 		z_map_set_compare(global->common.method_map, __map_compare);
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
-#line 40 "z-object.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("reset"), (ZObjectSignalHandler) reset);
-#line 55 "z-object.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("dispose"), (ZObjectSignalHandler) dispose);
-#line 92 "z-object.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("ref"), (ZObjectSignalHandler) ref);
-#line 97 "z-object.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("unref"), (ZObjectSignalHandler) unref);
-#line 145 "z-object.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("connect"), (ZObjectSignalHandler) connect);
-#line 180 "z-object.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("disconnect"), (ZObjectSignalHandler) disconnect);
-#line 211 "z-object.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("register_signal"), (ZObjectSignalHandler) register_signal);
-#line 235 "z-object.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("emit_signal"), (ZObjectSignalHandler) emit_signal);
-#line 265 "z-object.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("add_attached_property_map"), (ZObjectSignalHandler) add_attached_property_map);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZObjectGlobal *) global);
@@ -185,25 +155,21 @@ void __z_object_init(struct zco_context_t *ctx, Self *self)
 		init(self);
 	#endif
 }
-#line 29 "z-object.zco"
 static void z_object_init(Self *self)
 {
  selfp->ref_count = 1;
  selfp->attached_properties = 0;
  selfp->signal_map = 0;
  }
-#line 36 "z-object.zco"
 void  z_object_class_destroy(ZObjectGlobal *gbl)
 {
 	ZObjectClass *class_base = CLASS_FROM_GLOBAL(gbl);
 	unsigned long offset = class_base->class_off_list[z_object_type_id];
 	((ZObjectClass *) ((char *) class_base + offset))->__class_destroy(gbl);
 }
-#line 36 "z-object.zco"
 static void  z_object_virtual_class_destroy(ZObjectGlobal *gbl)
 {
  }
-#line 40 "z-object.zco"
 void  z_object_reset(Self *self)
 {
 	ZObject *obj = (ZObject *) self;
@@ -211,7 +177,6 @@ void  z_object_reset(Self *self)
 	unsigned long offset = class_base->class_off_list[z_object_type_id];
 	((ZObjectClass *) ((char *) class_base + offset))->__reset(self);
 }
-#line 40 "z-object.zco"
 static void  z_object_virtual_reset(Self *self)
 {
  /* This ensures that reset() is not called by someone other
@@ -226,7 +191,6 @@ static void  z_object_virtual_reset(Self *self)
                    disconnected, all closure lists must be empty before self
                    can have a reference count of 0 */
  }
-#line 55 "z-object.zco"
 void  z_object_dispose(Self *self)
 {
 	ZObject *obj = (ZObject *) self;
@@ -234,7 +198,6 @@ void  z_object_dispose(Self *self)
 	unsigned long offset = class_base->class_off_list[z_object_type_id];
 	((ZObjectClass *) ((char *) class_base + offset))->__dispose(self);
 }
-#line 55 "z-object.zco"
 static void  z_object_virtual_dispose(Self *self)
 {
  ZVector *attached_properties = selfp->attached_properties;
@@ -271,12 +234,10 @@ static void  z_object_virtual_dispose(Self *self)
 
  free(self);
  }
-#line 92 "z-object.zco"
 void  z_object_ref(Self *self)
 {
  ++selfp->ref_count;
  }
-#line 97 "z-object.zco"
 void  z_object_unref(Self *self)
 {
  assert(selfp->ref_count > 0);
@@ -289,7 +250,6 @@ void  z_object_unref(Self *self)
  }
  }
  }
-#line 110 "z-object.zco"
 static ZObjectSignalHandler  z_object_lookup_method(Self *self,char *method_name)
 {
  /* This reinterpret cast is only valid for the fields that
@@ -324,7 +284,6 @@ static ZObjectSignalHandler  z_object_lookup_method(Self *self,char *method_name
 
  return NULL;
  }
-#line 145 "z-object.zco"
 void *  z_object_connect(Self *self,char *name,ZObject *target,char *method_name,void *userdata)
 {
  ZClosure *closure;
@@ -359,7 +318,6 @@ void *  z_object_connect(Self *self,char *name,ZObject *target,char *method_name
 
  return closure;
  }
-#line 180 "z-object.zco"
 void  z_object_disconnect(Self *self,char *name,void *key)
 {
  assert(selfp->signal_map != NULL);
@@ -390,7 +348,6 @@ void  z_object_disconnect(Self *self,char *name,void *key)
 
  unref(self);
  }
-#line 211 "z-object.zco"
 void  z_object_register_signal(Self *self,char *name)
 {
  /* create signal map (if necessary) */
@@ -411,7 +368,6 @@ void  z_object_register_signal(Self *self,char *name)
  z_map_insert(selfp->signal_map, strdup(name), closure_list);
  }
  }
-#line 235 "z-object.zco"
 int  z_object_emit_signal(Self *self,char *name,void *argv)
 {
  assert(selfp->signal_map != NULL);
@@ -441,7 +397,6 @@ int  z_object_emit_signal(Self *self,char *name,void *argv)
  unref(Z_OBJECT(it));
  return rc;
  }
-#line 265 "z-object.zco"
 void  z_object_add_attached_property_map(Self *self,void *map)
 {
  if (selfp->attached_properties == 0) {
@@ -452,12 +407,10 @@ void  z_object_add_attached_property_map(Self *self,void *map)
  /* keep note of the maps that has a pointer to 'self' */
  z_vector_push_back((ZVector *) selfp->attached_properties, map);
  }
-#line 276 "z-object.zco"
 static int  z_object_map_compare(ZMap *map,const void *a,const void *b)
 {
  return strcmp(a, b);
  }
 
-#line 280 "z-object.zco"
 
 
