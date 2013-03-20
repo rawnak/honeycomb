@@ -300,12 +300,12 @@ class ZZcoSourceGenerator : ZObject
 
         private void print_line_number(Self *self, ZString *str)
         {
-                //z_string_append_format(str, "#line %d \"%s\"\n", selfp->real_lineno, selfp->zco_filename);
+                z_string_append_format(str, "#line %d \"%s\"\n", selfp->real_lineno, selfp->zco_filename);
         }
 
         private void print_line_number_on_file(Self *self, ZFile *file)
         {
-                //z_file_write_format(file, "#line %d \"%s\"\n", selfp->real_lineno, selfp->zco_filename);
+                z_file_write_format(file, "#line %d \"%s\"\n", selfp->real_lineno, selfp->zco_filename);
         }
 
         public void special_member_function_decl(Self *self, ZString *symbol, ZString *arglist, ZString *code)
@@ -1573,9 +1573,10 @@ class ZZcoSourceGenerator : ZObject
                                 "\tZObjectTracker *object_tracker = (ZObjectTracker *) ctx->object_tracker;\n"
                                 "\tif (object_tracker)\n"
                                 "\t\tself = (Self *) z_object_tracker_create(object_tracker, %S_type_id);\n"
-                                "\tif (!self)\n"
+                                "\tif (!self) {\n"
                                 "\t\tself = (Self *) malloc(sizeof(Self));\n"
-                                "\t__%S_init(ctx, self);\n"
+                                "\t\t__%S_init(ctx, self);\n"
+                                "\t}\n"
                                 "\treturn self;\n"
                                 "\x7d\n"
                                 "\n"

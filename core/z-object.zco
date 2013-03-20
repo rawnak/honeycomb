@@ -56,25 +56,11 @@ class ZObject
         global virtual void class_destroy(ZObjectGlobal *gbl)
         {
         }
-        
-        public virtual void reset(Self *self)
+
+        private void cleanup_attached_properties(Self *self)
         {
-                /* This ensures that reset() is not called by someone other
-                   than the object tracker */
-                assert(selfp->ref_count == 0);
-		selfp->ref_count = 1;
-
-		selfp->attached_properties = 0;
-
-                /* No need to worry about signal_map. Since we ref(self) when
-                   a signal is connected and unref(self) when it is
-                   disconnected, all closure lists must be empty before self
-                   can have a reference count of 0 */
-        }
-
-	public virtual void dispose(Self *self)
-	{
 		ZVector *attached_properties = selfp->attached_properties;
+
 		if (attached_properties) {
 			ZVectorIter *it, *end;
 
@@ -99,6 +85,27 @@ class ZObject
 
 			selfp->attached_properties = NULL;
 		}
+
+        }
+        
+        public virtual void reset(Self *self)
+        {
+                /* This ensures that reset() is not called by someone other
+                   than the object tracker */
+                assert(selfp->ref_count == 0);
+		selfp->ref_count = 1;
+
+                cleanup_attached_properties(self);
+
+                /* No need to worry about signal_map. Since we ref(self) when
+                   a signal is connected and unref(self) when it is
+                   disconnected, all closure lists must be empty before self
+                   can have a reference count of 0 */
+        }
+
+	public virtual void dispose(Self *self)
+	{
+                cleanup_attached_properties(self);
 
 		ZMap *signal_map = selfp->signal_map;
 		if (signal_map) {

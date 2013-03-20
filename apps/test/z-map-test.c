@@ -49,6 +49,13 @@ static void case1(struct zco_context_t *context)
 	printf("======================\n");
 	printf("ZMap case #1:\n");
 
+        /* Here is a sequence of steps:
+           1. map object is destroyed
+           2. at some later point, the vector inside the map is disposed
+           3. the map_item_destruct method is called during step #2
+           4. the map object is already destroyed in step #1 so 'self' is undefined
+         */
+
 	mymap = z_map_new(context);
 
 	z_map_set_key_destruct(mymap, (ZMapItemCallback) z_object_unref);

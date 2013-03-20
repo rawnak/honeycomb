@@ -20,6 +20,7 @@
 
 #ifndef _Z_MAP_ITER_H_
 #define _Z_MAP_ITER_H_
+#line 3 "z-map-iter.zco"
 
 #include <z-object.h>
 
@@ -41,6 +42,7 @@ typedef struct ZMapIterClass ZMapIterClass;
 typedef struct ZMapIter ZMapIter;
 
 struct ZMapIterPrivate {
+#line 10 "z-map-iter.zco"
 	int index;
 };
 
@@ -50,7 +52,9 @@ struct ZMapIterProtected {
 struct ZMapIterGlobal {
 	struct ZCommonGlobal common;
 	struct ZMapIterClass *_class;
+#line 17 "z-map-iter.zco"
 	void  (*__parent_reset)(ZObject *object);
+#line 79 "z-map-iter.zco"
 	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
 };
 
@@ -68,15 +72,25 @@ extern int z_map_iter_type_id;
 ZMapIterGlobal * z_map_iter_get_type(struct zco_context_t *ctx);
 void __z_map_iter_init(struct zco_context_t *ctx, ZMapIter *self);
 void __z_map_iter_class_init(struct zco_context_t *ctx, ZMapIterClass *_class);
+#line 24 "z-map-iter.zco"
 Self * z_map_iter_new(struct zco_context_t *ctx);
+#line 30 "z-map-iter.zco"
 Self * z_map_iter_dup(ZMapIter *src);
+#line 40 "z-map-iter.zco"
 int  z_map_iter_get_index(Self *self);
+#line 44 "z-map-iter.zco"
 void z_map_iter_set_index(Self *self, int  value);
+#line 50 "z-map-iter.zco"
 void  z_map_iter_advance(Self *self,int steps);
+#line 55 "z-map-iter.zco"
 void  z_map_iter_increment(Self *self);
+#line 60 "z-map-iter.zco"
 void  z_map_iter_decrement(Self *self);
+#line 65 "z-map-iter.zco"
 int  z_map_iter_is_equal(Self *self,Self *other);
+#line 70 "z-map-iter.zco"
 int  z_map_iter_is_lte(Self *self,Self *other);
+#line 75 "z-map-iter.zco"
 int  z_map_iter_is_gte(Self *self,Self *other);
 
 #undef Self

@@ -66,6 +66,7 @@ class ZMap : ZObject
         {
                 Self *self = (Self *) object;
 
+                z_vector_clear(selfp->data);
 		z_object_unref(Z_OBJECT(selfp->data));
 		selfp->data = z_vector_new(CTX_FROM_OBJECT(self));
 
@@ -88,6 +89,12 @@ class ZMap : ZObject
 	{
 		Self *self = (Self *) object;
 
+                /* Make sure internal vector is clear. We don't want to rely
+                   on the garbage collector to lazily destroy the items whose
+                   destructor depends on this map to be available. Making the
+                   items hold a reference to self will result in a circular
+                   reference so it's not a feasible approach */
+                z_vector_clear(selfp->data);
 		z_object_unref(Z_OBJECT(selfp->data));
 
 		PARENT_HANDLER(object);
@@ -366,10 +373,6 @@ class ZMap : ZObject
 
 		key = get_key_internal(item);
 		value = get_value_internal(item);
-
-                // FIXME
-                //if (selfp->key_destruct == free)
-                        //abort();
 
 		if (selfp->key_destruct)
 			selfp->key_destruct(key, selfp->userdata);

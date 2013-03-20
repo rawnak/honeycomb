@@ -38,10 +38,13 @@
 #define selfp (&self->_priv)
 #define GET_NEW(ctx) __z_default_object_tracker_new(ctx)
 #define INIT_EXISTS
+#line 23 "z-default-object-tracker.zco"
 #define init z_default_object_tracker_init
+#line 31 "z-default-object-tracker.zco"
 #define new z_default_object_tracker_new
+#line 37 "z-default-object-tracker.zco"
 #define map_compare z_default_object_tracker_map_compare
-#define lazy_destroy z_default_object_tracker_lazy_destroy
+#line 172 "z-default-object-tracker.zco"
 #define garbage_collect_pool z_default_object_tracker_garbage_collect_pool
 
 int z_default_object_tracker_type_id = -1;
@@ -52,9 +55,10 @@ static Self *__z_default_object_tracker_new(struct zco_context_t *ctx)
 	ZObjectTracker *object_tracker = (ZObjectTracker *) ctx->object_tracker;
 	if (object_tracker)
 		self = (Self *) z_object_tracker_create(object_tracker, z_default_object_tracker_type_id);
-	if (!self)
+	if (!self) {
 		self = (Self *) malloc(sizeof(Self));
-	__z_default_object_tracker_init(ctx, self);
+		__z_default_object_tracker_init(ctx, self);
+	}
 	return self;
 }
 
@@ -62,14 +66,21 @@ static int __map_compare(ZMap *map, const void *a, const void *b)
 {
 	return strcmp(a, b);
 }
+#line 23 "z-default-object-tracker.zco"
 static void z_default_object_tracker_init(Self *self);
+#line 37 "z-default-object-tracker.zco"
 static int  z_default_object_tracker_map_compare(ZMap *map,const void *a,const void *b);
-static void  z_default_object_tracker_lazy_destroy(void *ptr);
+#line 43 "z-default-object-tracker.zco"
 static void  z_default_object_tracker_dispose(ZObject *object);
+#line 73 "z-default-object-tracker.zco"
 static ZObject *  z_default_object_tracker_create(ZObjectTracker *tracker,int type_id);
+#line 131 "z-default-object-tracker.zco"
 static int  z_default_object_tracker_destroy(ZObjectTracker *tracker,ZObject *target);
+#line 172 "z-default-object-tracker.zco"
 static int  z_default_object_tracker_garbage_collect_pool(Self *self,ZVector *pool);
+#line 224 "z-default-object-tracker.zco"
 static int  z_default_object_tracker_garbage_collect(ZObjectTracker *tracker);
+#line 256 "z-default-object-tracker.zco"
 static void z_default_object_tracker_class_destroy(ZObjectGlobal *gbl);
 
 static void cleanup_signal_arg(void *item, void *userdata)
@@ -145,35 +156,61 @@ ZDefaultObjectTrackerGlobal * z_default_object_tracker_get_type(struct zco_conte
 		*global_ptr = (ZCommonGlobal *) global;
 		
 		class_off_list[global->common.id] = offset;
+#line 43 "z-default-object-tracker.zco"
 		{
+#line 43 "z-default-object-tracker.zco"
 			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
+#line 43 "z-default-object-tracker.zco"
 			global->__parent_dispose = p_class->__dispose;
+#line 43 "z-default-object-tracker.zco"
 			p_class->__dispose = z_default_object_tracker_dispose;
+#line 43 "z-default-object-tracker.zco"
 		}
+#line 73 "z-default-object-tracker.zco"
 		{
+#line 73 "z-default-object-tracker.zco"
 			ZObjectTrackerClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object_tracker;
+#line 73 "z-default-object-tracker.zco"
 			global->__parent_create = p_class->__create;
+#line 73 "z-default-object-tracker.zco"
 			p_class->__create = z_default_object_tracker_create;
+#line 73 "z-default-object-tracker.zco"
 		}
+#line 131 "z-default-object-tracker.zco"
 		{
+#line 131 "z-default-object-tracker.zco"
 			ZObjectTrackerClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object_tracker;
+#line 131 "z-default-object-tracker.zco"
 			global->__parent_destroy = p_class->__destroy;
+#line 131 "z-default-object-tracker.zco"
 			p_class->__destroy = z_default_object_tracker_destroy;
+#line 131 "z-default-object-tracker.zco"
 		}
+#line 224 "z-default-object-tracker.zco"
 		{
+#line 224 "z-default-object-tracker.zco"
 			ZObjectTrackerClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object_tracker;
+#line 224 "z-default-object-tracker.zco"
 			global->__parent_garbage_collect = p_class->__garbage_collect;
+#line 224 "z-default-object-tracker.zco"
 			p_class->__garbage_collect = z_default_object_tracker_garbage_collect;
+#line 224 "z-default-object-tracker.zco"
 		}
+#line 256 "z-default-object-tracker.zco"
 		{
+#line 256 "z-default-object-tracker.zco"
 			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
+#line 256 "z-default-object-tracker.zco"
 			global->__parent_class_destroy = p_class->__class_destroy;
+#line 256 "z-default-object-tracker.zco"
 			p_class->__class_destroy = z_default_object_tracker_class_destroy;
+#line 256 "z-default-object-tracker.zco"
 		}
 		__z_default_object_tracker_class_init(ctx, (ZDefaultObjectTrackerClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx);
 		z_map_set_compare(global->common.method_map, __map_compare);
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
+#line 31 "z-default-object-tracker.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("new"), (ZObjectSignalHandler) new);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZDefaultObjectTrackerGlobal *) global);
@@ -203,6 +240,7 @@ void __z_default_object_tracker_init(struct zco_context_t *ctx, Self *self)
 		init(self);
 	#endif
 }
+#line 23 "z-default-object-tracker.zco"
 static void z_default_object_tracker_init(Self *self)
 {
  selfp->pools = z_map_new(CTX_FROM_OBJECT(self));
@@ -210,20 +248,18 @@ static void z_default_object_tracker_init(Self *self)
  z_map_set_value_destruct(selfp->pools, (ZMapItemCallback) z_object_unref);
  selfp->suspended = 0;
  }
+#line 31 "z-default-object-tracker.zco"
 Self * z_default_object_tracker_new(struct zco_context_t *ctx)
 {
  Self *self = GET_NEW(ctx);
  return self;
  }
+#line 37 "z-default-object-tracker.zco"
 static int  z_default_object_tracker_map_compare(ZMap *map,const void *a,const void *b)
 {
  return PTR_TO_INT(a) - PTR_TO_INT(b);
  }
-static void  z_default_object_tracker_lazy_destroy(void *ptr)
-{
- //printf("*** LAZY DESTROY ***\n");
- z_object_dispose(ptr);
- }
+#line 43 "z-default-object-tracker.zco"
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_dispose
 static void  z_default_object_tracker_dispose(ZObject *object)
 {
@@ -240,7 +276,7 @@ static void  z_default_object_tracker_dispose(ZObject *object)
 
  while (!z_map_iter_is_equal(it, end)) {
  ZVector *pool = (ZVector *) z_map_get_value(selfp->pools, it);
- z_vector_set_item_destruct(pool, (ZVectorItemCallback) lazy_destroy);
+ z_vector_set_item_destruct(pool, (ZVectorItemCallback) z_object_dispose);
  z_map_iter_increment(it);
  }
 
@@ -254,6 +290,7 @@ static void  z_default_object_tracker_dispose(ZObject *object)
  PARENT_HANDLER(object);
  }
 #undef PARENT_HANDLER
+#line 73 "z-default-object-tracker.zco"
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_create
 static ZObject *  z_default_object_tracker_create(ZObjectTracker *tracker,int type_id)
 {
@@ -294,13 +331,13 @@ static ZObject *  z_default_object_tracker_create(ZObjectTracker *tracker,int ty
 
  /* reset the object state */
  if (type_id == 1) { // map
- z_object_dispose(object);
- object = NULL;
+ //z_object_dispose(object);
+ //object = NULL;
+ z_object_reset(object);
 
  } else if (type_id == 9) { // string
  //z_object_dispose(object);
  //object = NULL;
-
  z_object_reset(object);
 
  } else {
@@ -312,6 +349,7 @@ done:
  return object;
  }
 #undef PARENT_HANDLER
+#line 131 "z-default-object-tracker.zco"
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_destroy
 static int  z_default_object_tracker_destroy(ZObjectTracker *tracker,ZObject *target)
 {
@@ -322,8 +360,12 @@ static int  z_default_object_tracker_destroy(ZObjectTracker *tracker,ZObject *ta
  } else {
  selfp->suspended = 1;
 
- /* TODO: Accessing data like this is terrible. Come up with a better solution later */
- int id = ((ZObjectGlobal *) ((ZObjectClass *) target->class_base)->real_global)->common.id;
+ /* We can't use GLOBAL_FROM_OBJECT() here because we are interested in the Global struct of
+                           the derived class, not ZObject. CLASS_FROM_OBJECT() returns the Class struct for the
+                           derived class and GLOBAL_FROM_CLASS() returns the Global struct of the derived class.
+                           GLOBAL_FROM_OBJECT() treats the input as a ZObject so it always returns the Global struct
+                           of the ZObject part */
+ int id = GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT(target))->id;
 
  ZMapIter *pos;
  ZVector *pool;
@@ -350,6 +392,7 @@ static int  z_default_object_tracker_destroy(ZObjectTracker *tracker,ZObject *ta
  }
  }
 #undef PARENT_HANDLER
+#line 172 "z-default-object-tracker.zco"
 static int  z_default_object_tracker_garbage_collect_pool(Self *self,ZVector *pool)
 {
  ZVectorIter *begin, *it, *end;
@@ -400,6 +443,7 @@ static int  z_default_object_tracker_garbage_collect_pool(Self *self,ZVector *po
 
  return z_vector_get_size(pool);
  }
+#line 224 "z-default-object-tracker.zco"
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_garbage_collect
 static int  z_default_object_tracker_garbage_collect(ZObjectTracker *tracker)
 {
@@ -434,6 +478,7 @@ static int  z_default_object_tracker_garbage_collect(ZObjectTracker *tracker)
  return count;
  }
 #undef PARENT_HANDLER
+#line 256 "z-default-object-tracker.zco"
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
 static void z_default_object_tracker_class_destroy(ZObjectGlobal *gbl)
 {
@@ -443,5 +488,6 @@ static void z_default_object_tracker_class_destroy(ZObjectGlobal *gbl)
 
 #undef PARENT_HANDLER
 
+#line 256 "z-default-object-tracker.zco"
 
 

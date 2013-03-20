@@ -37,56 +37,107 @@ typedef void(*CallbackFunc)(struct ZZcoSourceGenerator *self, int is_first, ZStr
 #define selfp (&self->_priv)
 #define GET_NEW(ctx) __z_zco_source_generator_new(ctx)
 #define INIT_EXISTS
+#line 130 "z-zco-source-generator.zco"
 #define init z_zco_source_generator_init
+#line 267 "z-zco-source-generator.zco"
 #define new z_zco_source_generator_new
+#line 273 "z-zco-source-generator.zco"
 #define new_string z_zco_source_generator_new_string
+#line 281 "z-zco-source-generator.zco"
 #define print_line_number z_zco_source_generator_print_line_number
+#line 286 "z-zco-source-generator.zco"
 #define print_line_number_on_file z_zco_source_generator_print_line_number_on_file
+#line 291 "z-zco-source-generator.zco"
 #define special_member_function_decl z_zco_source_generator_special_member_function_decl
+#line 314 "z-zco-source-generator.zco"
 #define self_strndup z_zco_source_generator_self_strndup
+#line 328 "z-zco-source-generator.zco"
 #define extract_argument z_zco_source_generator_extract_argument
+#line 370 "z-zco-source-generator.zco"
 #define signal_decl z_zco_source_generator_signal_decl
+#line 431 "z-zco-source-generator.zco"
 #define add_signal_arg z_zco_source_generator_add_signal_arg
+#line 611 "z-zco-source-generator.zco"
 #define member_function_decl z_zco_source_generator_member_function_decl
+#line 660 "z-zco-source-generator.zco"
 #define add_data_member z_zco_source_generator_add_data_member
+#line 689 "z-zco-source-generator.zco"
 #define add_virtual_data_member z_zco_source_generator_add_virtual_data_member
+#line 703 "z-zco-source-generator.zco"
 #define define_attached_property_getter z_zco_source_generator_define_attached_property_getter
+#line 751 "z-zco-source-generator.zco"
 #define define_attached_property_setter z_zco_source_generator_define_attached_property_setter
+#line 799 "z-zco-source-generator.zco"
 #define property_decl z_zco_source_generator_property_decl
+#line 839 "z-zco-source-generator.zco"
 #define pascal_to_uppercase z_zco_source_generator_pascal_to_uppercase
+#line 877 "z-zco-source-generator.zco"
 #define pascal_to_lowercase z_zco_source_generator_pascal_to_lowercase
+#line 911 "z-zco-source-generator.zco"
 #define add_parent z_zco_source_generator_add_parent
+#line 928 "z-zco-source-generator.zco"
 #define add_function_pointer z_zco_source_generator_add_function_pointer
+#line 934 "z-zco-source-generator.zco"
 #define strip_out_type z_zco_source_generator_strip_out_type
+#line 969 "z-zco-source-generator.zco"
 #define append_stripped_arg z_zco_source_generator_append_stripped_arg
+#line 981 "z-zco-source-generator.zco"
 #define for_each_arg z_zco_source_generator_for_each_arg
+#line 1025 "z-zco-source-generator.zco"
 #define virtual_member_function_decl z_zco_source_generator_virtual_member_function_decl
+#line 1074 "z-zco-source-generator.zco"
 #define record_line_number z_zco_source_generator_record_line_number
+#line 1079 "z-zco-source-generator.zco"
 #define override_member_function_decl z_zco_source_generator_override_member_function_decl
+#line 1127 "z-zco-source-generator.zco"
 #define prepare_class z_zco_source_generator_prepare_class
+#line 1223 "z-zco-source-generator.zco"
 #define prepare_interface z_zco_source_generator_prepare_interface
+#line 1319 "z-zco-source-generator.zco"
 #define get_base_filename z_zco_source_generator_get_base_filename
+#line 1343 "z-zco-source-generator.zco"
 #define macro_safe z_zco_source_generator_macro_safe
+#line 1367 "z-zco-source-generator.zco"
 #define finalize_class_definition z_zco_source_generator_finalize_class_definition
+#line 1372 "z-zco-source-generator.zco"
 #define finalize_interface_definition z_zco_source_generator_finalize_interface_definition
+#line 1377 "z-zco-source-generator.zco"
 #define external_definition z_zco_source_generator_external_definition
+#line 1843 "z-zco-source-generator.zco"
 #define write_header_block z_zco_source_generator_write_header_block
+#line 1851 "z-zco-source-generator.zco"
 #define write_source_block z_zco_source_generator_write_source_block
+#line 1859 "z-zco-source-generator.zco"
 #define class_declaration z_zco_source_generator_class_declaration
+#line 1868 "z-zco-source-generator.zco"
 #define interface_declaration z_zco_source_generator_interface_declaration
+#line 1877 "z-zco-source-generator.zco"
 #define enable_virtual_mode z_zco_source_generator_enable_virtual_mode
+#line 1886 "z-zco-source-generator.zco"
 #define enable_override_mode z_zco_source_generator_enable_override_mode
+#line 1899 "z-zco-source-generator.zco"
 #define set_access_mode z_zco_source_generator_set_access_mode
+#line 1904 "z-zco-source-generator.zco"
 #define set_type_name z_zco_source_generator_set_type_name
+#line 1913 "z-zco-source-generator.zco"
 #define set_symbol_name z_zco_source_generator_set_symbol_name
+#line 1926 "z-zco-source-generator.zco"
 #define add_class_data_member z_zco_source_generator_add_class_data_member
+#line 1931 "z-zco-source-generator.zco"
 #define add_class_virtual_data_member z_zco_source_generator_add_class_virtual_data_member
+#line 1936 "z-zco-source-generator.zco"
 #define class_virtual_member_function_decl z_zco_source_generator_class_virtual_member_function_decl
+#line 1941 "z-zco-source-generator.zco"
 #define class_override_member_function_decl z_zco_source_generator_class_override_member_function_decl
+#line 1946 "z-zco-source-generator.zco"
 #define class_member_function_decl z_zco_source_generator_class_member_function_decl
+#line 1951 "z-zco-source-generator.zco"
 #define class_signal_decl z_zco_source_generator_class_signal_decl
+#line 1956 "z-zco-source-generator.zco"
 #define finalize_property z_zco_source_generator_finalize_property
+#line 1981 "z-zco-source-generator.zco"
 #define enable_attached_property z_zco_source_generator_enable_attached_property
+#line 1986 "z-zco-source-generator.zco"
 #define setup z_zco_source_generator_setup
 
 int z_zco_source_generator_type_id = -1;
@@ -97,9 +148,10 @@ static Self *__z_zco_source_generator_new(struct zco_context_t *ctx)
 	ZObjectTracker *object_tracker = (ZObjectTracker *) ctx->object_tracker;
 	if (object_tracker)
 		self = (Self *) z_object_tracker_create(object_tracker, z_zco_source_generator_type_id);
-	if (!self)
+	if (!self) {
 		self = (Self *) malloc(sizeof(Self));
-	__z_zco_source_generator_init(ctx, self);
+		__z_zco_source_generator_init(ctx, self);
+	}
 	return self;
 }
 
@@ -107,30 +159,55 @@ static int __map_compare(ZMap *map, const void *a, const void *b)
 {
 	return strcmp(a, b);
 }
+#line 130 "z-zco-source-generator.zco"
 static void z_zco_source_generator_init(Self *self);
+#line 199 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_dispose(ZObject *object);
+#line 281 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_print_line_number(Self *self,ZString *str);
+#line 286 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_print_line_number_on_file(Self *self,ZFile *file);
+#line 314 "z-zco-source-generator.zco"
 static char *  z_zco_source_generator_self_strndup(const char *s,int max_len);
+#line 328 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_extract_argument(ZString *arg,ZString *arg_type,ZString *arg_name);
+#line 370 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_signal_decl(Self *self,ZString *type,ZString *symbol,ZString *arglist);
+#line 431 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_add_signal_arg(Self *self,int is_first,ZString *token,ZString *output);
+#line 611 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_member_function_decl(Self *self,ZString *type,ZString *symbol,ZString *arglist,ZString *code,int should_register_method);
+#line 660 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_add_data_member(Self *self,int mode,ZString *_type_name,ZString *_symbol_name);
+#line 689 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_add_virtual_data_member(Self *self,int mode,ZString *_type_name,ZString *_symbol_name);
+#line 703 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_define_attached_property_getter(Self *self,ZString *symbol_name,ZString *app_code);
+#line 751 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_define_attached_property_setter(Self *self,ZString *symbol_name,ZString *app_code);
+#line 839 "z-zco-source-generator.zco"
 static ZString *  z_zco_source_generator_pascal_to_uppercase(Self *self,ZString *str,char delimiter);
+#line 877 "z-zco-source-generator.zco"
 static ZString *  z_zco_source_generator_pascal_to_lowercase(Self *self,ZString *str,char delimiter);
+#line 928 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_add_function_pointer(Self *self,ZString *output,ZString *_type_name,const char *_symbol_name_prefix,ZString *_symbol_name,ZString *_arglist);
+#line 934 "z-zco-source-generator.zco"
 static ZString * z_zco_source_generator_strip_out_type(Self *self,ZString *arg);
+#line 969 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_append_stripped_arg(Self *self,int is_first,ZString *token,ZString *output);
+#line 981 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_for_each_arg(Self *self,ZString *output,ZString *arglist,CallbackFunc callback);
+#line 1025 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_virtual_member_function_decl(Self *self,ZString *type,ZString *symbol,ZString *arglist,ZString *code);
+#line 1079 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_override_member_function_decl(Self *self,ZString *type,ZString *symbol,ZString *arglist,ZString *code);
+#line 1319 "z-zco-source-generator.zco"
 static char *  z_zco_source_generator_get_base_filename(const char *full_filename,int *base_length);
+#line 1343 "z-zco-source-generator.zco"
 static char * z_zco_source_generator_macro_safe(const char *s);
+#line 1377 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_external_definition(Self *self,int is_object);
+#line 2050 "z-zco-source-generator.zco"
 static void z_zco_source_generator_class_destroy(ZObjectGlobal *gbl);
 
 static void cleanup_signal_arg(void *item, void *userdata)
@@ -188,47 +265,85 @@ ZZcoSourceGeneratorGlobal * z_zco_source_generator_get_type(struct zco_context_t
 		*global_ptr = (ZCommonGlobal *) global;
 		
 		class_off_list[global->common.id] = offset;
+#line 199 "z-zco-source-generator.zco"
 		{
+#line 199 "z-zco-source-generator.zco"
 			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
+#line 199 "z-zco-source-generator.zco"
 			global->__parent_dispose = p_class->__dispose;
+#line 199 "z-zco-source-generator.zco"
 			p_class->__dispose = z_zco_source_generator_dispose;
+#line 199 "z-zco-source-generator.zco"
 		}
+#line 2050 "z-zco-source-generator.zco"
 		{
+#line 2050 "z-zco-source-generator.zco"
 			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
+#line 2050 "z-zco-source-generator.zco"
 			global->__parent_class_destroy = p_class->__class_destroy;
+#line 2050 "z-zco-source-generator.zco"
 			p_class->__class_destroy = z_zco_source_generator_class_destroy;
+#line 2050 "z-zco-source-generator.zco"
 		}
 		__z_zco_source_generator_class_init(ctx, (ZZcoSourceGeneratorClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx);
 		z_map_set_compare(global->common.method_map, __map_compare);
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
+#line 267 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("new"), (ZObjectSignalHandler) new);
+#line 273 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("new_string"), (ZObjectSignalHandler) new_string);
+#line 291 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("special_member_function_decl"), (ZObjectSignalHandler) special_member_function_decl);
+#line 799 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("property_decl"), (ZObjectSignalHandler) property_decl);
+#line 911 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("add_parent"), (ZObjectSignalHandler) add_parent);
+#line 1074 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("record_line_number"), (ZObjectSignalHandler) record_line_number);
+#line 1127 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("prepare_class"), (ZObjectSignalHandler) prepare_class);
+#line 1223 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("prepare_interface"), (ZObjectSignalHandler) prepare_interface);
+#line 1367 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("finalize_class_definition"), (ZObjectSignalHandler) finalize_class_definition);
+#line 1372 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("finalize_interface_definition"), (ZObjectSignalHandler) finalize_interface_definition);
+#line 1843 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("write_header_block"), (ZObjectSignalHandler) write_header_block);
+#line 1851 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("write_source_block"), (ZObjectSignalHandler) write_source_block);
+#line 1859 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("class_declaration"), (ZObjectSignalHandler) class_declaration);
+#line 1868 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("interface_declaration"), (ZObjectSignalHandler) interface_declaration);
+#line 1877 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("enable_virtual_mode"), (ZObjectSignalHandler) enable_virtual_mode);
+#line 1886 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("enable_override_mode"), (ZObjectSignalHandler) enable_override_mode);
+#line 1899 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("set_access_mode"), (ZObjectSignalHandler) set_access_mode);
+#line 1904 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("set_type_name"), (ZObjectSignalHandler) set_type_name);
+#line 1913 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("set_symbol_name"), (ZObjectSignalHandler) set_symbol_name);
+#line 1926 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("add_class_data_member"), (ZObjectSignalHandler) add_class_data_member);
+#line 1931 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("add_class_virtual_data_member"), (ZObjectSignalHandler) add_class_virtual_data_member);
+#line 1936 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("class_virtual_member_function_decl"), (ZObjectSignalHandler) class_virtual_member_function_decl);
+#line 1941 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("class_override_member_function_decl"), (ZObjectSignalHandler) class_override_member_function_decl);
+#line 1946 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("class_member_function_decl"), (ZObjectSignalHandler) class_member_function_decl);
+#line 1951 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("class_signal_decl"), (ZObjectSignalHandler) class_signal_decl);
+#line 1956 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("finalize_property"), (ZObjectSignalHandler) finalize_property);
+#line 1981 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("enable_attached_property"), (ZObjectSignalHandler) enable_attached_property);
+#line 1986 "z-zco-source-generator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("setup"), (ZObjectSignalHandler) setup);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZZcoSourceGeneratorGlobal *) global);
@@ -256,6 +371,7 @@ void __z_zco_source_generator_init(struct zco_context_t *ctx, Self *self)
 		init(self);
 	#endif
 }
+#line 130 "z-zco-source-generator.zco"
 static void z_zco_source_generator_init(Self *self)
 {
  selfp->str_class_init = z_string_new(CTX_FROM_OBJECT(self));
@@ -324,6 +440,7 @@ static void z_zco_source_generator_init(Self *self)
  z_string_set_cstring(selfp->str_class_destroy, "class_destroy", Z_STRING_ENCODING_UTF8);
  z_string_set_cstring(selfp->z_object_class_name_pascal, "ZObject", Z_STRING_ENCODING_UTF8);
  }
+#line 199 "z-zco-source-generator.zco"
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_dispose
 static void  z_zco_source_generator_dispose(ZObject *object)
 {
@@ -392,11 +509,13 @@ static void  z_zco_source_generator_dispose(ZObject *object)
  PARENT_HANDLER(object);
  }
 #undef PARENT_HANDLER
+#line 267 "z-zco-source-generator.zco"
 Self * z_zco_source_generator_new(struct zco_context_t *ctx)
 {
  Self *self = GET_NEW(ctx);
  return self;
  }
+#line 273 "z-zco-source-generator.zco"
 ZString *  z_zco_source_generator_new_string(Self *self,const char *s1)
 {
  ZString *str = z_string_new(CTX_FROM_OBJECT(self));
@@ -404,14 +523,17 @@ ZString *  z_zco_source_generator_new_string(Self *self,const char *s1)
  z_string_append_format(str, "%s", s1);
  return str;
  }
+#line 281 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_print_line_number(Self *self,ZString *str)
 {
- //z_string_append_format(str, "#line %d \"%s\"\n", selfp->real_lineno, selfp->zco_filename);
+ z_string_append_format(str, "#line %d \"%s\"\n", selfp->real_lineno, selfp->zco_filename);
  }
+#line 286 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_print_line_number_on_file(Self *self,ZFile *file)
 {
- //z_file_write_format(file, "#line %d \"%s\"\n", selfp->real_lineno, selfp->zco_filename);
+ z_file_write_format(file, "#line %d \"%s\"\n", selfp->real_lineno, selfp->zco_filename);
  }
+#line 291 "z-zco-source-generator.zco"
 void  z_zco_source_generator_special_member_function_decl(Self *self,ZString *symbol,ZString *arglist,ZString *code)
 {
  if (!z_string_compare(symbol, NULL, selfp->str_class_init, NULL, 0, -1))
@@ -434,6 +556,7 @@ void  z_zco_source_generator_special_member_function_decl(Self *self,ZString *sy
  print_line_number(self, selfp->function_definitions);
  z_string_append_format(selfp->function_definitions, "static void %S_%S%S\n%S\n", selfp->current_class_name_lowercase, symbol, arglist, code);
  }
+#line 314 "z-zco-source-generator.zco"
 static char *  z_zco_source_generator_self_strndup(const char *s,int max_len)
 {
  int length = strlen(s);
@@ -447,6 +570,7 @@ static char *  z_zco_source_generator_self_strndup(const char *s,int max_len)
 
  return str;
  }
+#line 328 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_extract_argument(ZString *arg,ZString *arg_type,ZString *arg_name)
 {
  int length = z_string_get_length(arg);
@@ -488,6 +612,7 @@ static void  z_zco_source_generator_extract_argument(ZString *arg,ZString *arg_t
  z_object_unref(Z_OBJECT(begin));
  z_object_unref(Z_OBJECT(it));
  }
+#line 370 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_signal_decl(Self *self,ZString *type,ZString *symbol,ZString *arglist)
 {
  print_line_number(self, selfp->c_macros);
@@ -548,6 +673,7 @@ static void  z_zco_source_generator_signal_decl(Self *self,ZString *type,ZString
  print_line_number(self, selfp->signal_registrations);
  z_string_append_format(selfp->signal_registrations, "\tz_object_register_signal(Z_OBJECT(self), \"%S\");\n", symbol);
  }
+#line 431 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_add_signal_arg(Self *self,int is_first,ZString *token,ZString *output)
 {
  ZString *arg_type;
@@ -727,6 +853,7 @@ static void  z_zco_source_generator_add_signal_arg(Self *self,int is_first,ZStri
 
  z_object_unref(Z_OBJECT(arg_name));
  }
+#line 611 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_member_function_decl(Self *self,ZString *type,ZString *symbol,ZString *arglist,ZString *code,int should_register_method)
 {
  print_line_number(self, selfp->c_macros);
@@ -775,6 +902,7 @@ static void  z_zco_source_generator_member_function_decl(Self *self,ZString *typ
  abort();
  }
  }
+#line 660 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_add_data_member(Self *self,int mode,ZString *_type_name,ZString *_symbol_name)
 {
  switch (mode)
@@ -803,6 +931,7 @@ static void  z_zco_source_generator_add_data_member(Self *self,int mode,ZString 
  abort();
  }
  }
+#line 689 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_add_virtual_data_member(Self *self,int mode,ZString *_type_name,ZString *_symbol_name)
 {
  switch (mode)
@@ -816,6 +945,7 @@ static void  z_zco_source_generator_add_virtual_data_member(Self *self,int mode,
  abort();
  }
  }
+#line 703 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_define_attached_property_getter(Self *self,ZString *symbol_name,ZString *app_code)
 {
  ZString *code;
@@ -863,6 +993,7 @@ static void  z_zco_source_generator_define_attached_property_getter(Self *self,Z
  z_object_unref(Z_OBJECT(code));
  z_object_unref(Z_OBJECT(arglist));
  }
+#line 751 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_define_attached_property_setter(Self *self,ZString *symbol_name,ZString *app_code)
 {
  ZString *code;
@@ -909,6 +1040,7 @@ static void  z_zco_source_generator_define_attached_property_setter(Self *self,Z
  z_object_unref(Z_OBJECT(code));
  z_object_unref(Z_OBJECT(arglist));
  }
+#line 799 "z-zco-source-generator.zco"
 void  z_zco_source_generator_property_decl(Self *self,ZString *get_or_set,ZString *code)
 {
  ZString *arglist = z_string_new(CTX_FROM_OBJECT(self));
@@ -948,6 +1080,7 @@ void  z_zco_source_generator_property_decl(Self *self,ZString *get_or_set,ZStrin
 
  z_object_unref(Z_OBJECT(arglist));
  }
+#line 839 "z-zco-source-generator.zco"
 static ZString *  z_zco_source_generator_pascal_to_uppercase(Self *self,ZString *str,char delimiter)
 {
  ZString *res;
@@ -985,6 +1118,7 @@ static ZString *  z_zco_source_generator_pascal_to_uppercase(Self *self,ZString 
 
  return res;
  }
+#line 877 "z-zco-source-generator.zco"
 static ZString *  z_zco_source_generator_pascal_to_lowercase(Self *self,ZString *str,char delimiter)
 {
  ZString *res;
@@ -1018,6 +1152,7 @@ static ZString *  z_zco_source_generator_pascal_to_lowercase(Self *self,ZString 
 
  return res;
  }
+#line 911 "z-zco-source-generator.zco"
 void  z_zco_source_generator_add_parent(Self *self,ZString *name_in_pascal)
 {
  /* increase the size of the parent class list */
@@ -1034,11 +1169,13 @@ void  z_zco_source_generator_add_parent(Self *self,ZString *name_in_pascal)
 
  z_object_ref(Z_OBJECT(name_in_pascal));
  }
+#line 928 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_add_function_pointer(Self *self,ZString *output,ZString *_type_name,const char *_symbol_name_prefix,ZString *_symbol_name,ZString *_arglist)
 {
  print_line_number(self, output);
  z_string_append_format(output, "\t%S (*%s%S)%S;\n", _type_name, _symbol_name_prefix, _symbol_name, _arglist);
  }
+#line 934 "z-zco-source-generator.zco"
 static ZString * z_zco_source_generator_strip_out_type(Self *self,ZString *arg)
 {
  ZString *res;
@@ -1073,6 +1210,7 @@ static ZString * z_zco_source_generator_strip_out_type(Self *self,ZString *arg)
 
  return res;
  }
+#line 969 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_append_stripped_arg(Self *self,int is_first,ZString *token,ZString *output)
 {
  /* strip out the type names from the token */
@@ -1084,6 +1222,7 @@ static void  z_zco_source_generator_append_stripped_arg(Self *self,int is_first,
  z_string_append_format(output, "%S", q);
  z_object_unref(Z_OBJECT(q));
  }
+#line 981 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_for_each_arg(Self *self,ZString *output,ZString *arglist,CallbackFunc callback)
 {
  int is_first = 1;
@@ -1127,6 +1266,7 @@ static void  z_zco_source_generator_for_each_arg(Self *self,ZString *output,ZStr
 
  z_object_unref(Z_OBJECT(arglist_no_paren));
  }
+#line 1025 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_virtual_member_function_decl(Self *self,ZString *type,ZString *symbol,ZString *arglist,ZString *code)
 {
  if (selfp->access_mode == ACCESS_PRIVATE) {
@@ -1174,10 +1314,12 @@ static void  z_zco_source_generator_virtual_member_function_decl(Self *self,ZStr
  print_line_number(self, selfp->virtual_function_ptr_inits);
  z_string_append_format(selfp->virtual_function_ptr_inits, "\t\tCLASS_FROM_GLOBAL(global)->__%S = %S_virtual_%S;\n", symbol, selfp->current_class_name_lowercase, symbol);
  }
+#line 1074 "z-zco-source-generator.zco"
 void  z_zco_source_generator_record_line_number(Self *self)
 {
  selfp->real_lineno = yylineno;
  }
+#line 1079 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_override_member_function_decl(Self *self,ZString *type,ZString *symbol,ZString *arglist,ZString *code)
 {
  /* virtual function caller prototype */
@@ -1224,6 +1366,7 @@ static void  z_zco_source_generator_override_member_function_decl(Self *self,ZSt
 
  z_object_unref(Z_OBJECT(base_name_lowercase));
  }
+#line 1127 "z-zco-source-generator.zco"
 void  z_zco_source_generator_prepare_class(Self *self,ZString *class_name)
 {
  int i;
@@ -1319,6 +1462,7 @@ void  z_zco_source_generator_prepare_class(Self *self,ZString *class_name)
  selfp->class_needs_map = 0;
  selfp->class_needs_string = 0;
  }
+#line 1223 "z-zco-source-generator.zco"
 void  z_zco_source_generator_prepare_interface(Self *self,ZString *interface_name)
 {
  int i;
@@ -1413,6 +1557,7 @@ void  z_zco_source_generator_prepare_interface(Self *self,ZString *interface_nam
  selfp->class_needs_map = 0;
  selfp->class_needs_string = 0;
  }
+#line 1319 "z-zco-source-generator.zco"
 static char *  z_zco_source_generator_get_base_filename(const char *full_filename,int *base_length)
 {
  char *res;
@@ -1436,6 +1581,7 @@ static char *  z_zco_source_generator_get_base_filename(const char *full_filenam
 
  return NULL;
  }
+#line 1343 "z-zco-source-generator.zco"
 static char * z_zco_source_generator_macro_safe(const char *s)
 {
  int i, length = strlen(s);
@@ -1459,14 +1605,17 @@ static char * z_zco_source_generator_macro_safe(const char *s)
  res[length] = 0;
  return res;
  }
+#line 1367 "z-zco-source-generator.zco"
 void  z_zco_source_generator_finalize_class_definition(Self *self)
 {
  external_definition(self, 1);
  }
+#line 1372 "z-zco-source-generator.zco"
 void  z_zco_source_generator_finalize_interface_definition(Self *self)
 {
  external_definition(self, 0);
  }
+#line 1377 "z-zco-source-generator.zco"
 static void  z_zco_source_generator_external_definition(Self *self,int is_object)
 {
  int i;
@@ -1646,9 +1795,10 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
  "\tZObjectTracker *object_tracker = (ZObjectTracker *) ctx->object_tracker;\n"
  "\tif (object_tracker)\n"
  "\t\tself = (Self *) z_object_tracker_create(object_tracker, %S_type_id);\n"
- "\tif (!self)\n"
+ "\tif (!self) {\n"
  "\t\tself = (Self *) malloc(sizeof(Self));\n"
- "\t__%S_init(ctx, self);\n"
+ "\t\t__%S_init(ctx, self);\n"
+ "\t}\n"
  "\treturn self;\n"
  "\x7d\n"
  "\n"
@@ -1931,6 +2081,7 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
  record_line_number(self);
  print_line_number_on_file(self, selfp->source_file);
  }
+#line 1843 "z-zco-source-generator.zco"
 void  z_zco_source_generator_write_header_block(Self *self,ZString *s)
 {
  record_line_number(self);
@@ -1938,6 +2089,7 @@ void  z_zco_source_generator_write_header_block(Self *self,ZString *s)
 
  z_file_write_format(selfp->header_file, "%S\n", s);
  }
+#line 1851 "z-zco-source-generator.zco"
 void  z_zco_source_generator_write_source_block(Self *self,ZString *s)
 {
  record_line_number(self);
@@ -1945,6 +2097,7 @@ void  z_zco_source_generator_write_source_block(Self *self,ZString *s)
 
  z_file_write_format(selfp->source_file, "%S\n", s);
  }
+#line 1859 "z-zco-source-generator.zco"
 void  z_zco_source_generator_class_declaration(Self *self)
 {
  selfp->parent_class_name_pascal = 0;
@@ -1953,6 +2106,7 @@ void  z_zco_source_generator_class_declaration(Self *self)
  selfp->parent_class_count = 0;
  selfp->is_interface = 0;
  }
+#line 1868 "z-zco-source-generator.zco"
 void  z_zco_source_generator_interface_declaration(Self *self)
 {
  selfp->parent_class_name_pascal = 0;
@@ -1961,6 +2115,7 @@ void  z_zco_source_generator_interface_declaration(Self *self)
  selfp->parent_class_count = 0;
  selfp->is_interface = 1;
  }
+#line 1877 "z-zco-source-generator.zco"
 void  z_zco_source_generator_enable_virtual_mode(Self *self)
 {
  selfp->modifier_mode = MODIFIER_VIRTUAL;
@@ -1969,6 +2124,7 @@ void  z_zco_source_generator_enable_virtual_mode(Self *self)
  }
  selfp->virtual_base_name=0;
  }
+#line 1886 "z-zco-source-generator.zco"
 void  z_zco_source_generator_enable_override_mode(Self *self,ZString *s)
 {
  selfp->modifier_mode = MODIFIER_OVERRIDE;
@@ -1981,10 +2137,12 @@ void  z_zco_source_generator_enable_override_mode(Self *self,ZString *s)
  selfp->virtual_base_name=s; 
  z_object_ref(Z_OBJECT(s));
  }
+#line 1899 "z-zco-source-generator.zco"
 void  z_zco_source_generator_set_access_mode(Self *self,int mode)
 {
  selfp->access_mode = mode;
  }
+#line 1904 "z-zco-source-generator.zco"
 void  z_zco_source_generator_set_type_name(Self *self,ZString *s)
 {
  if (selfp->type_name)
@@ -1993,6 +2151,7 @@ void  z_zco_source_generator_set_type_name(Self *self,ZString *s)
  selfp->type_name = s;
  z_object_ref(Z_OBJECT(s));
  }
+#line 1913 "z-zco-source-generator.zco"
 void  z_zco_source_generator_set_symbol_name(Self *self,ZString *s)
 {
  if (selfp->symbol_name)
@@ -2005,30 +2164,37 @@ void  z_zco_source_generator_set_symbol_name(Self *self,ZString *s)
  /* reset state */
  selfp->is_attached_property = 0;
  }
+#line 1926 "z-zco-source-generator.zco"
 void  z_zco_source_generator_add_class_data_member(Self *self)
 {
  add_data_member(self, selfp->access_mode, selfp->type_name, selfp->symbol_name);
  }
+#line 1931 "z-zco-source-generator.zco"
 void  z_zco_source_generator_add_class_virtual_data_member(Self *self)
 {
  add_virtual_data_member(self, selfp->access_mode, selfp->type_name, selfp->symbol_name);
  }
+#line 1936 "z-zco-source-generator.zco"
 void  z_zco_source_generator_class_virtual_member_function_decl(Self *self,ZString *s1,ZString *s2,ZString *s3)
 {
  virtual_member_function_decl(self, selfp->type_name, s1, s2, s3); 
  }
+#line 1941 "z-zco-source-generator.zco"
 void  z_zco_source_generator_class_override_member_function_decl(Self *self,ZString *s1,ZString *s2,ZString *s3)
 {
  override_member_function_decl(self, selfp->type_name, s1, s2, s3);
  }
+#line 1946 "z-zco-source-generator.zco"
 void  z_zco_source_generator_class_member_function_decl(Self *self,ZString *s1,ZString *s2,ZString *s3)
 {
  member_function_decl(self, selfp->type_name, s1, s2, s3, 1); 
  }
+#line 1951 "z-zco-source-generator.zco"
 void  z_zco_source_generator_class_signal_decl(Self *self,ZString *s1,ZString *s2)
 {
  signal_decl(self, selfp->type_name, s1, s2); 
  }
+#line 1956 "z-zco-source-generator.zco"
 void  z_zco_source_generator_finalize_property(Self *self)
 {
  if (selfp->is_attached_property) {
@@ -2053,10 +2219,12 @@ void  z_zco_source_generator_finalize_property(Self *self)
 
  }
  }
+#line 1981 "z-zco-source-generator.zco"
 void  z_zco_source_generator_enable_attached_property(Self *self)
 {
  selfp->is_attached_property = 1;
  }
+#line 1986 "z-zco-source-generator.zco"
 int  z_zco_source_generator_setup(Self *self,int argc,char **argv)
 {
  char *filename;
@@ -2121,6 +2289,7 @@ int  z_zco_source_generator_setup(Self *self,int argc,char **argv)
 
  return 0;
  }
+#line 2050 "z-zco-source-generator.zco"
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
 static void z_zco_source_generator_class_destroy(ZObjectGlobal *gbl)
 {
@@ -2130,5 +2299,6 @@ static void z_zco_source_generator_class_destroy(ZObjectGlobal *gbl)
 
 #undef PARENT_HANDLER
 
+#line 2050 "z-zco-source-generator.zco"
 
 

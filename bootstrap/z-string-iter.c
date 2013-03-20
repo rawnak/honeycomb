@@ -31,16 +31,27 @@
 #define selfp (&self->_priv)
 #define GET_NEW(ctx) __z_string_iter_new(ctx)
 #define INIT_EXISTS
+#line 12 "z-string-iter.zco"
 #define init z_string_iter_init
+#line 25 "z-string-iter.zco"
 #define new z_string_iter_new
+#line 31 "z-string-iter.zco"
 #define dup z_string_iter_dup
+#line 41 "z-string-iter.zco"
 #define get_index z_string_iter_get_index
+#line 45 "z-string-iter.zco"
 #define set_index z_string_iter_set_index
+#line 51 "z-string-iter.zco"
 #define advance z_string_iter_advance
+#line 56 "z-string-iter.zco"
 #define increment z_string_iter_increment
+#line 61 "z-string-iter.zco"
 #define decrement z_string_iter_decrement
+#line 66 "z-string-iter.zco"
 #define is_equal z_string_iter_is_equal
+#line 71 "z-string-iter.zco"
 #define is_lte z_string_iter_is_lte
+#line 76 "z-string-iter.zco"
 #define is_gte z_string_iter_is_gte
 
 int z_string_iter_type_id = -1;
@@ -51,9 +62,10 @@ static Self *__z_string_iter_new(struct zco_context_t *ctx)
 	ZObjectTracker *object_tracker = (ZObjectTracker *) ctx->object_tracker;
 	if (object_tracker)
 		self = (Self *) z_object_tracker_create(object_tracker, z_string_iter_type_id);
-	if (!self)
+	if (!self) {
 		self = (Self *) malloc(sizeof(Self));
-	__z_string_iter_init(ctx, self);
+		__z_string_iter_init(ctx, self);
+	}
 	return self;
 }
 
@@ -61,8 +73,11 @@ static int __map_compare(ZMap *map, const void *a, const void *b)
 {
 	return strcmp(a, b);
 }
+#line 12 "z-string-iter.zco"
 static void z_string_iter_init(Self *self);
+#line 17 "z-string-iter.zco"
 static void  z_string_iter_reset(ZObject *object);
+#line 80 "z-string-iter.zco"
 static void z_string_iter_class_destroy(ZObjectGlobal *gbl);
 
 static void cleanup_signal_arg(void *item, void *userdata)
@@ -120,27 +135,45 @@ ZStringIterGlobal * z_string_iter_get_type(struct zco_context_t *ctx)
 		*global_ptr = (ZCommonGlobal *) global;
 		
 		class_off_list[global->common.id] = offset;
+#line 17 "z-string-iter.zco"
 		{
+#line 17 "z-string-iter.zco"
 			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
+#line 17 "z-string-iter.zco"
 			global->__parent_reset = p_class->__reset;
+#line 17 "z-string-iter.zco"
 			p_class->__reset = z_string_iter_reset;
+#line 17 "z-string-iter.zco"
 		}
+#line 80 "z-string-iter.zco"
 		{
+#line 80 "z-string-iter.zco"
 			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
+#line 80 "z-string-iter.zco"
 			global->__parent_class_destroy = p_class->__class_destroy;
+#line 80 "z-string-iter.zco"
 			p_class->__class_destroy = z_string_iter_class_destroy;
+#line 80 "z-string-iter.zco"
 		}
 		__z_string_iter_class_init(ctx, (ZStringIterClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx);
 		z_map_set_compare(global->common.method_map, __map_compare);
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
+#line 25 "z-string-iter.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("new"), (ZObjectSignalHandler) new);
+#line 31 "z-string-iter.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("dup"), (ZObjectSignalHandler) dup);
+#line 51 "z-string-iter.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("advance"), (ZObjectSignalHandler) advance);
+#line 56 "z-string-iter.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("increment"), (ZObjectSignalHandler) increment);
+#line 61 "z-string-iter.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("decrement"), (ZObjectSignalHandler) decrement);
+#line 66 "z-string-iter.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("is_equal"), (ZObjectSignalHandler) is_equal);
+#line 71 "z-string-iter.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("is_lte"), (ZObjectSignalHandler) is_lte);
+#line 76 "z-string-iter.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("is_gte"), (ZObjectSignalHandler) is_gte);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZStringIterGlobal *) global);
@@ -168,10 +201,12 @@ void __z_string_iter_init(struct zco_context_t *ctx, Self *self)
 		init(self);
 	#endif
 }
+#line 12 "z-string-iter.zco"
 static void z_string_iter_init(Self *self)
 {
  selfp->index = 0;
  }
+#line 17 "z-string-iter.zco"
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_reset
 static void  z_string_iter_reset(ZObject *object)
 {
@@ -181,11 +216,13 @@ static void  z_string_iter_reset(ZObject *object)
  PARENT_HANDLER(object);
  }
 #undef PARENT_HANDLER
+#line 25 "z-string-iter.zco"
 Self * z_string_iter_new(struct zco_context_t *ctx)
 {
  Self *self = GET_NEW(ctx);
  return self;
  }
+#line 31 "z-string-iter.zco"
 Self * z_string_iter_dup(ZStringIter *src)
 {
  Self *self = GET_NEW(CTX_FROM_OBJECT(src));
@@ -193,38 +230,47 @@ Self * z_string_iter_dup(ZStringIter *src)
  set_index(self, get_index(src));
  return self;
  }
+#line 41 "z-string-iter.zco"
 int  z_string_iter_get_index(Self *self)
 {
  return selfp->index;
  }
+#line 45 "z-string-iter.zco"
 void z_string_iter_set_index(Self *self, int  value)
 {
  selfp->index = value;
  }
+#line 51 "z-string-iter.zco"
 void  z_string_iter_advance(Self *self,int steps)
 {
  selfp->index += steps;
  }
+#line 56 "z-string-iter.zco"
 void  z_string_iter_increment(Self *self)
 {
  ++selfp->index;
  }
+#line 61 "z-string-iter.zco"
 void  z_string_iter_decrement(Self *self)
 {
  --selfp->index;
  }
+#line 66 "z-string-iter.zco"
 int  z_string_iter_is_equal(Self *self,Self *other)
 {
  return selfp->index == get_index(other);
  }
+#line 71 "z-string-iter.zco"
 int  z_string_iter_is_lte(Self *self,Self *other)
 {
  return selfp->index <= get_index(other);
  }
+#line 76 "z-string-iter.zco"
 int  z_string_iter_is_gte(Self *self,Self *other)
 {
  return selfp->index >= get_index(other);
  }
+#line 80 "z-string-iter.zco"
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
 static void z_string_iter_class_destroy(ZObjectGlobal *gbl)
 {
@@ -234,5 +280,6 @@ static void z_string_iter_class_destroy(ZObjectGlobal *gbl)
 
 #undef PARENT_HANDLER
 
+#line 80 "z-string-iter.zco"
 
 

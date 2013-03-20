@@ -20,6 +20,7 @@
 
 #ifndef _Z_FILE_H_
 #define _Z_FILE_H_
+#line 4 "z-file.zco"
 
 #include <z-object.h>
 #include <stdio.h>
@@ -42,6 +43,7 @@ typedef struct ZFileClass ZFileClass;
 typedef struct ZFile ZFile;
 
 struct ZFilePrivate {
+#line 12 "z-file.zco"
 	FILE * file;
 };
 
@@ -51,6 +53,7 @@ struct ZFileProtected {
 struct ZFileGlobal {
 	struct ZCommonGlobal common;
 	struct ZFileClass *_class;
+#line 73 "z-file.zco"
 	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
 };
 
@@ -68,11 +71,17 @@ extern int z_file_type_id;
 ZFileGlobal * z_file_get_type(struct zco_context_t *ctx);
 void __z_file_init(struct zco_context_t *ctx, ZFile *self);
 void __z_file_class_init(struct zco_context_t *ctx, ZFileClass *_class);
+#line 19 "z-file.zco"
 Self * z_file_new(struct zco_context_t *ctx);
+#line 25 "z-file.zco"
 int  z_file_open(Self *self,const char *filename,const char *mode);
+#line 31 "z-file.zco"
 int  z_file_close(Self *self);
+#line 42 "z-file.zco"
 void  z_file_write(Self *self,const char *str);
+#line 47 "z-file.zco"
 int  z_file_write_vformat(Self *self,const char *fmt,va_list ap);
+#line 64 "z-file.zco"
 void  z_file_write_format(Self *self,const char *fmt,...);
 
 #undef Self

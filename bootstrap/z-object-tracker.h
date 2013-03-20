@@ -20,6 +20,7 @@
 
 #ifndef _Z_OBJECT_TRACKER_H_
 #define _Z_OBJECT_TRACKER_H_
+#line 3 "z-object-tracker.zco"
 
 #include <z-object.h>
 
@@ -52,8 +53,11 @@ struct ZObjectTrackerGlobal {
 };
 
 struct ZObjectTrackerClass {
+#line 10 "z-object-tracker.zco"
 	ZObject *  (*__create)(Self *self,int type_id);
+#line 15 "z-object-tracker.zco"
 	int  (*__destroy)(Self *self,ZObject *target);
+#line 20 "z-object-tracker.zco"
 	int  (*__garbage_collect)(Self *self);
 };
 
@@ -66,8 +70,11 @@ extern int z_object_tracker_type_id;
 ZObjectTrackerGlobal * z_object_tracker_get_type(struct zco_context_t *ctx);
 void __z_object_tracker_init(struct zco_context_t *ctx, ZObjectTracker *self);
 void __z_object_tracker_class_init(struct zco_context_t *ctx, ZObjectTrackerClass *_class);
+#line 10 "z-object-tracker.zco"
 ZObject *  z_object_tracker_create(Self *self,int type_id);
+#line 15 "z-object-tracker.zco"
 int  z_object_tracker_destroy(Self *self,ZObject *target);
+#line 20 "z-object-tracker.zco"
 int  z_object_tracker_garbage_collect(Self *self);
 
 #undef Self

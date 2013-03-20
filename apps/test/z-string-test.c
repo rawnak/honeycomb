@@ -38,6 +38,14 @@ static void case1(struct zco_context_t *context)
 {
 	/* Testing z_string_get_begin / z_string_get_end */
 
+        ZString *dummy = z_string_new(context);
+        z_object_unref(Z_OBJECT(dummy));
+
+        ZString *dummy2 = z_string_new(context);
+        z_object_unref(Z_OBJECT(dummy2));
+
+
+        return;
 	char *test_string = "Test string";
 	ZString *str;
 	ZStringIter *it, *end;

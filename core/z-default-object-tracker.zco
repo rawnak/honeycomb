@@ -59,12 +59,6 @@ class ZDefaultObjectTracker : ZObject,ZObjectTracker
                 return PTR_TO_INT(a) - PTR_TO_INT(b);
         }
 
-	private void lazy_destroy(void *ptr)
-	{
-		//printf("*** LAZY DESTROY ***\n");
-		z_object_dispose(ptr);
-	}
-
         override(ZObject)
         void dispose(ZObject *object)
         {
@@ -81,7 +75,7 @@ class ZDefaultObjectTracker : ZObject,ZObjectTracker
 
                 while (!z_map_iter_is_equal(it, end)) {
                         ZVector *pool = (ZVector *) z_map_get_value(selfp->pools, it);
-			z_vector_set_item_destruct(pool, (ZVectorItemCallback) lazy_destroy);
+			z_vector_set_item_destruct(pool, (ZVectorItemCallback) z_object_dispose);
                         z_map_iter_increment(it);
                 }
 
@@ -135,13 +129,13 @@ class ZDefaultObjectTracker : ZObject,ZObjectTracker
 
                 /* reset the object state */
 		if (type_id == 1) { // map
-			z_object_dispose(object);
-			object = NULL;
+			//z_object_dispose(object);
+			//object = NULL;
+			z_object_reset(object);
 
 		} else if (type_id == 9) { // string
 			//z_object_dispose(object);
 			//object = NULL;
-
 			z_object_reset(object);
 
 		} else {
@@ -163,8 +157,12 @@ done:
                 } else {
                         selfp->suspended = 1;
 
-                        /* TODO: Accessing data like this is terrible. Come up with a better solution later */
-                        int id = ((ZObjectGlobal *) ((ZObjectClass *) target->class_base)->real_global)->common.id;
+                        /* We can't use GLOBAL_FROM_OBJECT() here because we are interested in the Global struct of
+                           the derived class, not ZObject. CLASS_FROM_OBJECT() returns the Class struct for the
+                           derived class and GLOBAL_FROM_CLASS() returns the Global struct of the derived class.
+                           GLOBAL_FROM_OBJECT() treats the input as a ZObject so it always returns the Global struct
+                           of the ZObject part */
+                        int id = GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT(target))->id;
 
                         ZMapIter *pos;
                         ZVector *pool;
