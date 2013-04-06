@@ -1,0 +1,110 @@
+/* ZCO - Cross-platform Application Framework
+ * Copyright (C) 2014  Rawnak Jahan Syeda
+ *
+ * z-memory-allocator.zco: Memory allocator interface
+ * This file is part of ZCO.
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZCO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+%h{
+#include <z-object.h>
+#include <z-object-tracker.h>
+%}
+
+%{
+%}
+
+class ZMemoryAllocator : ZObject
+{
+        private ZObjectTracker *object_tracker;
+
+        init(Self *self)
+        {
+                selfp->object_tracker = NULL;
+        }
+
+        public ZObjectTracker *object_tracker
+        {
+                get
+                {
+                        z_object_ref(Z_OBJECT(selfp->object_tracker));
+                        return selfp->object_tracker;
+                }
+                set
+                {
+                        if (selfp->object_tracker) {
+                                ZObjectTracker *tracker = selfp->object_tracker;
+
+                                /* Full garbage collection */
+                                while (z_object_tracker_garbage_collect((ZObjectTracker *) tracker));
+
+                                /* Unload the object tracker
+                                   This must be the very first step in the context destruction process
+                                   (by convention). Loading the object tracker at the end of the context
+                                   initialization and unloading it at the start of the context destruction
+                                   ensures that we consistently use the correct tracker for every object.
+                                   
+                                   When we created the object tracker, we didn't have any trackers loaded.
+                                   When we are unloading the object tracker, we must ensure that no trackers
+                                   (itself) isn't loaded. To do this, we keep a reference to the pointer
+                                   and set the pointer to NULL. */
+                                selfp->object_tracker = NULL;
+                                z_object_unref(Z_OBJECT(tracker));
+                        }
+
+                        selfp->object_tracker = value;
+                        z_object_ref(Z_OBJECT(value));
+                }
+        }
+
+        override(ZObject) void dispose(ZObject *object)
+        {
+                Self *self = (Self *) object;
+                set_object_tracker(self, NULL);
+        }
+
+        override(ZObject) void reset(ZObject *object)
+        {
+                Self *self = (Self *) object;
+                set_object_tracker(self, NULL);
+                PARENT_HANDLER(object);
+        }
+                    
+        public virtual void * allocate(Self *self, int size)
+        {
+                return 0; /* not handled */
+        }
+
+        public virtual void * allocate_aligned(Self *self, int size, int alignment)
+        {
+                return 0; /* not handled */
+        }
+
+        public virtual int try_resize(Self *self, void *block, int new_size)
+        {
+                return 0; /* not handled */
+        }
+
+        public virtual void * resize(Self *self, void *block, int new_size)
+        {
+                return 0; /* not handled */
+        }
+
+        public virtual void deallocate(Self *self, void *block)
+        {
+                return; /* not handled */
+        }
+}
+

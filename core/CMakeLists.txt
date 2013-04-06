@@ -69,6 +69,7 @@ parse_zco(z-file)
 parse_zco(z-framework-events)
 parse_zco(z-object-tracker)
 parse_zco(z-default-object-tracker)
+parse_zco(z-memory-allocator)
 
 add_library(
       zclib-core SHARED
@@ -90,5 +91,6 @@ add_library(
       z-framework-events.c
       z-object-tracker.c
       z-default-object-tracker.c
+      z-memory-allocator.c
       )
 
