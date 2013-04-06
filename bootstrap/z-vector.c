@@ -153,46 +153,45 @@ ZVectorGlobal * z_vector_get_type(struct zco_context_t *ctx)
 		global->common.name = "ZVector";
 		global->common.vtable_off_list = NULL;
 		global->common.vtable_off_size = 0;
+		global->common.svtable_off_list = NULL;
+		global->common.svtable_off_size = 0;
 		global->common.is_object = 1;
 
 		struct ZVector temp;
-		unsigned long offset = 0;
-
-		unsigned long *class_off_list;
-		unsigned long class_off_size = 0;
+		struct ZVectorClass temp_class;
 
 		{
-			struct ZObjectGlobal *p_class = z_object_get_type(ctx);
-			if (p_class->common.id > class_off_size)
-				class_off_size = p_class->common.id;
-		}
-		class_off_list = malloc(sizeof(unsigned long) * (zco_get_type_count()+1));
-		{
-			struct ZObjectGlobal *p_class = z_object_get_type(ctx);
+			struct ZObjectGlobal *p_global = z_object_get_type(ctx);
 			zco_inherit_vtable(
 				&global->common.vtable_off_list,
 				&global->common.vtable_off_size,
-				p_class->common.vtable_off_list,
-				p_class->common.vtable_off_size,
+				p_global->common.vtable_off_list,
+				p_global->common.vtable_off_size,
 				&temp,
 				&temp.parent_z_object);
-			memcpy((char *) CLASS_FROM_GLOBAL(global) + offset, CLASS_FROM_GLOBAL(p_class), sizeof(struct ZObjectClass));
-			class_off_list[p_class->common.id] = offset;
-			offset += sizeof(struct ZObjectClass);
+			zco_inherit_vtable(
+				&global->common.svtable_off_list,
+				&global->common.svtable_off_size,
+				p_global->common.svtable_off_list,
+				p_global->common.svtable_off_size,
+				&temp_class,
+				&temp_class.parent_z_object);
+			ZObjectClass *p1_class = CLASS_FROM_GLOBAL(p_global);
+			ZObjectClass *p2_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
+			memcpy(p2_class, p1_class, sizeof(struct ZObjectClass));
 		}
-		((ZObjectClass *) CLASS_FROM_GLOBAL(global))->class_off_list = class_off_list;
 		if (z_vector_type_id == -1)
 			z_vector_type_id = zco_allocate_type_id();
 		global->common.id = z_vector_type_id;
 		zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, z_vector_type_id);
+		zco_add_to_vtable(&global->common.svtable_off_list, &global->common.svtable_off_size, z_vector_type_id);
 		global_ptr = zco_get_ctx_type(ctx, z_vector_type_id);
 		*global_ptr = (ZCommonGlobal *) global;
 		
-		class_off_list[global->common.id] = offset;
 #line 43 "z-vector.zco"
 		{
 #line 43 "z-vector.zco"
-			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
+			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
 #line 43 "z-vector.zco"
 			global->__parent_reset = p_class->__reset;
 #line 43 "z-vector.zco"
@@ -202,7 +201,7 @@ ZVectorGlobal * z_vector_get_type(struct zco_context_t *ctx)
 #line 69 "z-vector.zco"
 		{
 #line 69 "z-vector.zco"
-			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
+			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
 #line 69 "z-vector.zco"
 			global->__parent_dispose = p_class->__dispose;
 #line 69 "z-vector.zco"
@@ -212,7 +211,7 @@ ZVectorGlobal * z_vector_get_type(struct zco_context_t *ctx)
 #line 948 "z-vector.zco"
 		{
 #line 948 "z-vector.zco"
-			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
+			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
 #line 948 "z-vector.zco"
 			global->__parent_class_destroy = p_class->__class_destroy;
 #line 948 "z-vector.zco"
@@ -986,8 +985,8 @@ int  z_vector_erase(Self *self,ZVectorIter *start,ZVectorIter *end)
  if (selfp->is_insert_only_mode)
  return -1;
 
- ZVectorSegment *start_segment = z_vector_iter_get_segment(start); 
- ZVectorSegment *end_segment = z_vector_iter_get_segment(end); 
+ ZVectorSegment *start_segment = z_vector_iter_get_segment(start);
+ ZVectorSegment *end_segment = z_vector_iter_get_segment(end);
  ZVectorSegment *segment = start_segment;
  int count = 0;
  
@@ -1031,7 +1030,7 @@ int  z_vector_erase(Self *self,ZVectorIter *start,ZVectorIter *end)
 
  if (t1 == NULL && t2 == NULL) {
  count += z_vector_segment_get_size(segment);
- remove_segment(self, segment); 
+ remove_segment(self, segment);
 
  /* 2 unrefs since it lost two references. one from the previous node
                                    and one from the next node */
@@ -1054,7 +1053,7 @@ int  z_vector_erase(Self *self,ZVectorIter *start,ZVectorIter *end)
  selfp->count -= count;
 
  z_object_unref(Z_OBJECT(segment)); 
- z_object_unref(Z_OBJECT(end_segment)); 
+ z_object_unref(Z_OBJECT(end_segment));
  z_object_unref(Z_OBJECT(start_segment)); 
 
  return 0;

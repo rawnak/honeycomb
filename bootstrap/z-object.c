@@ -121,24 +121,21 @@ ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
 		global->common.name = "ZObject";
 		global->common.vtable_off_list = NULL;
 		global->common.vtable_off_size = 0;
+		global->common.svtable_off_list = NULL;
+		global->common.svtable_off_size = 0;
 		global->common.is_object = 1;
 
 		struct ZObject temp;
-		unsigned long offset = 0;
+		struct ZObjectClass temp_class;
 
-		unsigned long *class_off_list;
-		unsigned long class_off_size = 0;
-
-		class_off_list = malloc(sizeof(unsigned long) * (zco_get_type_count()+1));
-		((ZObjectClass *) CLASS_FROM_GLOBAL(global))->class_off_list = class_off_list;
 		if (z_object_type_id == -1)
 			z_object_type_id = zco_allocate_type_id();
 		global->common.id = z_object_type_id;
 		zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, z_object_type_id);
+		zco_add_to_vtable(&global->common.svtable_off_list, &global->common.svtable_off_size, z_object_type_id);
 		global_ptr = zco_get_ctx_type(ctx, z_object_type_id);
 		*global_ptr = (ZCommonGlobal *) global;
 		
-		class_off_list[global->common.id] = offset;
 #line 36 "z-object.zco"
 		CLASS_FROM_GLOBAL(global)->__class_destroy = z_object_virtual_class_destroy;
 #line 71 "z-object.zco"
@@ -202,7 +199,8 @@ static void z_object_init(Self *self)
 void  z_object_class_destroy(ZObjectGlobal *gbl)
 {
 	ZObjectClass *class_base = CLASS_FROM_GLOBAL(gbl);
-	unsigned long offset = class_base->class_off_list[z_object_type_id];
+	ZCommonGlobal *common_global = class_base->real_global;
+	unsigned long offset = common_global->svtable_off_list[z_object_type_id];
 	((ZObjectClass *) ((char *) class_base + offset))->__class_destroy(gbl);
 }
 #line 36 "z-object.zco"
@@ -245,7 +243,8 @@ void  z_object_reset(Self *self)
 {
 	ZObject *obj = (ZObject *) self;
 	ZObjectClass *class_base = (ZObjectClass *) obj->class_base;
-	unsigned long offset = class_base->class_off_list[z_object_type_id];
+	ZCommonGlobal *common_global = class_base->real_global;
+	unsigned long offset = common_global->svtable_off_list[z_object_type_id];
 	((ZObjectClass *) ((char *) class_base + offset))->__reset(self);
 }
 #line 71 "z-object.zco"
@@ -268,7 +267,8 @@ void  z_object_dispose(Self *self)
 {
 	ZObject *obj = (ZObject *) self;
 	ZObjectClass *class_base = (ZObjectClass *) obj->class_base;
-	unsigned long offset = class_base->class_off_list[z_object_type_id];
+	ZCommonGlobal *common_global = class_base->real_global;
+	unsigned long offset = common_global->svtable_off_list[z_object_type_id];
 	((ZObjectClass *) ((char *) class_base + offset))->__dispose(self);
 }
 #line 86 "z-object.zco"

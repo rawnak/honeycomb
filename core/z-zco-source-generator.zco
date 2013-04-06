@@ -1059,18 +1059,22 @@ class ZZcoSourceGenerator : ZObject
                         z_string_append_format(vcode, 
                                         "\x7b\n"
                                         "\tZObject *obj = (ZObject *) self;\n"
-                                        "\tZObjectClass *class_base = (ZObjectClass *) obj->class_base;\n");
+                                        "\tZObjectClass *class_base = (ZObjectClass *) obj->class_base;\n"
+                                        "\tZCommonGlobal *common_global = class_base->real_global;\n");
                 } else if (selfp->access_mode == ACCESS_GLOBAL) {
                         z_string_append_format(vcode, 
                                         "\x7b\n"
-                                        "\tZObjectClass *class_base = CLASS_FROM_GLOBAL(gbl);\n");
+                                        "\tZObjectClass *class_base = CLASS_FROM_GLOBAL(gbl);\n"
+                                        "\tZCommonGlobal *common_global = class_base->real_global;\n");
                 }
 
                 z_string_append_format(vcode,
-                                "\tunsigned long offset = class_base->class_off_list[%S_type_id];\n"
-                                "\t((%SClass *) ((char *) class_base + offset))->__%S(",
-                                selfp->current_class_name_lowercase, selfp->current_class_name_pascal, symbol);
+                                "\tunsigned long offset = common_global->svtable_off_list[%S_type_id];\n",
+                                selfp->current_class_name_lowercase);
 
+                z_string_append_format(vcode,
+                                "\t((%SClass *) ((char *) class_base + offset))->__%S(",
+                                selfp->current_class_name_pascal, symbol);
 
                 for_each_arg(self, vcode, arglist, append_stripped_arg);
                 z_string_append_cstring(vcode, ");\n\x7d", Z_STRING_ENCODING_UTF8);
@@ -1126,8 +1130,12 @@ class ZZcoSourceGenerator : ZObject
 
                 /* create a pointer to the parent class's dispatch object */
                 print_line_number(self, selfp->virtual_function_ptr_inits);
-                z_string_append_format(selfp->virtual_function_ptr_inits, "\t\t\t%SClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_%S;\n",
-                                selfp->virtual_base_name, base_name_lowercase);
+
+                z_string_append_format(selfp->virtual_function_ptr_inits,
+                                "\t\t\t%SClass *p_class = (%SClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[%S_type_id]);\n",
+                                selfp->virtual_base_name,
+                                selfp->virtual_base_name,
+                                base_name_lowercase);
 
                 /* backup the existing virtual function pointer for the PARENT_HANDLER macro */
                 print_line_number(self, selfp->virtual_function_ptr_inits);
@@ -1616,10 +1624,12 @@ class ZZcoSourceGenerator : ZObject
                                 "\t\tglobal->common.name = \"%S\";\n"
                                 "\t\tglobal->common.vtable_off_list = NULL;\n"
                                 "\t\tglobal->common.vtable_off_size = 0;\n"
+                                "\t\tglobal->common.svtable_off_list = NULL;\n"
+                                "\t\tglobal->common.svtable_off_size = 0;\n"
                                 "\t\tglobal->common.is_object = %d;\n"
                                 "\n"
                                 "\t\tstruct %S temp;\n"
-				"\t\tunsigned long offset = 0;\n"
+                                "\t\tstruct %SClass temp_class;\n"
                                 "\n",
                                 selfp->current_class_name_pascal, selfp->current_class_name_lowercase,
                                 selfp->current_class_name_lowercase,
@@ -1630,71 +1640,57 @@ class ZZcoSourceGenerator : ZObject
                                 selfp->current_class_name_pascal,
                                 selfp->current_class_name_pascal,
                                 is_object,
+                                selfp->current_class_name_pascal,
                                 selfp->current_class_name_pascal);
-
-		if (is_object) {
-			z_file_write_format(selfp->source_file,
-					"\t\tunsigned long *class_off_list;\n"
-					"\t\tunsigned long class_off_size = 0;\n"
-					"\n");
-
-			/* calculate the final size of the class offset lookup table */
-			for (i=0; i < selfp->parent_class_count; ++i) {
-				z_file_write_format(selfp->source_file,
-						"\t\t\x7b\n"
-						"\t\t\tstruct %SGlobal *p_class = %S_get_type(ctx);\n"
-						"\t\t\tif (p_class->common.id > class_off_size)\n"
-						"\t\t\t\tclass_off_size = p_class->common.id;\n"
-						"\t\t\x7d\n",
-						selfp->parent_class_name_pascal[i],
-						selfp->parent_class_name_lowercase[i]);
-			}
-
-			// FIXME: Why +1? It should be based on the number of virtual static methdos in the class
-			z_file_write_format(selfp->source_file, "\t\tclass_off_list = malloc(sizeof(unsigned long) * (zco_get_type_count()+1));\n");
-		}
 
                 /* inherit the vtable from the parent class */
                 for (i=0; i < selfp->parent_class_count; ++i) {
                         z_file_write_format(selfp->source_file,
                                         "\t\t\x7b\n"
-                                        "\t\t\tstruct %SGlobal *p_class = %S_get_type(ctx);\n"
+                                        "\t\t\tstruct %SGlobal *p_global = %S_get_type(ctx);\n",
+                                        selfp->parent_class_name_pascal[i],
+                                        selfp->parent_class_name_lowercase[i]);
+
+                        z_file_write_format(selfp->source_file,
                                         "\t\t\tzco_inherit_vtable(\n"
                                         "\t\t\t\t&global->common.vtable_off_list,\n"
                                         "\t\t\t\t&global->common.vtable_off_size,\n"
-                                        "\t\t\t\tp_class->common.vtable_off_list,\n"
-                                        "\t\t\t\tp_class->common.vtable_off_size,\n"
+                                        "\t\t\t\tp_global->common.vtable_off_list,\n"
+                                        "\t\t\t\tp_global->common.vtable_off_size,\n"
                                         "\t\t\t\t&temp,\n"
                                         "\t\t\t\t&temp.parent_%S);\n",
-                                        selfp->parent_class_name_pascal[i],
-                                        selfp->parent_class_name_lowercase[i],
                                         selfp->parent_class_name_lowercase[i]);
 
-			z_file_write_format(selfp->source_file,
-					"\t\t\tmemcpy((char *) CLASS_FROM_GLOBAL(global) + offset, CLASS_FROM_GLOBAL(p_class), sizeof(struct %SClass));\n",
-					selfp->parent_class_name_pascal[i]);
-
-			if (is_object) {
-				z_file_write_format(selfp->source_file,
-						"\t\t\tclass_off_list[p_class->common.id] = offset;\n");
-			}
+                        z_file_write_format(selfp->source_file,
+                                        "\t\t\tzco_inherit_vtable(\n"
+                                        "\t\t\t\t&global->common.svtable_off_list,\n"
+                                        "\t\t\t\t&global->common.svtable_off_size,\n"
+                                        "\t\t\t\tp_global->common.svtable_off_list,\n"
+                                        "\t\t\t\tp_global->common.svtable_off_size,\n"
+                                        "\t\t\t\t&temp_class,\n"
+                                        "\t\t\t\t&temp_class.parent_%S);\n",
+                                        selfp->parent_class_name_lowercase[i]);
 
                         z_file_write_format(selfp->source_file,
-					"\t\t\toffset += sizeof(struct %SClass);\n"
-					"\t\t\x7d\n",
+                                        "\t\t\t%SClass *p1_class = CLASS_FROM_GLOBAL(p_global);\n"
+                                        "\t\t\t%SClass *p2_class = (%SClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[%S_type_id]);\n"
+                                        "\t\t\tmemcpy(p2_class, p1_class, sizeof(struct %SClass));\n",
+                                        selfp->parent_class_name_pascal[i],
+                                        selfp->parent_class_name_pascal[i],
+                                        selfp->parent_class_name_pascal[i],
+                                        selfp->parent_class_name_lowercase[i],
                                         selfp->parent_class_name_pascal[i]);
-                }
 
-		
-		if (is_object) {
-			z_file_write_format(selfp->source_file, "\t\t((ZObjectClass *) CLASS_FROM_GLOBAL(global))->class_off_list = class_off_list;\n");
-		}
+                        z_file_write_format(selfp->source_file,
+					"\t\t\x7d\n");
+                }
 
                 z_file_write_format(selfp->source_file,
                                 "\t\tif (%S_type_id == -1)\n"
                                 "\t\t\t%S_type_id = zco_allocate_type_id();\n"
                                 "\t\tglobal->common.id = %S_type_id;\n"
                                 "\t\tzco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, %S_type_id);\n"
+                                "\t\tzco_add_to_vtable(&global->common.svtable_off_list, &global->common.svtable_off_size, %S_type_id);\n"
                                 "\t\tglobal_ptr = zco_get_ctx_type(ctx, %S_type_id);\n"
                                 "\t\t*global_ptr = (ZCommonGlobal *) global;\n"
                                 "\t\t\n",
@@ -1702,12 +1698,8 @@ class ZZcoSourceGenerator : ZObject
                                 selfp->current_class_name_lowercase,
                                 selfp->current_class_name_lowercase,
                                 selfp->current_class_name_lowercase,
+                                selfp->current_class_name_lowercase,
                                 selfp->current_class_name_lowercase);
-
-		if (is_object) {
-			// FIXME: this is causing an addition unref() for some reason. do a full rebuild to see it
-			z_file_write_format(selfp->source_file, "\t\tclass_off_list[global->common.id] = offset;\n");
-		}
 
                 /* assign the virtual function pointers */
                 z_file_write_format(selfp->source_file, "%S", selfp->virtual_function_ptr_inits);

@@ -101,10 +101,10 @@ void zco_context_destroy(struct zco_context_t *ctx)
 
 			if (global->is_object) {
 				z_object_class_destroy(obj_global);
-				free(CLASS_FROM_GLOBAL(obj_global)->class_off_list);
 			}
 			free(obj_global->_class);
 			free(global->vtable_off_list);
+                        free(global->svtable_off_list);
 			free(global);
 		}
 	}

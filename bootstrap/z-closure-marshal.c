@@ -74,15 +74,18 @@ ZClosureMarshalGlobal * z_closure_marshal_get_type(struct zco_context_t *ctx)
 		global->common.name = "ZClosureMarshal";
 		global->common.vtable_off_list = NULL;
 		global->common.vtable_off_size = 0;
+		global->common.svtable_off_list = NULL;
+		global->common.svtable_off_size = 0;
 		global->common.is_object = 0;
 
 		struct ZClosureMarshal temp;
-		unsigned long offset = 0;
+		struct ZClosureMarshalClass temp_class;
 
 		if (z_closure_marshal_type_id == -1)
 			z_closure_marshal_type_id = zco_allocate_type_id();
 		global->common.id = z_closure_marshal_type_id;
 		zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, z_closure_marshal_type_id);
+		zco_add_to_vtable(&global->common.svtable_off_list, &global->common.svtable_off_size, z_closure_marshal_type_id);
 		global_ptr = zco_get_ctx_type(ctx, z_closure_marshal_type_id);
 		*global_ptr = (ZCommonGlobal *) global;
 		
@@ -121,7 +124,8 @@ int  z_closure_marshal_invoke(Self *self,ZObject *target,ZObjectSignalHandler ha
 {
 	ZObject *obj = (ZObject *) self;
 	ZObjectClass *class_base = (ZObjectClass *) obj->class_base;
-	unsigned long offset = class_base->class_off_list[z_closure_marshal_type_id];
+	ZCommonGlobal *common_global = class_base->real_global;
+	unsigned long offset = common_global->svtable_off_list[z_closure_marshal_type_id];
 	((ZClosureMarshalClass *) ((char *) class_base + offset))->__invoke(self,target,handler,args,userdata);
 }
 #line 11 "z-closure-marshal.zco"

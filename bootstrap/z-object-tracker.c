@@ -82,15 +82,18 @@ ZObjectTrackerGlobal * z_object_tracker_get_type(struct zco_context_t *ctx)
 		global->common.name = "ZObjectTracker";
 		global->common.vtable_off_list = NULL;
 		global->common.vtable_off_size = 0;
+		global->common.svtable_off_list = NULL;
+		global->common.svtable_off_size = 0;
 		global->common.is_object = 0;
 
 		struct ZObjectTracker temp;
-		unsigned long offset = 0;
+		struct ZObjectTrackerClass temp_class;
 
 		if (z_object_tracker_type_id == -1)
 			z_object_tracker_type_id = zco_allocate_type_id();
 		global->common.id = z_object_tracker_type_id;
 		zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, z_object_tracker_type_id);
+		zco_add_to_vtable(&global->common.svtable_off_list, &global->common.svtable_off_size, z_object_tracker_type_id);
 		global_ptr = zco_get_ctx_type(ctx, z_object_tracker_type_id);
 		*global_ptr = (ZCommonGlobal *) global;
 		
@@ -137,7 +140,8 @@ ZObject *  z_object_tracker_create(Self *self,int type_id)
 {
 	ZObject *obj = (ZObject *) self;
 	ZObjectClass *class_base = (ZObjectClass *) obj->class_base;
-	unsigned long offset = class_base->class_off_list[z_object_tracker_type_id];
+	ZCommonGlobal *common_global = class_base->real_global;
+	unsigned long offset = common_global->svtable_off_list[z_object_tracker_type_id];
 	((ZObjectTrackerClass *) ((char *) class_base + offset))->__create(self,type_id);
 }
 #line 10 "z-object-tracker.zco"
@@ -150,7 +154,8 @@ int  z_object_tracker_destroy(Self *self,ZObject *target)
 {
 	ZObject *obj = (ZObject *) self;
 	ZObjectClass *class_base = (ZObjectClass *) obj->class_base;
-	unsigned long offset = class_base->class_off_list[z_object_tracker_type_id];
+	ZCommonGlobal *common_global = class_base->real_global;
+	unsigned long offset = common_global->svtable_off_list[z_object_tracker_type_id];
 	((ZObjectTrackerClass *) ((char *) class_base + offset))->__destroy(self,target);
 }
 #line 15 "z-object-tracker.zco"
@@ -163,7 +168,8 @@ int  z_object_tracker_garbage_collect(Self *self)
 {
 	ZObject *obj = (ZObject *) self;
 	ZObjectClass *class_base = (ZObjectClass *) obj->class_base;
-	unsigned long offset = class_base->class_off_list[z_object_tracker_type_id];
+	ZCommonGlobal *common_global = class_base->real_global;
+	unsigned long offset = common_global->svtable_off_list[z_object_tracker_type_id];
 	((ZObjectTrackerClass *) ((char *) class_base + offset))->__garbage_collect(self);
 }
 #line 20 "z-object-tracker.zco"

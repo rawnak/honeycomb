@@ -99,46 +99,45 @@ ZStringIterGlobal * z_string_iter_get_type(struct zco_context_t *ctx)
 		global->common.name = "ZStringIter";
 		global->common.vtable_off_list = NULL;
 		global->common.vtable_off_size = 0;
+		global->common.svtable_off_list = NULL;
+		global->common.svtable_off_size = 0;
 		global->common.is_object = 1;
 
 		struct ZStringIter temp;
-		unsigned long offset = 0;
-
-		unsigned long *class_off_list;
-		unsigned long class_off_size = 0;
+		struct ZStringIterClass temp_class;
 
 		{
-			struct ZObjectGlobal *p_class = z_object_get_type(ctx);
-			if (p_class->common.id > class_off_size)
-				class_off_size = p_class->common.id;
-		}
-		class_off_list = malloc(sizeof(unsigned long) * (zco_get_type_count()+1));
-		{
-			struct ZObjectGlobal *p_class = z_object_get_type(ctx);
+			struct ZObjectGlobal *p_global = z_object_get_type(ctx);
 			zco_inherit_vtable(
 				&global->common.vtable_off_list,
 				&global->common.vtable_off_size,
-				p_class->common.vtable_off_list,
-				p_class->common.vtable_off_size,
+				p_global->common.vtable_off_list,
+				p_global->common.vtable_off_size,
 				&temp,
 				&temp.parent_z_object);
-			memcpy((char *) CLASS_FROM_GLOBAL(global) + offset, CLASS_FROM_GLOBAL(p_class), sizeof(struct ZObjectClass));
-			class_off_list[p_class->common.id] = offset;
-			offset += sizeof(struct ZObjectClass);
+			zco_inherit_vtable(
+				&global->common.svtable_off_list,
+				&global->common.svtable_off_size,
+				p_global->common.svtable_off_list,
+				p_global->common.svtable_off_size,
+				&temp_class,
+				&temp_class.parent_z_object);
+			ZObjectClass *p1_class = CLASS_FROM_GLOBAL(p_global);
+			ZObjectClass *p2_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
+			memcpy(p2_class, p1_class, sizeof(struct ZObjectClass));
 		}
-		((ZObjectClass *) CLASS_FROM_GLOBAL(global))->class_off_list = class_off_list;
 		if (z_string_iter_type_id == -1)
 			z_string_iter_type_id = zco_allocate_type_id();
 		global->common.id = z_string_iter_type_id;
 		zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, z_string_iter_type_id);
+		zco_add_to_vtable(&global->common.svtable_off_list, &global->common.svtable_off_size, z_string_iter_type_id);
 		global_ptr = zco_get_ctx_type(ctx, z_string_iter_type_id);
 		*global_ptr = (ZCommonGlobal *) global;
 		
-		class_off_list[global->common.id] = offset;
 #line 17 "z-string-iter.zco"
 		{
 #line 17 "z-string-iter.zco"
-			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
+			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
 #line 17 "z-string-iter.zco"
 			global->__parent_reset = p_class->__reset;
 #line 17 "z-string-iter.zco"
@@ -148,7 +147,7 @@ ZStringIterGlobal * z_string_iter_get_type(struct zco_context_t *ctx)
 #line 80 "z-string-iter.zco"
 		{
 #line 80 "z-string-iter.zco"
-			ZObjectClass *p_class = &CLASS_FROM_GLOBAL(global)->parent_z_object;
+			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
 #line 80 "z-string-iter.zco"
 			global->__parent_class_destroy = p_class->__class_destroy;
 #line 80 "z-string-iter.zco"

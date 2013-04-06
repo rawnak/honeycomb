@@ -24,11 +24,13 @@ macro(parse_zco OBJECT_NAME)
 endmacro(parse_zco OBJECT_NAME)
 
 parse_zco(z-test-object)
+parse_zco(z-test-derived-object)
 
 # test driver
 add_executable(
    zco-test
    z-test-object.c
+   z-test-derived-object.c
    signal-test.c
    main.c
    z-vector-test.c
