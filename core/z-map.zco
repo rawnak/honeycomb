@@ -50,7 +50,7 @@ class ZMap : ZObject
 
 	init(Self *self)
 	{
-		selfp->data = z_vector_new(CTX_FROM_OBJECT(self));
+		selfp->data = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
                 z_vector_set_item_size(selfp->data, 2 * sizeof(void *));
 
 		selfp->compare = NULL;
@@ -68,7 +68,7 @@ class ZMap : ZObject
 
                 z_vector_clear(selfp->data);
 		z_object_unref(Z_OBJECT(selfp->data));
-		selfp->data = z_vector_new(CTX_FROM_OBJECT(self));
+		selfp->data = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
 
                 //z_object_reset(Z_OBJECT(selfp->data));
 
@@ -100,9 +100,9 @@ class ZMap : ZObject
 		PARENT_HANDLER(object);
 	}
 
-	public Self *new(struct zco_context_t *ctx)
+	public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
 	{
-		Self *self = GET_NEW(ctx);
+		Self *self = GET_NEW(ctx, allocator);
 		return self;
 	}
 
@@ -135,7 +135,7 @@ class ZMap : ZObject
 		get
 		{
 			ZVectorIter *ptr = z_vector_get_begin(selfp->data);
-			ZMapIter *it = z_map_iter_new(CTX_FROM_OBJECT(self));
+			ZMapIter *it = z_map_iter_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
 
 			z_map_iter_set_index(it, z_vector_iter_get_absolute_index(ptr));
 			z_object_unref(Z_OBJECT(ptr));
@@ -149,7 +149,7 @@ class ZMap : ZObject
 		get
 		{
 			ZVectorIter *ptr = z_vector_get_end(selfp->data);
-			ZMapIter *it = z_map_iter_new(CTX_FROM_OBJECT(self));
+			ZMapIter *it = z_map_iter_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
 
 			z_map_iter_set_index(it, z_vector_iter_get_absolute_index(ptr));
 			z_object_unref(Z_OBJECT(ptr));
@@ -301,7 +301,7 @@ class ZMap : ZObject
 			return NULL;
 
 		} else {
-			it = z_map_iter_new(CTX_FROM_OBJECT(self));
+			it = z_map_iter_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
 			find_item(self, key, &bound, it);
 
 			if (bound == 0) {

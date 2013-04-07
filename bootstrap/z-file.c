@@ -25,12 +25,13 @@
 #include <z-object-tracker.h>
 #include <z-map.h>
 #include <string.h>
+#include <z-memory-allocator.h>
 #include <z-file.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZFile
 #define selfp (&self->_priv)
-#define GET_NEW(ctx) __z_file_new(ctx)
+#define GET_NEW(ctx,allocator) __z_file_new(ctx,allocator)
 #define INIT_EXISTS
 #line 14 "z-file.zco"
 #define init z_file_init
@@ -49,7 +50,7 @@
 
 int z_file_type_id = -1;
 
-static Self *__z_file_new(struct zco_context_t *ctx)
+static Self *__z_file_new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
 {
 	Self *self = NULL;
 	ZObjectTracker *object_tracker = (ZObjectTracker *) ctx->object_tracker;
@@ -136,7 +137,7 @@ ZFileGlobal * z_file_get_type(struct zco_context_t *ctx)
 #line 73 "z-file.zco"
 		}
 		__z_file_class_init(ctx, (ZFileClass *) CLASS_FROM_GLOBAL(global));
-		global->common.method_map = z_map_new(ctx);
+		global->common.method_map = z_map_new(ctx, NULL);
 		z_map_set_compare(global->common.method_map, __map_compare);
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
 #line 19 "z-file.zco"
@@ -183,9 +184,9 @@ static void z_file_init(Self *self)
  selfp->file = NULL;
  }
 #line 19 "z-file.zco"
-Self * z_file_new(struct zco_context_t *ctx)
+Self * z_file_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator)
 {
- Self *self = GET_NEW(ctx);
+ Self *self = GET_NEW(ctx, allocator);
  return self;
  }
 #line 25 "z-file.zco"
@@ -213,7 +214,7 @@ void  z_file_write(Self *self,const char *str)
 #line 47 "z-file.zco"
 int  z_file_write_vformat(Self *self,const char *fmt,va_list ap)
 {
- ZString *temp = z_string_new(CTX_FROM_OBJECT(self));
+ ZString *temp = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  
  /* create a formatted string */
  z_string_append_vformat(temp, fmt, ap);

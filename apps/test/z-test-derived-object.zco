@@ -34,9 +34,9 @@ class ZTestDerivedObject : ZTestObject
 	{
 	}
 
-	public Self *new(struct zco_context_t *ctx)
+	public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
 	{
-		Self *self = GET_NEW(ctx);
+		Self *self = GET_NEW(ctx, allocator);
 		return self;
 	}
 

@@ -94,7 +94,7 @@ ZStringGlobal * z_string_get_type(struct zco_context_t *ctx);
 void __z_string_init(struct zco_context_t *ctx, ZString *self);
 void __z_string_class_init(struct zco_context_t *ctx, ZStringClass *_class);
 #line 75 "z-string.zco"
-Self * z_string_new(struct zco_context_t *ctx);
+Self * z_string_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator);
 #line 81 "z-string.zco"
 Self * z_string_dup(Self *src);
 #line 88 "z-string.zco"

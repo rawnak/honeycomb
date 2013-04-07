@@ -28,12 +28,13 @@
 #include <z-object-tracker.h>
 #include <z-map.h>
 #include <string.h>
+#include <z-memory-allocator.h>
 #include <z-vector-segment.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZVectorSegment
 #define selfp (&self->_priv)
-#define GET_NEW(ctx) __z_vector_segment_new(ctx)
+#define GET_NEW(ctx,allocator) __z_vector_segment_new(ctx,allocator)
 #define INIT_EXISTS
 #line 26 "z-vector-segment.zco"
 #define init z_vector_segment_init
@@ -74,7 +75,7 @@
 
 int z_vector_segment_type_id = -1;
 
-static Self *__z_vector_segment_new(struct zco_context_t *ctx)
+static Self *__z_vector_segment_new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
 {
 	Self *self = NULL;
 	ZObjectTracker *object_tracker = (ZObjectTracker *) ctx->object_tracker;
@@ -187,7 +188,7 @@ ZVectorSegmentGlobal * z_vector_segment_get_type(struct zco_context_t *ctx)
 #line 576 "z-vector-segment.zco"
 		}
 		__z_vector_segment_class_init(ctx, (ZVectorSegmentClass *) CLASS_FROM_GLOBAL(global));
-		global->common.method_map = z_map_new(ctx);
+		global->common.method_map = z_map_new(ctx, NULL);
 		z_map_set_compare(global->common.method_map, __map_compare);
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
 #line 69 "z-vector-segment.zco"
@@ -284,9 +285,9 @@ static void  z_vector_segment_dispose(ZObject *object)
  }
 #undef PARENT_HANDLER
 #line 69 "z-vector-segment.zco"
-Self * z_vector_segment_new(struct zco_context_t *ctx)
+Self * z_vector_segment_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator)
 {
- Self *self = GET_NEW(ctx);
+ Self *self = GET_NEW(ctx, allocator);
  return self;
  }
 #line 77 "z-vector-segment.zco"
@@ -541,14 +542,14 @@ int  z_vector_segment_insert(Self *self,ZVectorIter *iter,int n,void *item,int i
 #line 357 "z-vector-segment.zco"
 ZVectorIter *  z_vector_segment_get_begin(Self *self)
 {
- ZVectorIter *iter = z_vector_iter_new(CTX_FROM_OBJECT(self));
+ ZVectorIter *iter = z_vector_iter_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  z_vector_iter_set_segment(iter, self);
  return iter;
  }
 #line 369 "z-vector-segment.zco"
 ZVectorIter *  z_vector_segment_get_end(Self *self)
 {
- ZVectorIter *iter = z_vector_iter_new(CTX_FROM_OBJECT(self));
+ ZVectorIter *iter = z_vector_iter_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  z_vector_iter_set_segment(iter, self);
  z_vector_iter_set_index(iter, get_size(self)-1);
  z_vector_iter_increment(iter);

@@ -73,15 +73,15 @@ class ZValue : ZObject
 		selfp->tag = None;
 	}
 
-	public Self *new(struct zco_context_t *ctx)
+	public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
 	{
-		Self *self = GET_NEW(ctx);
+		Self *self = GET_NEW(ctx, allocator);
 		return self;
 	}
 
 	public Self *dup(ZValue *src)
 	{
-		Self *self = GET_NEW(CTX_FROM_OBJECT(src));
+		Self *self = GET_NEW(CTX_FROM_OBJECT(src), ALLOCATOR_FROM_OBJECT(src));
 
 		selfp->data = src->_priv.data;
 		selfp->tag = src->_priv.tag;

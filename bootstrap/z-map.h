@@ -91,7 +91,7 @@ ZMapGlobal * z_map_get_type(struct zco_context_t *ctx);
 void __z_map_init(struct zco_context_t *ctx, ZMap *self);
 void __z_map_class_init(struct zco_context_t *ctx, ZMapClass *_class);
 #line 83 "z-map.zco"
-Self * z_map_new(struct zco_context_t *ctx);
+Self * z_map_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator);
 #line 91 "z-map.zco"
 void z_map_set_userdata(Self *self, void *  value);
 #line 99 "z-map.zco"

@@ -25,12 +25,13 @@
 #include <z-object-tracker.h>
 #include <z-map.h>
 #include <string.h>
+#include <z-memory-allocator.h>
 #include <z-closure.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZClosure
 #define selfp (&self->_priv)
-#define GET_NEW(ctx) __z_closure_new(ctx)
+#define GET_NEW(ctx,allocator) __z_closure_new(ctx,allocator)
 #define INIT_EXISTS
 #line 19 "z-closure.zco"
 #define init z_closure_init
@@ -55,7 +56,7 @@
 
 int z_closure_type_id = -1;
 
-static Self *__z_closure_new(struct zco_context_t *ctx)
+static Self *__z_closure_new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
 {
 	Self *self = NULL;
 	ZObjectTracker *object_tracker = (ZObjectTracker *) ctx->object_tracker;
@@ -166,7 +167,7 @@ ZClosureGlobal * z_closure_get_type(struct zco_context_t *ctx)
 #line 126 "z-closure.zco"
 		}
 		__z_closure_class_init(ctx, (ZClosureClass *) CLASS_FROM_GLOBAL(global));
-		global->common.method_map = z_map_new(ctx);
+		global->common.method_map = z_map_new(ctx, NULL);
 		z_map_set_compare(global->common.method_map, __map_compare);
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
 #line 62 "z-closure.zco"
@@ -249,15 +250,15 @@ static void  z_closure_dispose(ZObject *object)
  }
 #undef PARENT_HANDLER
 #line 62 "z-closure.zco"
-Self * z_closure_new(struct zco_context_t *ctx)
+Self * z_closure_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator)
 {
- Self *self = GET_NEW(ctx);
+ Self *self = GET_NEW(ctx, allocator);
  return self;
  }
 #line 68 "z-closure.zco"
 Self * z_closure_dup(ZClosure *src)
 {
- Self *self = GET_NEW(CTX_FROM_OBJECT(src));
+ Self *self = GET_NEW(CTX_FROM_OBJECT(src), ALLOCATOR_FROM_OBJECT(src));
  return self;
  }
 #line 76 "z-closure.zco"

@@ -34,7 +34,7 @@ static void case1(struct zco_context_t *context)
 	printf("======================\n");
 	printf("Vector case #1:\n");
 
-	vec = z_vector_new(context);
+	vec = z_vector_new(context, NULL);
         z_vector_set_item_size(vec, sizeof(int));
 
 	for (i = 1; i <= 5; ++i) {
@@ -70,7 +70,7 @@ static void case2(struct zco_context_t *context)
 	printf("======================\n");
 	printf("Vector case #2:\n");
 
-	vec = z_vector_new(context);
+	vec = z_vector_new(context, NULL);
         z_vector_set_item_size(vec, sizeof(int));
 
 	/* size == 0 */
@@ -126,7 +126,7 @@ static void case3(struct zco_context_t *context)
 	printf("======================\n");
 	printf("Vector case #3:\n");
 
-	vec = z_vector_new(context);
+	vec = z_vector_new(context, NULL);
         z_vector_set_item_size(vec, sizeof(int));
 	z_vector_set_item_construct(vec, case3_helper1);
 
@@ -165,7 +165,7 @@ static void case4(struct zco_context_t *context)
 	printf("======================\n");
 	printf("Vector case #4:\n");
 
-	vec = z_vector_new(context);
+	vec = z_vector_new(context, NULL);
         z_vector_set_item_size(vec, sizeof(int));
 
 	for (i = 1; i <= 10; ++i) {
@@ -198,7 +198,7 @@ static void case5(struct zco_context_t *context)
 	printf("======================\n");
 	printf("Vector case #5:\n");
 
-	vec = z_vector_new(context);
+	vec = z_vector_new(context, NULL);
         z_vector_set_item_size(vec, sizeof(int));
 	z_vector_set_item_construct(vec, case5_helper1);
 	z_vector_set_size(vec, 10);
@@ -236,7 +236,7 @@ static void case6(struct zco_context_t *context)
 	printf("======================\n");
 	printf("Vector case #6:\n");
 
-	vec = z_vector_new(context);
+	vec = z_vector_new(context, NULL);
         z_vector_set_item_size(vec, sizeof(int));
 
 	x = 77;
@@ -265,7 +265,7 @@ static void case7(struct zco_context_t *context)
 	printf("======================\n");
 	printf("Vector case #7:\n");
 
-	vec = z_vector_new(context);
+	vec = z_vector_new(context, NULL);
         z_vector_set_item_size(vec, sizeof(int));
 
 	x = 10;
@@ -301,7 +301,7 @@ static void case8(struct zco_context_t *context)
 	printf("======================\n");
 	printf("Vector case #8:\n");
 
-	vec = z_vector_new(context);
+	vec = z_vector_new(context, NULL);
         z_vector_set_item_size(vec, sizeof(int));
 
 	x = 100;
@@ -345,7 +345,7 @@ static void case9(struct zco_context_t *context)
 	printf("======================\n");
 	printf("Vector case #9:\n");
 
-	vec1 = z_vector_new(context);
+	vec1 = z_vector_new(context, NULL);
         z_vector_set_item_size(vec1, sizeof(int));
 	z_vector_set_item_construct(vec1, case9_helper1);
 	z_vector_set_size(vec1, 3);
@@ -360,7 +360,7 @@ static void case9(struct zco_context_t *context)
 	z_vector_insert(vec1, it, 2, &x);
 	z_object_unref(Z_OBJECT(it));
 
-	vec2 = z_vector_new(context);
+	vec2 = z_vector_new(context, NULL);
         z_vector_set_item_size(vec2, sizeof(int));
 	z_vector_set_item_construct(vec2, case9_helper2);
 	z_vector_set_size(vec2, 2);
@@ -409,7 +409,7 @@ static void case10(struct zco_context_t *context)
 	printf("======================\n");
 	printf("Vector case #10:\n");
 
-	vec = z_vector_new(context);
+	vec = z_vector_new(context, NULL);
         z_vector_set_item_size(vec, sizeof(int));
 
 	for (i = 1; i <= 10; ++i) {
@@ -462,7 +462,7 @@ static void case11(struct zco_context_t *context)
 	printf("======================\n");
 	printf("Vector case #11:\n");
 
-	vec = z_vector_new(context);
+	vec = z_vector_new(context, NULL);
         z_vector_set_item_size(vec, sizeof(int));
 
 	x = 100;

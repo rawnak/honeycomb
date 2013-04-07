@@ -24,12 +24,13 @@
 #include <z-object-tracker.h>
 #include <z-map.h>
 #include <string.h>
+#include <z-memory-allocator.h>
 #include <z-object-tracker.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZObjectTracker
 #define selfp (&self->_priv)
-#define GET_NEW(ctx) __z_object_tracker_new(ctx)
+#define GET_NEW(ctx,allocator) __z_object_tracker_new(ctx,allocator)
 #line 10 "z-object-tracker.zco"
 #define create z_object_tracker_create
 #line 15 "z-object-tracker.zco"
@@ -39,7 +40,7 @@
 
 int z_object_tracker_type_id = -1;
 
-static Self *__z_object_tracker_new(struct zco_context_t *ctx)
+static Self *__z_object_tracker_new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
 {
 	Self *self = NULL;
 	ZObjectTracker *object_tracker = (ZObjectTracker *) ctx->object_tracker;
@@ -104,7 +105,7 @@ ZObjectTrackerGlobal * z_object_tracker_get_type(struct zco_context_t *ctx)
 #line 20 "z-object-tracker.zco"
 		CLASS_FROM_GLOBAL(global)->__garbage_collect = z_object_tracker_virtual_garbage_collect;
 		__z_object_tracker_class_init(ctx, (ZObjectTrackerClass *) CLASS_FROM_GLOBAL(global));
-		global->common.method_map = z_map_new(ctx);
+		global->common.method_map = z_map_new(ctx, NULL);
 		z_map_set_compare(global->common.method_map, __map_compare);
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
 #line 10 "z-object-tracker.zco"

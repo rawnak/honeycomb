@@ -70,7 +70,7 @@ ZFrameworkEventsGlobal * z_framework_events_get_type(struct zco_context_t *ctx);
 void __z_framework_events_init(struct zco_context_t *ctx, ZFrameworkEvents *self);
 void __z_framework_events_class_init(struct zco_context_t *ctx, ZFrameworkEventsClass *_class);
 #line 15 "z-framework-events.zco"
-Self * z_framework_events_new(struct zco_context_t *ctx);
+Self * z_framework_events_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator);
 #line 22 "z-framework-events.zco"
 void  z_framework_events_resize_event(Self *self,ZString *output);
 #line 23 "z-framework-events.zco"

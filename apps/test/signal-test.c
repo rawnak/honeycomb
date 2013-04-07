@@ -31,7 +31,7 @@ static int clicked(ZTestObject *self, void *userdata)
 
 static void case1(struct zco_context_t *context)
 {
-	ZTestObject *test_object = z_test_object_new(context);
+	ZTestObject *test_object = z_test_object_new(context, NULL);
 
 	void *key1 = z_object_connect(Z_OBJECT(test_object), "clicked", Z_OBJECT(test_object), "close1", NULL);
 	void *key2 = z_object_connect(Z_OBJECT(test_object), "clicked", Z_OBJECT(test_object), "close2", NULL);
@@ -48,7 +48,7 @@ void signal_test(struct zco_context_t *context, int id)
 {
 	ZCClosureMarshal *marshal;
 
-	marshal = z_c_closure_marshal_new(context);
+	marshal = z_c_closure_marshal_new(context, NULL);
 	zco_context_set_marshal(context, marshal);
 
 	DEFINE_TEST(1, case1);

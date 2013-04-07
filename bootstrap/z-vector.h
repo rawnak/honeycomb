@@ -97,7 +97,7 @@ ZVectorGlobal * z_vector_get_type(struct zco_context_t *ctx);
 void __z_vector_init(struct zco_context_t *ctx, ZVector *self);
 void __z_vector_class_init(struct zco_context_t *ctx, ZVectorClass *_class);
 #line 86 "z-vector.zco"
-Self * z_vector_new(struct zco_context_t *ctx);
+Self * z_vector_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator);
 #line 94 "z-vector.zco"
 void z_vector_set_item_size(Self *self, int  value);
 #line 108 "z-vector.zco"

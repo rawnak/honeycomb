@@ -82,7 +82,7 @@ ZVectorIterGlobal * z_vector_iter_get_type(struct zco_context_t *ctx);
 void __z_vector_iter_init(struct zco_context_t *ctx, ZVectorIter *self);
 void __z_vector_iter_class_init(struct zco_context_t *ctx, ZVectorIterClass *_class);
 #line 44 "z-vector-iter.zco"
-Self * z_vector_iter_new(struct zco_context_t *ctx);
+Self * z_vector_iter_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator);
 #line 50 "z-vector-iter.zco"
 Self * z_vector_iter_dup(ZVectorIter *src);
 #line 59 "z-vector-iter.zco"

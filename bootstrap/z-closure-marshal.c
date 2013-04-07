@@ -24,18 +24,19 @@
 #include <z-object-tracker.h>
 #include <z-map.h>
 #include <string.h>
+#include <z-memory-allocator.h>
 #include <z-closure-marshal.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZClosureMarshal
 #define selfp (&self->_priv)
-#define GET_NEW(ctx) __z_closure_marshal_new(ctx)
+#define GET_NEW(ctx,allocator) __z_closure_marshal_new(ctx,allocator)
 #line 11 "z-closure-marshal.zco"
 #define invoke z_closure_marshal_invoke
 
 int z_closure_marshal_type_id = -1;
 
-static Self *__z_closure_marshal_new(struct zco_context_t *ctx)
+static Self *__z_closure_marshal_new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
 {
 	Self *self = NULL;
 	ZObjectTracker *object_tracker = (ZObjectTracker *) ctx->object_tracker;
@@ -92,7 +93,7 @@ ZClosureMarshalGlobal * z_closure_marshal_get_type(struct zco_context_t *ctx)
 #line 11 "z-closure-marshal.zco"
 		CLASS_FROM_GLOBAL(global)->__invoke = z_closure_marshal_virtual_invoke;
 		__z_closure_marshal_class_init(ctx, (ZClosureMarshalClass *) CLASS_FROM_GLOBAL(global));
-		global->common.method_map = z_map_new(ctx);
+		global->common.method_map = z_map_new(ctx, NULL);
 		z_map_set_compare(global->common.method_map, __map_compare);
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
 #line 11 "z-closure-marshal.zco"

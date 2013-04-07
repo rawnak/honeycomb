@@ -31,12 +31,13 @@
 #include <z-object-tracker.h>
 #include <z-map.h>
 #include <string.h>
+#include <z-memory-allocator.h>
 #include <z-default-object-tracker.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZDefaultObjectTracker
 #define selfp (&self->_priv)
-#define GET_NEW(ctx) __z_default_object_tracker_new(ctx)
+#define GET_NEW(ctx,allocator) __z_default_object_tracker_new(ctx,allocator)
 #define INIT_EXISTS
 #line 23 "z-default-object-tracker.zco"
 #define init z_default_object_tracker_init
@@ -49,7 +50,7 @@
 
 int z_default_object_tracker_type_id = -1;
 
-static Self *__z_default_object_tracker_new(struct zco_context_t *ctx)
+static Self *__z_default_object_tracker_new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
 {
 	Self *self = NULL;
 	ZObjectTracker *object_tracker = (ZObjectTracker *) ctx->object_tracker;
@@ -208,7 +209,7 @@ ZDefaultObjectTrackerGlobal * z_default_object_tracker_get_type(struct zco_conte
 #line 256 "z-default-object-tracker.zco"
 		}
 		__z_default_object_tracker_class_init(ctx, (ZDefaultObjectTrackerClass *) CLASS_FROM_GLOBAL(global));
-		global->common.method_map = z_map_new(ctx);
+		global->common.method_map = z_map_new(ctx, NULL);
 		z_map_set_compare(global->common.method_map, __map_compare);
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
 #line 31 "z-default-object-tracker.zco"
@@ -244,15 +245,15 @@ void __z_default_object_tracker_init(struct zco_context_t *ctx, Self *self)
 #line 23 "z-default-object-tracker.zco"
 static void z_default_object_tracker_init(Self *self)
 {
- selfp->pools = z_map_new(CTX_FROM_OBJECT(self));
+ selfp->pools = z_map_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  z_map_set_compare(selfp->pools, map_compare);
  z_map_set_value_destruct(selfp->pools, (ZMapItemCallback) z_object_unref);
  selfp->suspended = 0;
  }
 #line 31 "z-default-object-tracker.zco"
-Self * z_default_object_tracker_new(struct zco_context_t *ctx)
+Self * z_default_object_tracker_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator)
 {
- Self *self = GET_NEW(ctx);
+ Self *self = GET_NEW(ctx, allocator);
  return self;
  }
 #line 37 "z-default-object-tracker.zco"
@@ -379,7 +380,7 @@ static int  z_default_object_tracker_destroy(ZObjectTracker *tracker,ZObject *ta
 
  } else {
  /* create the pool for the type */
- pool = z_vector_new(CTX_FROM_OBJECT(self));
+ pool = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  z_vector_set_item_size(pool, 0);
 
  /* insert the pool into the list of pools */

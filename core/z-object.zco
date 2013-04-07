@@ -24,6 +24,9 @@
 
 struct ZObject;
 typedef void(*ZObjectSignalHandler)(struct ZObject *self, ...);
+
+struct ZMemoryAllocator;
+typedef struct ZMemoryAllocator ZMemoryAllocator;
 %}
 
 %{
@@ -40,17 +43,19 @@ typedef void(*ZObjectSignalHandler)(struct ZObject *self, ...);
 class ZObject 
 {
 	public void *class_base;
+	public virtual unsigned long *class_off_list;
+	public virtual ZCommonGlobal *real_global;
 	private unsigned int ref_count;
 	private void *attached_properties;
 	private void *signal_map;
-	public virtual unsigned long *class_off_list;
-	public virtual ZCommonGlobal *real_global;
+        private ZMemoryAllocator *allocator;
 
 	init(Self *self)
 	{
 		selfp->ref_count = 1;
 		selfp->attached_properties = 0;
 		selfp->signal_map = 0;
+                selfp->allocator = 0;
 	}
 
         global virtual void class_destroy(ZObjectGlobal *gbl)
@@ -87,7 +92,7 @@ class ZObject
 		}
 
         }
-        
+
         public virtual void reset(Self *self)
         {
                 /* This ensures that reset() is not called by someone other
@@ -185,7 +190,7 @@ class ZObject
 		assert(handler != NULL);
 
 		/* create a closure */
-		closure = z_closure_new(CTX_FROM_OBJECT(self));
+		closure = z_closure_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
 
 		z_closure_set_marshal(closure, (ZClosureMarshal *) CTX_FROM_OBJECT(self)->marshal);
 		z_closure_set_target(closure, target);
@@ -239,7 +244,7 @@ class ZObject
 	{
 		/* create signal map (if necessary) */
 		if (!selfp->signal_map) {
-			selfp->signal_map = z_map_new(CTX_FROM_OBJECT(self));
+			selfp->signal_map = z_map_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
 			z_map_set_compare(selfp->signal_map, map_compare);
 			z_map_set_key_destruct(selfp->signal_map, (ZMapItemCallback) free);
 			z_map_set_value_destruct(selfp->signal_map, (ZMapItemCallback) unref);
@@ -249,7 +254,7 @@ class ZObject
 		ZMapIter *it = z_map_find(selfp->signal_map, name);
 
 		if (!it) {
-			ZVector *closure_list = z_vector_new(CTX_FROM_OBJECT(self));
+			ZVector *closure_list = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
                         z_vector_set_item_size(closure_list, 0);
 			z_vector_set_item_destruct(closure_list, (ZVectorItemCallback) unref);
 			z_map_insert(selfp->signal_map, strdup(name), closure_list);
@@ -292,7 +297,7 @@ class ZObject
 	public void add_attached_property_map(Self *self, void *map)
 	{
 		if (selfp->attached_properties == 0) {
-			selfp->attached_properties = z_vector_new(CTX_FROM_OBJECT(self));
+			selfp->attached_properties = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
                         z_vector_set_item_size(selfp->attached_properties, sizeof(void *));
                 }
 
@@ -304,5 +309,10 @@ class ZObject
 	{
 		return strcmp(a, b);
 	}
+
+        public ZMemoryAllocator * get_allocator_ptr(Self *self)
+        {
+                return selfp->allocator;
+        }
 }
 

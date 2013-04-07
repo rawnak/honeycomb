@@ -57,16 +57,16 @@ class ZGatewayApplication : ZObject
 		selfp->last_wakeup = 0;
 
 		/* set a default marshaller for the current context */
-		selfp->marshal = z_c_closure_marshal_new(CTX_FROM_OBJECT(self));
+		selfp->marshal = z_c_closure_marshal_new(CTX_FROM_OBJECT(self), NULL);
 		zco_context_set_marshal(CTX_FROM_OBJECT(self), selfp->marshal);
 
 		/* create a vector to hold on to the top level windows */
-		selfp->toplevels = z_vector_new(CTX_FROM_OBJECT(self));
+		selfp->toplevels = z_vector_new(CTX_FROM_OBJECT(self), NULL);
                 z_vector_set_item_size(selfp->toplevels, 0);
 		z_vector_set_item_destruct(selfp->toplevels, (ZVectorItemCallback) z_object_unref);
 
 		/* create the main window */
-		ZWindow *main_window = z_window_new(CTX_FROM_OBJECT(self));
+		ZWindow *main_window = z_window_new(CTX_FROM_OBJECT(self), NULL);
 		z_vector_push_back(selfp->toplevels, main_window);
 
 		/* connect the framework draw_event signal to the window's draw method */
@@ -74,9 +74,9 @@ class ZGatewayApplication : ZObject
 		z_object_connect(Z_OBJECT(framework_events), "draw_event", Z_OBJECT(main_window), "draw", NULL);
 	}
 
-	public Self *new(struct zco_context_t *ctx)
+	public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
 	{
-		Self *self = GET_NEW(ctx);
+		Self *self = GET_NEW(ctx, allocator);
 		return self;
 	}
 
@@ -152,7 +152,7 @@ class ZGatewayApplication : ZObject
 		FCGX_FPrintF(out, "\r\n");
 
 		/* Raise the 'draw_event' signal */
-		ZString *message = z_string_new(CTX_FROM_OBJECT(self));
+		ZString *message = z_string_new(CTX_FROM_OBJECT(self), NULL);
 		ZFrameworkEvents *framework_events = (ZFrameworkEvents *) zco_context_get_framework_events(CTX_FROM_OBJECT(self));
 		z_framework_events_draw_event(framework_events, message);
 

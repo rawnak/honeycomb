@@ -90,7 +90,7 @@ ZVectorSegmentGlobal * z_vector_segment_get_type(struct zco_context_t *ctx);
 void __z_vector_segment_init(struct zco_context_t *ctx, ZVectorSegment *self);
 void __z_vector_segment_class_init(struct zco_context_t *ctx, ZVectorSegmentClass *_class);
 #line 69 "z-vector-segment.zco"
-Self * z_vector_segment_new(struct zco_context_t *ctx);
+Self * z_vector_segment_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator);
 #line 77 "z-vector-segment.zco"
 Self * z_vector_segment_get_prev(Self *self);
 #line 84 "z-vector-segment.zco"

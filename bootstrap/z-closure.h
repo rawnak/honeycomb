@@ -84,7 +84,7 @@ ZClosureGlobal * z_closure_get_type(struct zco_context_t *ctx);
 void __z_closure_init(struct zco_context_t *ctx, ZClosure *self);
 void __z_closure_class_init(struct zco_context_t *ctx, ZClosureClass *_class);
 #line 62 "z-closure.zco"
-Self * z_closure_new(struct zco_context_t *ctx);
+Self * z_closure_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator);
 #line 68 "z-closure.zco"
 Self * z_closure_dup(ZClosure *src);
 #line 76 "z-closure.zco"

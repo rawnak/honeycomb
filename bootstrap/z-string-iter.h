@@ -73,7 +73,7 @@ ZStringIterGlobal * z_string_iter_get_type(struct zco_context_t *ctx);
 void __z_string_iter_init(struct zco_context_t *ctx, ZStringIter *self);
 void __z_string_iter_class_init(struct zco_context_t *ctx, ZStringIterClass *_class);
 #line 25 "z-string-iter.zco"
-Self * z_string_iter_new(struct zco_context_t *ctx);
+Self * z_string_iter_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator);
 #line 31 "z-string-iter.zco"
 Self * z_string_iter_dup(ZStringIter *src);
 #line 41 "z-string-iter.zco"

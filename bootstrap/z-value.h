@@ -94,7 +94,7 @@ ZValueGlobal * z_value_get_type(struct zco_context_t *ctx);
 void __z_value_init(struct zco_context_t *ctx, ZValue *self);
 void __z_value_class_init(struct zco_context_t *ctx, ZValueClass *_class);
 #line 56 "z-value.zco"
-Self * z_value_new(struct zco_context_t *ctx);
+Self * z_value_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator);
 #line 62 "z-value.zco"
 Self * z_value_dup(ZValue *src);
 #line 101 "z-value.zco"

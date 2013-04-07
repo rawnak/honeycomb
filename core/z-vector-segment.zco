@@ -86,9 +86,9 @@ class ZVectorSegment : ZObject
 		PARENT_HANDLER(object);
 	}
 
-	public Self *new(struct zco_context_t *ctx)
+	public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
 	{
-		Self *self = GET_NEW(ctx);
+		Self *self = GET_NEW(ctx, allocator);
 		return self;
 	}
 
@@ -376,7 +376,7 @@ done:
 	{
 		get
 		{
-			ZVectorIter *iter = z_vector_iter_new(CTX_FROM_OBJECT(self));
+			ZVectorIter *iter = z_vector_iter_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
                         z_vector_iter_set_segment(iter, self);
 			return iter;
 		}
@@ -388,7 +388,7 @@ done:
 	{
 		get
 		{
-			ZVectorIter *iter = z_vector_iter_new(CTX_FROM_OBJECT(self));
+			ZVectorIter *iter = z_vector_iter_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
                         z_vector_iter_set_segment(iter, self);
 			z_vector_iter_set_index(iter, get_size(self)-1);
                         z_vector_iter_increment(iter);

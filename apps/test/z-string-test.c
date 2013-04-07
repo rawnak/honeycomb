@@ -38,10 +38,10 @@ static void case1(struct zco_context_t *context)
 {
 	/* Testing z_string_get_begin / z_string_get_end */
 
-        ZString *dummy = z_string_new(context);
+        ZString *dummy = z_string_new(context, NULL);
         z_object_unref(Z_OBJECT(dummy));
 
-        ZString *dummy2 = z_string_new(context);
+        ZString *dummy2 = z_string_new(context, NULL);
         z_object_unref(Z_OBJECT(dummy2));
 
 
@@ -54,7 +54,7 @@ static void case1(struct zco_context_t *context)
 	printf("======================\n");
 	printf("ZString case #1:\n");
 
-	str = z_string_new(context);
+	str = z_string_new(context, NULL);
 	z_string_set_cstring(str, test_string, Z_STRING_ENCODING_UTF8);
 
 	it = z_string_get_begin(str);
@@ -87,7 +87,7 @@ static void case2(struct zco_context_t *context)
 	printf("======================\n");
 	printf("ZString case #2:\n");
 
-	str = z_string_new(context);
+	str = z_string_new(context, NULL);
 	z_string_set_cstring(str, test_string, Z_STRING_ENCODING_UTF8);
 	length = z_string_get_length(str);
 
@@ -110,7 +110,7 @@ static void case3(struct zco_context_t *context)
 	printf("======================\n");
 	printf("ZString case #3:\n");
 
-	str = z_string_new(context);
+	str = z_string_new(context, NULL);
 	z_string_set_cstring(str, test_string, Z_STRING_ENCODING_UTF8);
 
 	printf("string contains (before clearing): ");
@@ -178,9 +178,9 @@ static void case4(struct zco_context_t *context)
 	printf("======================\n");
 	printf("ZString case #4:\n");
 
-	str1 = z_string_new(context);
-	str2 = z_string_new(context);
-	str3 = z_string_new(context);
+	str1 = z_string_new(context, NULL);
+	str2 = z_string_new(context, NULL);
+	str3 = z_string_new(context, NULL);
 
 	z_string_set_cstring(str2, test_string1, Z_STRING_ENCODING_UTF8);
 	z_string_set_cstring(str3, test_string2, Z_STRING_ENCODING_UTF8);
@@ -275,7 +275,7 @@ static void case5(struct zco_context_t *context)
 	printf("======================\n");
 	printf("ZString case #5:\n");
 
-	str = z_string_new(context);
+	str = z_string_new(context, NULL);
 
 	for (i = 0; i < sizeof(test_string) - 1; ++i) {
 		z_string_push_back(str, test_string[i]);
@@ -329,9 +329,9 @@ static void case6(struct zco_context_t *context)
 	printf("======================\n");
 	printf("ZString case #6:\n");
 
-	str1 = z_string_new(context);
-	str2 = z_string_new(context);
-	str3 = z_string_new(context);
+	str1 = z_string_new(context, NULL);
+	str2 = z_string_new(context, NULL);
+	str3 = z_string_new(context, NULL);
 
 	z_string_set_cstring(str1, test_string1, Z_STRING_ENCODING_UTF8);
 	z_string_set_cstring(str2, test_string2, Z_STRING_ENCODING_UTF8);
@@ -413,9 +413,9 @@ static void case7(struct zco_context_t *context)
 	printf("======================\n");
 	printf("ZString case #7:\n");
 
-	str1 = z_string_new(context);
-	str2 = z_string_new(context);
-	str3 = z_string_new(context);
+	str1 = z_string_new(context, NULL);
+	str2 = z_string_new(context, NULL);
+	str3 = z_string_new(context, NULL);
 
 	z_string_set_cstring(str1, test_string1, Z_STRING_ENCODING_UTF8);
 	z_string_set_cstring(str2, test_string2, Z_STRING_ENCODING_UTF8);
@@ -476,7 +476,7 @@ static void case8(struct zco_context_t *context)
 	printf("======================\n");
 	printf("ZString case #8:\n");
 
-	str1 = z_string_new(context);
+	str1 = z_string_new(context, NULL);
 	z_string_set_cstring(str1, test_string1, Z_STRING_ENCODING_UTF8);
 
 	/* erase the middle sentence from the string */
@@ -537,9 +537,9 @@ static void case9(struct zco_context_t *context)
 	printf("======================\n");
 	printf("ZString case #9:\n");
 
-	str1 = z_string_new(context);
-	str2 = z_string_new(context);
-	str3 = z_string_new(context);
+	str1 = z_string_new(context, NULL);
+	str2 = z_string_new(context, NULL);
+	str3 = z_string_new(context, NULL);
 
 	z_string_set_cstring(str1, test_string1, Z_STRING_ENCODING_UTF8);
 	z_string_set_cstring(str2, test_string2, Z_STRING_ENCODING_UTF8);
@@ -614,9 +614,9 @@ static void case10(struct zco_context_t *context)
 	printf("======================\n");
 	printf("ZString case #10:\n");
 
-	str1 = z_string_new(context);
-	str2 = z_string_new(context);
-	str3 = z_string_new(context);
+	str1 = z_string_new(context, NULL);
+	str2 = z_string_new(context, NULL);
+	str3 = z_string_new(context, NULL);
 
 	z_string_set_cstring(str1, test_string1, Z_STRING_ENCODING_UTF8);
 	z_string_set_cstring(str2, test_string2, Z_STRING_ENCODING_UTF8);
@@ -681,7 +681,7 @@ static void case11(struct zco_context_t *context)
 	printf("======================\n");
 	printf("ZString case #11:\n");
 
-	str = z_string_new(context);
+	str = z_string_new(context, NULL);
 
 	z_string_set_cstring(str, test_string, Z_STRING_ENCODING_UTF8);
 	buffer = z_string_get_cstring(str, Z_STRING_ENCODING_UTF8);
@@ -712,9 +712,9 @@ static void case12(struct zco_context_t *context)
 	printf("======================\n");
 	printf("ZString case #12:\n");
 
-	red = z_string_new(context);
-	green = z_string_new(context);
-	apple = z_string_new(context);
+	red = z_string_new(context, NULL);
+	green = z_string_new(context, NULL);
+	apple = z_string_new(context, NULL);
 
 	z_string_set_cstring(red, test_red, Z_STRING_ENCODING_UTF8);
 	z_string_set_cstring(green, test_green, Z_STRING_ENCODING_UTF8);
@@ -777,7 +777,7 @@ static void case13(struct zco_context_t *context)
 	printf("======================\n");
 	printf("ZString case #13:\n");
 
-	hay = z_string_new(context);
+	hay = z_string_new(context, NULL);
 
 	z_string_set_cstring(hay, test_hay, Z_STRING_ENCODING_UTF8);
 	it = z_string_get_begin(hay);
@@ -815,8 +815,8 @@ static void case14(struct zco_context_t *context)
 	printf("======================\n");
 	printf("ZString case #14:\n");
 
-	hay = z_string_new(context);
-	needle = z_string_new(context);
+	hay = z_string_new(context, NULL);
+	needle = z_string_new(context, NULL);
 
 	z_string_set_cstring(hay, test_hay, Z_STRING_ENCODING_UTF8);
 	z_string_set_cstring(needle, test_needle, Z_STRING_ENCODING_UTF8);
@@ -855,8 +855,8 @@ static void case15(struct zco_context_t *context)
 	printf("======================\n");
 	printf("ZString case #15:\n");
 
-	hay = z_string_new(context);
-	list = z_string_new(context);
+	hay = z_string_new(context, NULL);
+	list = z_string_new(context, NULL);
 
 	z_string_set_cstring(hay, test_hay, Z_STRING_ENCODING_UTF8);
 	z_string_set_cstring(list, "aeiou", Z_STRING_ENCODING_UTF8);
@@ -900,8 +900,8 @@ static void case16(struct zco_context_t *context)
 	printf("======================\n");
 	printf("ZString case #16:\n");
 
-	hay = z_string_new(context);
-	list = z_string_new(context);
+	hay = z_string_new(context, NULL);
+	list = z_string_new(context, NULL);
 
 	z_string_set_cstring(hay, test_hay, Z_STRING_ENCODING_UTF8);
 	z_string_set_cstring(list, "aeiou. ", Z_STRING_ENCODING_UTF8);
@@ -950,8 +950,8 @@ static void case17(struct zco_context_t *context)
 	printf("======================\n");
 	printf("ZString case #17:\n");
 
-	hay = z_string_new(context);
-	space_string = z_string_new(context);
+	hay = z_string_new(context, NULL);
+	space_string = z_string_new(context, NULL);
 
 	z_string_set_cstring(hay, test_hay, Z_STRING_ENCODING_UTF8);
 	z_string_set_cstring(space_string, " ", Z_STRING_ENCODING_UTF8);
@@ -965,15 +965,15 @@ static void case17(struct zco_context_t *context)
 		ZString *test_token, *token;
 		ZStringIter *first, *last;
 
-		first = z_string_iter_new(context);
-		last = z_string_iter_new(context);
+		first = z_string_iter_new(context, NULL);
+		last = z_string_iter_new(context, NULL);
 
 		int rc = z_string_token_next(hay, space_string, first, last);
 
-		test_token = z_string_new(context);
+		test_token = z_string_new(context, NULL);
 		z_string_set_cstring(test_token, tokens[i], Z_STRING_ENCODING_UTF8);
 
-		token = z_string_new(context);
+		token = z_string_new(context, NULL);
 		z_string_append(token, hay, first, last);
 		print_string(token);
 

@@ -45,14 +45,14 @@ void zco_context_init(struct zco_context_t *ctx)
            segment holds a single item, it is nothing more than a linked list. */
         zco_context_set_min_segment_capacity_by_count(ctx, 2);
 
-	ctx->framework_events = z_framework_events_new(ctx);
+	ctx->framework_events = z_framework_events_new(ctx, NULL);
 
         /* Load the default object tracker
            This must be the very last step in the context initialization process
            (by convention). Loading the object tracker at the end of the context
            initialization and unloading it at the start of the context destruction
            ensures that we consistently use the correct tracker for every object. */
-        ZObjectTracker *tracker = (ZObjectTracker *) z_default_object_tracker_new(ctx);
+        ZObjectTracker *tracker = (ZObjectTracker *) z_default_object_tracker_new(ctx, NULL);
         zco_context_set_object_tracker(ctx, (void *) tracker);
 }
 

@@ -72,7 +72,7 @@ ZFileGlobal * z_file_get_type(struct zco_context_t *ctx);
 void __z_file_init(struct zco_context_t *ctx, ZFile *self);
 void __z_file_class_init(struct zco_context_t *ctx, ZFileClass *_class);
 #line 19 "z-file.zco"
-Self * z_file_new(struct zco_context_t *ctx);
+Self * z_file_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator);
 #line 25 "z-file.zco"
 int  z_file_open(Self *self,const char *filename,const char *mode);
 #line 31 "z-file.zco"

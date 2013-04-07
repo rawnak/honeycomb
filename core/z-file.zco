@@ -36,9 +36,9 @@ class ZFile : ZObject
 		selfp->file = NULL;
 	}
 
-	public Self *new(struct zco_context_t *ctx)
+	public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
 	{
-		Self *self = GET_NEW(ctx);
+		Self *self = GET_NEW(ctx, allocator);
 		return self;
 	}
 
@@ -66,7 +66,7 @@ class ZFile : ZObject
 
 	public int write_vformat(Self *self, const char *fmt, va_list ap)
 	{
-		ZString *temp = z_string_new(CTX_FROM_OBJECT(self));
+		ZString *temp = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
 		
 		/* create a formatted string */
 		z_string_append_vformat(temp, fmt, ap);

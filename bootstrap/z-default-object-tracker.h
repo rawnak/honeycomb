@@ -86,7 +86,7 @@ ZDefaultObjectTrackerGlobal * z_default_object_tracker_get_type(struct zco_conte
 void __z_default_object_tracker_init(struct zco_context_t *ctx, ZDefaultObjectTracker *self);
 void __z_default_object_tracker_class_init(struct zco_context_t *ctx, ZDefaultObjectTrackerClass *_class);
 #line 31 "z-default-object-tracker.zco"
-Self * z_default_object_tracker_new(struct zco_context_t *ctx);
+Self * z_default_object_tracker_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator);
 
 #undef Self
 

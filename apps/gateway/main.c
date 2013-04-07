@@ -239,7 +239,7 @@ int main(int argc, char **argv)
 
 	/* prepare the root context */
 	zco_context_init(&root_context);
-	sessions = z_map_new(&root_context);
+	sessions = z_map_new(&root_context, NULL);
 	
 	z_map_set_key_destruct(sessions, (ZMapItemCallback) free);
 	z_map_set_value_destruct(sessions, (ZMapItemCallback) session_destroy);
@@ -287,7 +287,7 @@ int main(int argc, char **argv)
 			zco_context_init(context);
 
 			/* create a new ZGatewayApplication */
-			app = z_gateway_application_new(context);
+			app = z_gateway_application_new(context, NULL);
 
 			/* insert ZGatewayApplication into the session map */
 			union guid_t *guid_copy = malloc(sizeof(union guid_t));

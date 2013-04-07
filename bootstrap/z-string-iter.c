@@ -24,12 +24,13 @@
 #include <z-object-tracker.h>
 #include <z-map.h>
 #include <string.h>
+#include <z-memory-allocator.h>
 #include <z-string-iter.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZStringIter
 #define selfp (&self->_priv)
-#define GET_NEW(ctx) __z_string_iter_new(ctx)
+#define GET_NEW(ctx,allocator) __z_string_iter_new(ctx,allocator)
 #define INIT_EXISTS
 #line 12 "z-string-iter.zco"
 #define init z_string_iter_init
@@ -56,7 +57,7 @@
 
 int z_string_iter_type_id = -1;
 
-static Self *__z_string_iter_new(struct zco_context_t *ctx)
+static Self *__z_string_iter_new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
 {
 	Self *self = NULL;
 	ZObjectTracker *object_tracker = (ZObjectTracker *) ctx->object_tracker;
@@ -155,7 +156,7 @@ ZStringIterGlobal * z_string_iter_get_type(struct zco_context_t *ctx)
 #line 80 "z-string-iter.zco"
 		}
 		__z_string_iter_class_init(ctx, (ZStringIterClass *) CLASS_FROM_GLOBAL(global));
-		global->common.method_map = z_map_new(ctx);
+		global->common.method_map = z_map_new(ctx, NULL);
 		z_map_set_compare(global->common.method_map, __map_compare);
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
 #line 25 "z-string-iter.zco"
@@ -216,15 +217,15 @@ static void  z_string_iter_reset(ZObject *object)
  }
 #undef PARENT_HANDLER
 #line 25 "z-string-iter.zco"
-Self * z_string_iter_new(struct zco_context_t *ctx)
+Self * z_string_iter_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator)
 {
- Self *self = GET_NEW(ctx);
+ Self *self = GET_NEW(ctx, allocator);
  return self;
  }
 #line 31 "z-string-iter.zco"
 Self * z_string_iter_dup(ZStringIter *src)
 {
- Self *self = GET_NEW(CTX_FROM_OBJECT(src));
+ Self *self = GET_NEW(CTX_FROM_OBJECT(src), ALLOCATOR_FROM_OBJECT(src));
  
  set_index(self, get_index(src));
  return self;

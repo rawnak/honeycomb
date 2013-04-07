@@ -73,7 +73,7 @@ ZMapIterGlobal * z_map_iter_get_type(struct zco_context_t *ctx);
 void __z_map_iter_init(struct zco_context_t *ctx, ZMapIter *self);
 void __z_map_iter_class_init(struct zco_context_t *ctx, ZMapIterClass *_class);
 #line 24 "z-map-iter.zco"
-Self * z_map_iter_new(struct zco_context_t *ctx);
+Self * z_map_iter_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator);
 #line 30 "z-map-iter.zco"
 Self * z_map_iter_dup(ZMapIter *src);
 #line 40 "z-map-iter.zco"

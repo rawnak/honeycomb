@@ -1319,7 +1319,7 @@ int main(int argc, char **argv)
 	static struct zco_context_t context;
 	zco_context_init(&context);
 
-	source_generator = z_zco_source_generator_new(&context);
+	source_generator = z_zco_source_generator_new(&context, NULL);
 	int rc = z_zco_source_generator_setup(source_generator, argc, argv);
 
 	if (rc != 0)

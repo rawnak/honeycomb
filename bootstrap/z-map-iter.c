@@ -24,12 +24,13 @@
 #include <z-object-tracker.h>
 #include <z-map.h>
 #include <string.h>
+#include <z-memory-allocator.h>
 #include <z-map-iter.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZMapIter
 #define selfp (&self->_priv)
-#define GET_NEW(ctx) __z_map_iter_new(ctx)
+#define GET_NEW(ctx,allocator) __z_map_iter_new(ctx,allocator)
 #define INIT_EXISTS
 #line 12 "z-map-iter.zco"
 #define init z_map_iter_init
@@ -56,7 +57,7 @@
 
 int z_map_iter_type_id = -1;
 
-static Self *__z_map_iter_new(struct zco_context_t *ctx)
+static Self *__z_map_iter_new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
 {
 	Self *self = NULL;
 	ZObjectTracker *object_tracker = (ZObjectTracker *) ctx->object_tracker;
@@ -155,7 +156,7 @@ ZMapIterGlobal * z_map_iter_get_type(struct zco_context_t *ctx)
 #line 79 "z-map-iter.zco"
 		}
 		__z_map_iter_class_init(ctx, (ZMapIterClass *) CLASS_FROM_GLOBAL(global));
-		global->common.method_map = z_map_new(ctx);
+		global->common.method_map = z_map_new(ctx, NULL);
 		z_map_set_compare(global->common.method_map, __map_compare);
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
 #line 24 "z-map-iter.zco"
@@ -215,15 +216,15 @@ static void  z_map_iter_reset(ZObject *object)
  }
 #undef PARENT_HANDLER
 #line 24 "z-map-iter.zco"
-Self * z_map_iter_new(struct zco_context_t *ctx)
+Self * z_map_iter_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator)
 {
- Self *self = GET_NEW(ctx);
+ Self *self = GET_NEW(ctx, allocator);
  return self;
  }
 #line 30 "z-map-iter.zco"
 Self * z_map_iter_dup(ZMapIter *src)
 {
- Self *self = GET_NEW(CTX_FROM_OBJECT(src));
+ Self *self = GET_NEW(CTX_FROM_OBJECT(src), ALLOCATOR_FROM_OBJECT(src));
 
  set_index(self, get_index(src));
  return self;

@@ -31,12 +31,13 @@
 #include <z-object-tracker.h>
 #include <z-map.h>
 #include <string.h>
+#include <z-memory-allocator.h>
 #include <z-string.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZString
 #define selfp (&self->_priv)
-#define GET_NEW(ctx) __z_string_new(ctx)
+#define GET_NEW(ctx,allocator) __z_string_new(ctx,allocator)
 #define INIT_EXISTS
 #line 36 "z-string.zco"
 #define init z_string_init
@@ -133,7 +134,7 @@
 
 int z_string_type_id = -1;
 
-static Self *__z_string_new(struct zco_context_t *ctx)
+static Self *__z_string_new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
 {
 	Self *self = NULL;
 	ZObjectTracker *object_tracker = (ZObjectTracker *) ctx->object_tracker;
@@ -266,7 +267,7 @@ ZStringGlobal * z_string_get_type(struct zco_context_t *ctx)
 #line 1741 "z-string.zco"
 		}
 		__z_string_class_init(ctx, (ZStringClass *) CLASS_FROM_GLOBAL(global));
-		global->common.method_map = z_map_new(ctx);
+		global->common.method_map = z_map_new(ctx, NULL);
 		z_map_set_compare(global->common.method_map, __map_compare);
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
 #line 75 "z-string.zco"
@@ -358,7 +359,7 @@ void __z_string_init(struct zco_context_t *ctx, Self *self)
 #line 36 "z-string.zco"
 static void z_string_init(Self *self)
 {
- selfp->data = z_vector_new(CTX_FROM_OBJECT(self));
+ selfp->data = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  z_vector_set_item_size(selfp->data, sizeof(char));
 
  selfp->length = 0;
@@ -374,7 +375,7 @@ static void  z_string_reset(ZObject *object)
  z_object_unref(Z_OBJECT(selfp->token_it));
 
  z_object_unref(Z_OBJECT(selfp->data));
- selfp->data = z_vector_new(CTX_FROM_OBJECT(self));
+ selfp->data = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
 
  z_vector_set_item_size(selfp->data, sizeof(char));
 
@@ -399,15 +400,15 @@ static void  z_string_dispose(ZObject *object)
  }
 #undef PARENT_HANDLER
 #line 75 "z-string.zco"
-Self * z_string_new(struct zco_context_t *ctx)
+Self * z_string_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator)
 {
- Self *self = GET_NEW(ctx);
+ Self *self = GET_NEW(ctx, allocator);
  return self;
  }
 #line 81 "z-string.zco"
 Self * z_string_dup(Self *src)
 {
- Self *self = GET_NEW(CTX_FROM_OBJECT(src));
+ Self *self = GET_NEW(CTX_FROM_OBJECT(src), ALLOCATOR_FROM_OBJECT(src));
  append(self, src, NULL, NULL);
  return self;
  }
@@ -712,7 +713,7 @@ void  z_string_replace(Self *self,ZStringIter *first,ZStringIter *last,ZString *
 #line 386 "z-string.zco"
 void  z_string_append_cstring(Self *self,const char *s,int encoding)
 {
- Self *tmp = new(CTX_FROM_OBJECT(self));
+ Self *tmp = new(CTX_FROM_OBJECT(self), NULL);
 
  set_cstring(tmp, s, encoding);
  append(self, tmp, NULL, NULL);
@@ -1346,13 +1347,13 @@ int  z_string_get_length(Self *self)
 #line 1026 "z-string.zco"
 ZStringIter *  z_string_get_begin(Self *self)
 {
- ZStringIter *it = z_string_iter_new(CTX_FROM_OBJECT(self));
+ ZStringIter *it = z_string_iter_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  return it;
  }
 #line 1035 "z-string.zco"
 ZStringIter *  z_string_get_end(Self *self)
 {
- ZStringIter *it = z_string_iter_new(CTX_FROM_OBJECT(self));
+ ZStringIter *it = z_string_iter_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  z_string_iter_set_index(it, selfp->length);
  return it;
  }

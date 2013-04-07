@@ -22,12 +22,13 @@
 #ifndef _ZCO_H_
 #define _ZCO_H_
 
-#define GLOBAL_FROM_OBJECT(o) ((o)->_global)
-#define CLASS_FROM_OBJECT(o)  ((ZObjectClass *) (o)->class_base)
-#define CLASS_FROM_GLOBAL(g)  ((g)->_class)
-#define GLOBAL_FROM_CLASS(c)  ((ZCommonGlobal *) (c)->real_global)
-#define CTX_FROM_GLOBAL(g)    ((g)->common.ctx)
-#define CTX_FROM_OBJECT(o)    CTX_FROM_GLOBAL(GLOBAL_FROM_OBJECT(o))
+#define GLOBAL_FROM_OBJECT(o)    ((o)->_global)
+#define CLASS_FROM_OBJECT(o)     ((ZObjectClass *) (o)->class_base)
+#define CLASS_FROM_GLOBAL(g)     ((g)->_class)
+#define GLOBAL_FROM_CLASS(c)     ((ZCommonGlobal *) (c)->real_global)
+#define CTX_FROM_GLOBAL(g)       ((g)->common.ctx)
+#define CTX_FROM_OBJECT(o)       CTX_FROM_GLOBAL(GLOBAL_FROM_OBJECT(o))
+#define ALLOCATOR_FROM_OBJECT(o) z_object_get_allocator_ptr(Z_OBJECT(o))
 
 struct ZCommonGlobal {
         /* vtable for object instance.
