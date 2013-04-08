@@ -32,9 +32,7 @@
 #define selfp (&self->_priv)
 #define GET_NEW(ctx,allocator) __z_default_memory_allocator_new(ctx,allocator)
 #define INIT_EXISTS
-#line 11 "z-default-memory-allocator.zco"
 #define init z_default_memory_allocator_init
-#line 17 "z-default-memory-allocator.zco"
 #define new z_default_memory_allocator_new
 
 int z_default_memory_allocator_type_id = -1;
@@ -61,21 +59,13 @@ static int __map_compare(ZMap *map, const void *a, const void *b)
 {
 	return strcmp(a, b);
 }
-#line 11 "z-default-memory-allocator.zco"
 static void z_default_memory_allocator_init(Self *self);
-#line 24 "z-default-memory-allocator.zco"
 static void  z_default_memory_allocator_dispose(ZObject *object);
-#line 31 "z-default-memory-allocator.zco"
 static void *  z_default_memory_allocator_allocate(ZMemoryAllocator *allocator,int size);
-#line 37 "z-default-memory-allocator.zco"
 static void *  z_default_memory_allocator_allocate_aligned(ZMemoryAllocator *allocator,int size,int alignment);
-#line 43 "z-default-memory-allocator.zco"
 static int  z_default_memory_allocator_try_resize(ZMemoryAllocator *allocator,void *block,int new_size);
-#line 49 "z-default-memory-allocator.zco"
 static void *  z_default_memory_allocator_resize(ZMemoryAllocator *allocator,void *block,int new_size);
-#line 55 "z-default-memory-allocator.zco"
 static void  z_default_memory_allocator_deallocate(ZMemoryAllocator *allocator,void *block);
-#line 59 "z-default-memory-allocator.zco"
 static void z_default_memory_allocator_class_destroy(ZObjectGlobal *gbl);
 
 static void cleanup_signal_arg(void *item, void *userdata)
@@ -132,81 +122,45 @@ ZDefaultMemoryAllocatorGlobal * z_default_memory_allocator_get_type(struct zco_c
 		global_ptr = zco_get_ctx_type(ctx, z_default_memory_allocator_type_id);
 		*global_ptr = (ZCommonGlobal *) global;
 		
-#line 24 "z-default-memory-allocator.zco"
 		{
-#line 24 "z-default-memory-allocator.zco"
 			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
-#line 24 "z-default-memory-allocator.zco"
 			global->__parent_dispose = p_class->__dispose;
-#line 24 "z-default-memory-allocator.zco"
 			p_class->__dispose = z_default_memory_allocator_dispose;
-#line 24 "z-default-memory-allocator.zco"
 		}
-#line 31 "z-default-memory-allocator.zco"
 		{
-#line 31 "z-default-memory-allocator.zco"
 			ZMemoryAllocatorClass *p_class = (ZMemoryAllocatorClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_memory_allocator_type_id]);
-#line 31 "z-default-memory-allocator.zco"
 			global->__parent_allocate = p_class->__allocate;
-#line 31 "z-default-memory-allocator.zco"
 			p_class->__allocate = z_default_memory_allocator_allocate;
-#line 31 "z-default-memory-allocator.zco"
 		}
-#line 37 "z-default-memory-allocator.zco"
 		{
-#line 37 "z-default-memory-allocator.zco"
 			ZMemoryAllocatorClass *p_class = (ZMemoryAllocatorClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_memory_allocator_type_id]);
-#line 37 "z-default-memory-allocator.zco"
 			global->__parent_allocate_aligned = p_class->__allocate_aligned;
-#line 37 "z-default-memory-allocator.zco"
 			p_class->__allocate_aligned = z_default_memory_allocator_allocate_aligned;
-#line 37 "z-default-memory-allocator.zco"
 		}
-#line 43 "z-default-memory-allocator.zco"
 		{
-#line 43 "z-default-memory-allocator.zco"
 			ZMemoryAllocatorClass *p_class = (ZMemoryAllocatorClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_memory_allocator_type_id]);
-#line 43 "z-default-memory-allocator.zco"
 			global->__parent_try_resize = p_class->__try_resize;
-#line 43 "z-default-memory-allocator.zco"
 			p_class->__try_resize = z_default_memory_allocator_try_resize;
-#line 43 "z-default-memory-allocator.zco"
 		}
-#line 49 "z-default-memory-allocator.zco"
 		{
-#line 49 "z-default-memory-allocator.zco"
 			ZMemoryAllocatorClass *p_class = (ZMemoryAllocatorClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_memory_allocator_type_id]);
-#line 49 "z-default-memory-allocator.zco"
 			global->__parent_resize = p_class->__resize;
-#line 49 "z-default-memory-allocator.zco"
 			p_class->__resize = z_default_memory_allocator_resize;
-#line 49 "z-default-memory-allocator.zco"
 		}
-#line 55 "z-default-memory-allocator.zco"
 		{
-#line 55 "z-default-memory-allocator.zco"
 			ZMemoryAllocatorClass *p_class = (ZMemoryAllocatorClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_memory_allocator_type_id]);
-#line 55 "z-default-memory-allocator.zco"
 			global->__parent_deallocate = p_class->__deallocate;
-#line 55 "z-default-memory-allocator.zco"
 			p_class->__deallocate = z_default_memory_allocator_deallocate;
-#line 55 "z-default-memory-allocator.zco"
 		}
-#line 59 "z-default-memory-allocator.zco"
 		{
-#line 59 "z-default-memory-allocator.zco"
 			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
-#line 59 "z-default-memory-allocator.zco"
 			global->__parent_class_destroy = p_class->__class_destroy;
-#line 59 "z-default-memory-allocator.zco"
 			p_class->__class_destroy = z_default_memory_allocator_class_destroy;
-#line 59 "z-default-memory-allocator.zco"
 		}
 		__z_default_memory_allocator_class_init(ctx, (ZDefaultMemoryAllocatorClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx, NULL);
 		z_map_set_compare(global->common.method_map, __map_compare);
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
-#line 17 "z-default-memory-allocator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("new"), (ZObjectSignalHandler) new);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZDefaultMemoryAllocatorGlobal *) global);
@@ -234,19 +188,14 @@ void __z_default_memory_allocator_init(struct zco_context_t *ctx, Self *self)
 		init(self);
 	#endif
 }
-#line 11 "z-default-memory-allocator.zco"
 static void z_default_memory_allocator_init(Self *self)
 {
- //ZMemoryAllocator *allocator = Z_MEMORY_ALLOCATOR(self);
- //allocator->_priv.object_tracker = NULL;
  }
-#line 17 "z-default-memory-allocator.zco"
 Self * z_default_memory_allocator_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator)
 {
  Self *self = GET_NEW(ctx, allocator);
  return self;
  }
-#line 24 "z-default-memory-allocator.zco"
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_dispose
 static void  z_default_memory_allocator_dispose(ZObject *object)
 {
@@ -254,42 +203,36 @@ static void  z_default_memory_allocator_dispose(ZObject *object)
  PARENT_HANDLER(object);
  }
 #undef PARENT_HANDLER
-#line 31 "z-default-memory-allocator.zco"
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_allocate
 static void *  z_default_memory_allocator_allocate(ZMemoryAllocator *allocator,int size)
 {
  return NULL;
  }
 #undef PARENT_HANDLER
-#line 37 "z-default-memory-allocator.zco"
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_allocate_aligned
 static void *  z_default_memory_allocator_allocate_aligned(ZMemoryAllocator *allocator,int size,int alignment)
 {
  return NULL;
  }
 #undef PARENT_HANDLER
-#line 43 "z-default-memory-allocator.zco"
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_try_resize
 static int  z_default_memory_allocator_try_resize(ZMemoryAllocator *allocator,void *block,int new_size)
 {
  return 0;
  }
 #undef PARENT_HANDLER
-#line 49 "z-default-memory-allocator.zco"
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_resize
 static void *  z_default_memory_allocator_resize(ZMemoryAllocator *allocator,void *block,int new_size)
 {
  return NULL;
  }
 #undef PARENT_HANDLER
-#line 55 "z-default-memory-allocator.zco"
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_deallocate
 static void  z_default_memory_allocator_deallocate(ZMemoryAllocator *allocator,void *block)
 {
  return;
  }
 #undef PARENT_HANDLER
-#line 59 "z-default-memory-allocator.zco"
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
 static void z_default_memory_allocator_class_destroy(ZObjectGlobal *gbl)
 {
@@ -299,6 +242,5 @@ static void z_default_memory_allocator_class_destroy(ZObjectGlobal *gbl)
 
 #undef PARENT_HANDLER
 
-#line 59 "z-default-memory-allocator.zco"
 
 

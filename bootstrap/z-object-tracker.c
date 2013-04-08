@@ -31,11 +31,8 @@
 #define Self ZObjectTracker
 #define selfp (&self->_priv)
 #define GET_NEW(ctx,allocator) __z_object_tracker_new(ctx,allocator)
-#line 10 "z-object-tracker.zco"
 #define create z_object_tracker_create
-#line 15 "z-object-tracker.zco"
 #define destroy z_object_tracker_destroy
-#line 20 "z-object-tracker.zco"
 #define garbage_collect z_object_tracker_garbage_collect
 
 int z_object_tracker_type_id = -1;
@@ -62,11 +59,8 @@ static int __map_compare(ZMap *map, const void *a, const void *b)
 {
 	return strcmp(a, b);
 }
-#line 10 "z-object-tracker.zco"
 static ZObject *  z_object_tracker_virtual_create(Self *self,int type_id);
-#line 15 "z-object-tracker.zco"
 static int  z_object_tracker_virtual_destroy(Self *self,ZObject *target);
-#line 20 "z-object-tracker.zco"
 static int  z_object_tracker_virtual_garbage_collect(Self *self);
 
 static void cleanup_signal_arg(void *item, void *userdata)
@@ -103,21 +97,15 @@ ZObjectTrackerGlobal * z_object_tracker_get_type(struct zco_context_t *ctx)
 		global_ptr = zco_get_ctx_type(ctx, z_object_tracker_type_id);
 		*global_ptr = (ZCommonGlobal *) global;
 		
-#line 10 "z-object-tracker.zco"
 		CLASS_FROM_GLOBAL(global)->__create = z_object_tracker_virtual_create;
-#line 15 "z-object-tracker.zco"
 		CLASS_FROM_GLOBAL(global)->__destroy = z_object_tracker_virtual_destroy;
-#line 20 "z-object-tracker.zco"
 		CLASS_FROM_GLOBAL(global)->__garbage_collect = z_object_tracker_virtual_garbage_collect;
 		__z_object_tracker_class_init(ctx, (ZObjectTrackerClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx, NULL);
 		z_map_set_compare(global->common.method_map, __map_compare);
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
-#line 10 "z-object-tracker.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("create"), (ZObjectSignalHandler) create);
-#line 15 "z-object-tracker.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("destroy"), (ZObjectSignalHandler) destroy);
-#line 20 "z-object-tracker.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("garbage_collect"), (ZObjectSignalHandler) garbage_collect);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZObjectTrackerGlobal *) global);
@@ -141,7 +129,6 @@ void __z_object_tracker_init(struct zco_context_t *ctx, Self *self)
 		init(self);
 	#endif
 }
-#line 10 "z-object-tracker.zco"
 ZObject *  z_object_tracker_create(Self *self,int type_id)
 {
 	ZObject *obj = (ZObject *) self;
@@ -150,12 +137,10 @@ ZObject *  z_object_tracker_create(Self *self,int type_id)
 	unsigned long offset = common_global->svtable_off_list[z_object_tracker_type_id];
 	((ZObjectTrackerClass *) ((char *) class_base + offset))->__create(self,type_id);
 }
-#line 10 "z-object-tracker.zco"
 static ZObject *  z_object_tracker_virtual_create(Self *self,int type_id)
 {
  return 0; /* not handled */
  }
-#line 15 "z-object-tracker.zco"
 int  z_object_tracker_destroy(Self *self,ZObject *target)
 {
 	ZObject *obj = (ZObject *) self;
@@ -164,12 +149,10 @@ int  z_object_tracker_destroy(Self *self,ZObject *target)
 	unsigned long offset = common_global->svtable_off_list[z_object_tracker_type_id];
 	((ZObjectTrackerClass *) ((char *) class_base + offset))->__destroy(self,target);
 }
-#line 15 "z-object-tracker.zco"
 static int  z_object_tracker_virtual_destroy(Self *self,ZObject *target)
 {
  return 0; /* not handled */
  }
-#line 20 "z-object-tracker.zco"
 int  z_object_tracker_garbage_collect(Self *self)
 {
 	ZObject *obj = (ZObject *) self;
@@ -178,12 +161,10 @@ int  z_object_tracker_garbage_collect(Self *self)
 	unsigned long offset = common_global->svtable_off_list[z_object_tracker_type_id];
 	((ZObjectTrackerClass *) ((char *) class_base + offset))->__garbage_collect(self);
 }
-#line 20 "z-object-tracker.zco"
 static int  z_object_tracker_virtual_garbage_collect(Self *self)
 {
  return 0; /* not handled */
  }
 
-#line 24 "z-object-tracker.zco"
 
 

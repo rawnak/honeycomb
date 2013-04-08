@@ -3,7 +3,8 @@
 classes=( z-zco-source-generator z-closure z-closure-marshal z-map-iter z-map z-object z-string-iter z-string z-vector-iter z-vector z-vector-segment z-file z-framework-events z-value z-object-tracker z-default-object-tracker z-memory-allocator z-default-memory-allocator )
 
 for class_name in ${classes[@]}; do
-   cp build/core/$class_name.[ch] bootstrap/
+   grep -v "#line" build/core/$class_name.c > bootstrap/$class_name.c
+   grep -v "#line" build/core/$class_name.h > bootstrap/$class_name.h
 done
 
 

@@ -20,7 +20,6 @@
 
 #ifndef _Z_DEFAULT_MEMORY_ALLOCATOR_H_
 #define _Z_DEFAULT_MEMORY_ALLOCATOR_H_
-#line 4 "z-default-memory-allocator.zco"
 
 #include <z-memory-allocator.h>
 #include <z-object.h>
@@ -51,19 +50,12 @@ struct ZDefaultMemoryAllocatorProtected {
 struct ZDefaultMemoryAllocatorGlobal {
 	struct ZCommonGlobal common;
 	struct ZDefaultMemoryAllocatorClass *_class;
-#line 24 "z-default-memory-allocator.zco"
 	void  (*__parent_dispose)(ZObject *object);
-#line 31 "z-default-memory-allocator.zco"
 	void *  (*__parent_allocate)(ZMemoryAllocator *allocator,int size);
-#line 37 "z-default-memory-allocator.zco"
 	void *  (*__parent_allocate_aligned)(ZMemoryAllocator *allocator,int size,int alignment);
-#line 43 "z-default-memory-allocator.zco"
 	int  (*__parent_try_resize)(ZMemoryAllocator *allocator,void *block,int new_size);
-#line 49 "z-default-memory-allocator.zco"
 	void *  (*__parent_resize)(ZMemoryAllocator *allocator,void *block,int new_size);
-#line 55 "z-default-memory-allocator.zco"
 	void  (*__parent_deallocate)(ZMemoryAllocator *allocator,void *block);
-#line 59 "z-default-memory-allocator.zco"
 	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
 };
 
@@ -81,7 +73,6 @@ extern int z_default_memory_allocator_type_id;
 ZDefaultMemoryAllocatorGlobal * z_default_memory_allocator_get_type(struct zco_context_t *ctx);
 void __z_default_memory_allocator_init(struct zco_context_t *ctx, ZDefaultMemoryAllocator *self);
 void __z_default_memory_allocator_class_init(struct zco_context_t *ctx, ZDefaultMemoryAllocatorClass *_class);
-#line 17 "z-default-memory-allocator.zco"
 Self * z_default_memory_allocator_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator);
 
 #undef Self

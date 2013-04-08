@@ -31,7 +31,6 @@
 #define Self ZClosureMarshal
 #define selfp (&self->_priv)
 #define GET_NEW(ctx,allocator) __z_closure_marshal_new(ctx,allocator)
-#line 11 "z-closure-marshal.zco"
 #define invoke z_closure_marshal_invoke
 
 int z_closure_marshal_type_id = -1;
@@ -58,7 +57,6 @@ static int __map_compare(ZMap *map, const void *a, const void *b)
 {
 	return strcmp(a, b);
 }
-#line 11 "z-closure-marshal.zco"
 static int  z_closure_marshal_virtual_invoke(Self *self,ZObject *target,ZObjectSignalHandler handler,ZVector *args,void *userdata);
 
 static void cleanup_signal_arg(void *item, void *userdata)
@@ -95,13 +93,11 @@ ZClosureMarshalGlobal * z_closure_marshal_get_type(struct zco_context_t *ctx)
 		global_ptr = zco_get_ctx_type(ctx, z_closure_marshal_type_id);
 		*global_ptr = (ZCommonGlobal *) global;
 		
-#line 11 "z-closure-marshal.zco"
 		CLASS_FROM_GLOBAL(global)->__invoke = z_closure_marshal_virtual_invoke;
 		__z_closure_marshal_class_init(ctx, (ZClosureMarshalClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx, NULL);
 		z_map_set_compare(global->common.method_map, __map_compare);
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
-#line 11 "z-closure-marshal.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("invoke"), (ZObjectSignalHandler) invoke);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZClosureMarshalGlobal *) global);
@@ -125,7 +121,6 @@ void __z_closure_marshal_init(struct zco_context_t *ctx, Self *self)
 		init(self);
 	#endif
 }
-#line 11 "z-closure-marshal.zco"
 int  z_closure_marshal_invoke(Self *self,ZObject *target,ZObjectSignalHandler handler,ZVector *args,void *userdata)
 {
 	ZObject *obj = (ZObject *) self;
@@ -134,12 +129,10 @@ int  z_closure_marshal_invoke(Self *self,ZObject *target,ZObjectSignalHandler ha
 	unsigned long offset = common_global->svtable_off_list[z_closure_marshal_type_id];
 	((ZClosureMarshalClass *) ((char *) class_base + offset))->__invoke(self,target,handler,args,userdata);
 }
-#line 11 "z-closure-marshal.zco"
 static int  z_closure_marshal_virtual_invoke(Self *self,ZObject *target,ZObjectSignalHandler handler,ZVector *args,void *userdata)
 {
  return 0; /* not handled */
  }
 
-#line 15 "z-closure-marshal.zco"
 
 

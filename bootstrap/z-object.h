@@ -20,7 +20,6 @@
 
 #ifndef _Z_OBJECT_H_
 #define _Z_OBJECT_H_
-#line 10 "z-object.zco"
 
 #define likely(x) __builtin_expect((x),1)
 #define unlikely(x) __builtin_expect((x),0)
@@ -49,13 +48,9 @@ typedef struct ZObjectClass ZObjectClass;
 typedef struct ZObject ZObject;
 
 struct ZObjectPrivate {
-#line 27 "z-object.zco"
 	unsigned int ref_count;
-#line 28 "z-object.zco"
 	void *attached_properties;
-#line 29 "z-object.zco"
 	void *signal_map;
-#line 30 "z-object.zco"
 	ZMemoryAllocator *allocator;
 };
 
@@ -69,11 +64,8 @@ struct ZObjectGlobal {
 
 struct ZObjectClass {
 	ZCommonGlobal * real_global;
-#line 40 "z-object.zco"
 	void  (*__class_destroy)(ZObjectGlobal *gbl);
-#line 75 "z-object.zco"
 	void  (*__reset)(Self *self);
-#line 90 "z-object.zco"
 	void  (*__dispose)(Self *self);
 };
 
@@ -81,37 +73,23 @@ struct ZObject {
 	struct ZObjectGlobal *_global;
 	struct ZObjectPrivate _priv;
 	struct ZObjectProtected _prot;
-#line 25 "z-object.zco"
 	void *class_base;
-#line 26 "z-object.zco"
 };
 extern int z_object_type_id;
 ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx);
 void __z_object_init(struct zco_context_t *ctx, ZObject *self);
 void __z_object_class_init(struct zco_context_t *ctx, ZObjectClass *_class);
-#line 40 "z-object.zco"
 void  z_object_class_destroy(ZObjectGlobal *gbl);
-#line 75 "z-object.zco"
 void  z_object_reset(Self *self);
-#line 90 "z-object.zco"
 void  z_object_dispose(Self *self);
-#line 103 "z-object.zco"
 void  z_object_ref(Self *self);
-#line 108 "z-object.zco"
 void  z_object_unref(Self *self);
-#line 157 "z-object.zco"
 void *  z_object_connect(Self *self,char *name,ZObject *target,char *method_name,void *userdata);
-#line 192 "z-object.zco"
 void  z_object_disconnect(Self *self,char *name,void *key);
-#line 223 "z-object.zco"
 void  z_object_register_signal(Self *self,char *name);
-#line 247 "z-object.zco"
 int  z_object_emit_signal(Self *self,char *name,void *argv);
-#line 277 "z-object.zco"
 void  z_object_add_attached_property_map(Self *self,void *map);
-#line 295 "z-object.zco"
 ZMemoryAllocator *  z_object_get_allocator_ptr(Self *self);
-#line 299 "z-object.zco"
 void z_object_set_allocator_ptr(Self *self, ZMemoryAllocator *  value);
 
 #undef Self
