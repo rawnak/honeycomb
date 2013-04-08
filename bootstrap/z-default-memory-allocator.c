@@ -51,6 +51,7 @@ static Self *__z_default_memory_allocator_new(struct zco_context_t *ctx, ZMemory
 	}
 	if (!self) {
 		self = (Self *) malloc(sizeof(Self));
+		z_object_set_allocator_ptr((ZObject *) self, allocator);
 		__z_default_memory_allocator_init(ctx, self);
 	}
 	return self;
@@ -236,8 +237,8 @@ void __z_default_memory_allocator_init(struct zco_context_t *ctx, Self *self)
 #line 11 "z-default-memory-allocator.zco"
 static void z_default_memory_allocator_init(Self *self)
 {
- ZMemoryAllocator *allocator = Z_MEMORY_ALLOCATOR(self);
- allocator->_priv.object_tracker = NULL;
+ //ZMemoryAllocator *allocator = Z_MEMORY_ALLOCATOR(self);
+ //allocator->_priv.object_tracker = NULL;
  }
 #line 17 "z-default-memory-allocator.zco"
 Self * z_default_memory_allocator_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator)

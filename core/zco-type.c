@@ -53,9 +53,10 @@ void zco_context_init(struct zco_context_t *ctx)
            unloading it at the start of the context destruction ensures that we
            consistently use the correct tracker for every object. */
 
-        //ctx->default_allocator = z_default_memory_allocator_new(ctx, NULL);
-        //ZDefaultObjectTracker *tracker = z_default_object_tracker_new(ctx, NULL);
-        //z_memory_allocator_set_object_tracker(Z_MEMORY_ALLOCATOR(ctx->default_allocator), (ZObjectTracker *) tracker);
+        ctx->default_allocator = z_default_memory_allocator_new(ctx, NULL);
+        ZDefaultObjectTracker *tracker = z_default_object_tracker_new(ctx, NULL);
+        z_memory_allocator_set_object_tracker(Z_MEMORY_ALLOCATOR(ctx->default_allocator), (ZObjectTracker *) tracker);
+        z_object_unref(Z_OBJECT(tracker));
 }
 
 void zco_context_destroy(struct zco_context_t *ctx)
@@ -63,7 +64,7 @@ void zco_context_destroy(struct zco_context_t *ctx)
 	int i;
         
         /* Release memory allocators */
-        //z_object_unref(Z_OBJECT(ctx->default_allocator));
+        z_object_unref(Z_OBJECT(ctx->default_allocator));
 
 	z_object_unref((ZObject *) ctx->framework_events);
 

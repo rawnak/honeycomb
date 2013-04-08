@@ -1284,10 +1284,11 @@ class ZZcoSourceGenerator : ZObject
                 z_string_append_format(selfp->h_macros_head, "#define Self %S\n", interface_name);
 
                 /* define the macro to upcast a derived object */
-                z_string_append_format(selfp->h_macros_head, "#define %S(s) ((%S *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->common.vtable_off_list[%S_type_id]))\n\n",
+                z_string_append_format(selfp->h_macros_head, "#define %S(s) ((%S *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[%S_type_id]))\n\n",
                                 current_class_name_uppercase,
                                 selfp->current_class_name_pascal,
                                 selfp->current_class_name_lowercase);
+
 
                 z_object_unref(Z_OBJECT(current_class_name_uppercase));
 
@@ -1588,6 +1589,7 @@ class ZZcoSourceGenerator : ZObject
                                 "\t\x7d\n"
                                 "\tif (!self) {\n"
                                 "\t\tself = (Self *) malloc(sizeof(Self));\n"
+                                "\t\tz_object_set_allocator_ptr((ZObject *) self, allocator);\n"
                                 "\t\t__%S_init(ctx, self);\n"
                                 "\t}\n"
                                 "\treturn self;\n"

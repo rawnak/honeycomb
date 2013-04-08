@@ -109,8 +109,10 @@ void  z_object_register_signal(Self *self,char *name);
 int  z_object_emit_signal(Self *self,char *name,void *argv);
 #line 277 "z-object.zco"
 void  z_object_add_attached_property_map(Self *self,void *map);
-#line 293 "z-object.zco"
+#line 295 "z-object.zco"
 ZMemoryAllocator *  z_object_get_allocator_ptr(Self *self);
+#line 299 "z-object.zco"
+void z_object_set_allocator_ptr(Self *self, ZMemoryAllocator *  value);
 
 #undef Self
 

@@ -30,8 +30,6 @@ class ZDefaultMemoryAllocator : ZMemoryAllocator
 {
 	init(Self *self)
 	{
-                ZMemoryAllocator *allocator = Z_MEMORY_ALLOCATOR(self);
-                allocator->_priv.object_tracker = NULL;
 	}
 
 	public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)

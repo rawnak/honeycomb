@@ -310,9 +310,16 @@ class ZObject
 		return strcmp(a, b);
 	}
 
-        public ZMemoryAllocator * get_allocator_ptr(Self *self)
+        public ZMemoryAllocator * allocator_ptr
         {
-                return selfp->allocator;
+                get
+                {
+                        return selfp->allocator;
+                }
+                set
+                {
+                        selfp->allocator = value;
+                }
         }
 }
 

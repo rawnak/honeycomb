@@ -59,6 +59,7 @@ static Self *__z_framework_events_new(struct zco_context_t *ctx, ZMemoryAllocato
 	}
 	if (!self) {
 		self = (Self *) malloc(sizeof(Self));
+		z_object_set_allocator_ptr((ZObject *) self, allocator);
 		__z_framework_events_init(ctx, self);
 	}
 	return self;

@@ -38,15 +38,15 @@
 #define get_object_tracker z_memory_allocator_get_object_tracker
 #line 25 "z-memory-allocator.zco"
 #define set_object_tracker z_memory_allocator_set_object_tracker
-#line 67 "z-memory-allocator.zco"
+#line 60 "z-memory-allocator.zco"
 #define allocate z_memory_allocator_allocate
-#line 72 "z-memory-allocator.zco"
+#line 65 "z-memory-allocator.zco"
 #define allocate_aligned z_memory_allocator_allocate_aligned
-#line 77 "z-memory-allocator.zco"
+#line 70 "z-memory-allocator.zco"
 #define try_resize z_memory_allocator_try_resize
-#line 82 "z-memory-allocator.zco"
+#line 75 "z-memory-allocator.zco"
 #define resize z_memory_allocator_resize
-#line 87 "z-memory-allocator.zco"
+#line 80 "z-memory-allocator.zco"
 #define deallocate z_memory_allocator_deallocate
 
 int z_memory_allocator_type_id = -1;
@@ -63,6 +63,7 @@ static Self *__z_memory_allocator_new(struct zco_context_t *ctx, ZMemoryAllocato
 	}
 	if (!self) {
 		self = (Self *) malloc(sizeof(Self));
+		z_object_set_allocator_ptr((ZObject *) self, allocator);
 		__z_memory_allocator_init(ctx, self);
 	}
 	return self;
@@ -74,21 +75,21 @@ static int __map_compare(ZMap *map, const void *a, const void *b)
 }
 #line 13 "z-memory-allocator.zco"
 static void z_memory_allocator_init(Self *self);
-#line 54 "z-memory-allocator.zco"
+#line 46 "z-memory-allocator.zco"
 static void  z_memory_allocator_dispose(ZObject *object);
-#line 60 "z-memory-allocator.zco"
+#line 53 "z-memory-allocator.zco"
 static void  z_memory_allocator_reset(ZObject *object);
-#line 67 "z-memory-allocator.zco"
+#line 60 "z-memory-allocator.zco"
 static void *  z_memory_allocator_virtual_allocate(Self *self,int size);
-#line 72 "z-memory-allocator.zco"
+#line 65 "z-memory-allocator.zco"
 static void *  z_memory_allocator_virtual_allocate_aligned(Self *self,int size,int alignment);
-#line 77 "z-memory-allocator.zco"
+#line 70 "z-memory-allocator.zco"
 static int  z_memory_allocator_virtual_try_resize(Self *self,void *block,int new_size);
-#line 82 "z-memory-allocator.zco"
+#line 75 "z-memory-allocator.zco"
 static void *  z_memory_allocator_virtual_resize(Self *self,void *block,int new_size);
-#line 87 "z-memory-allocator.zco"
+#line 80 "z-memory-allocator.zco"
 static void  z_memory_allocator_virtual_deallocate(Self *self,void *block);
-#line 91 "z-memory-allocator.zco"
+#line 84 "z-memory-allocator.zco"
 static void z_memory_allocator_class_destroy(ZObjectGlobal *gbl);
 
 static void cleanup_signal_arg(void *item, void *userdata)
@@ -145,59 +146,59 @@ ZMemoryAllocatorGlobal * z_memory_allocator_get_type(struct zco_context_t *ctx)
 		global_ptr = zco_get_ctx_type(ctx, z_memory_allocator_type_id);
 		*global_ptr = (ZCommonGlobal *) global;
 		
-#line 54 "z-memory-allocator.zco"
+#line 46 "z-memory-allocator.zco"
 		{
-#line 54 "z-memory-allocator.zco"
+#line 46 "z-memory-allocator.zco"
 			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
-#line 54 "z-memory-allocator.zco"
+#line 46 "z-memory-allocator.zco"
 			global->__parent_dispose = p_class->__dispose;
-#line 54 "z-memory-allocator.zco"
+#line 46 "z-memory-allocator.zco"
 			p_class->__dispose = z_memory_allocator_dispose;
-#line 54 "z-memory-allocator.zco"
+#line 46 "z-memory-allocator.zco"
 		}
-#line 60 "z-memory-allocator.zco"
+#line 53 "z-memory-allocator.zco"
 		{
-#line 60 "z-memory-allocator.zco"
+#line 53 "z-memory-allocator.zco"
 			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
-#line 60 "z-memory-allocator.zco"
+#line 53 "z-memory-allocator.zco"
 			global->__parent_reset = p_class->__reset;
-#line 60 "z-memory-allocator.zco"
+#line 53 "z-memory-allocator.zco"
 			p_class->__reset = z_memory_allocator_reset;
-#line 60 "z-memory-allocator.zco"
+#line 53 "z-memory-allocator.zco"
 		}
-#line 67 "z-memory-allocator.zco"
+#line 60 "z-memory-allocator.zco"
 		CLASS_FROM_GLOBAL(global)->__allocate = z_memory_allocator_virtual_allocate;
-#line 72 "z-memory-allocator.zco"
+#line 65 "z-memory-allocator.zco"
 		CLASS_FROM_GLOBAL(global)->__allocate_aligned = z_memory_allocator_virtual_allocate_aligned;
-#line 77 "z-memory-allocator.zco"
+#line 70 "z-memory-allocator.zco"
 		CLASS_FROM_GLOBAL(global)->__try_resize = z_memory_allocator_virtual_try_resize;
-#line 82 "z-memory-allocator.zco"
+#line 75 "z-memory-allocator.zco"
 		CLASS_FROM_GLOBAL(global)->__resize = z_memory_allocator_virtual_resize;
-#line 87 "z-memory-allocator.zco"
+#line 80 "z-memory-allocator.zco"
 		CLASS_FROM_GLOBAL(global)->__deallocate = z_memory_allocator_virtual_deallocate;
-#line 91 "z-memory-allocator.zco"
+#line 84 "z-memory-allocator.zco"
 		{
-#line 91 "z-memory-allocator.zco"
+#line 84 "z-memory-allocator.zco"
 			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
-#line 91 "z-memory-allocator.zco"
+#line 84 "z-memory-allocator.zco"
 			global->__parent_class_destroy = p_class->__class_destroy;
-#line 91 "z-memory-allocator.zco"
+#line 84 "z-memory-allocator.zco"
 			p_class->__class_destroy = z_memory_allocator_class_destroy;
-#line 91 "z-memory-allocator.zco"
+#line 84 "z-memory-allocator.zco"
 		}
 		__z_memory_allocator_class_init(ctx, (ZMemoryAllocatorClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx, NULL);
 		z_map_set_compare(global->common.method_map, __map_compare);
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
-#line 67 "z-memory-allocator.zco"
+#line 60 "z-memory-allocator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("allocate"), (ZObjectSignalHandler) allocate);
-#line 72 "z-memory-allocator.zco"
+#line 65 "z-memory-allocator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("allocate_aligned"), (ZObjectSignalHandler) allocate_aligned);
-#line 77 "z-memory-allocator.zco"
+#line 70 "z-memory-allocator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("try_resize"), (ZObjectSignalHandler) try_resize);
-#line 82 "z-memory-allocator.zco"
+#line 75 "z-memory-allocator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("resize"), (ZObjectSignalHandler) resize);
-#line 87 "z-memory-allocator.zco"
+#line 80 "z-memory-allocator.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("deallocate"), (ZObjectSignalHandler) deallocate);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZMemoryAllocatorGlobal *) global);
@@ -240,19 +241,11 @@ ZObjectTracker * z_memory_allocator_get_object_tracker(Self *self)
 void z_memory_allocator_set_object_tracker(Self *self, ZObjectTracker * value)
 {
  if (selfp->object_tracker) {
- ZObject *tracker = selfp->object_tracker;
-
- /*
-                                ZObjectGlobal *gbl = GLOBAL_FROM_OBJECT(tracker);
-                                int id = z_object_tracker_type_id;
-                                int offset = gbl->common.vtable_off_list[id];
-                                ZObjectTracker *tracker_interface = ((ZObjectTracker *) ((char *) (tracker) + offset));
-                                */
-
- ZObjectTracker *tracker_interface = Z_OBJECT_TRACKER(tracker);
+ ZObjectTracker *tracker = selfp->object_tracker;
+ ZObjectTracker *tracker_interface = Z_OBJECT_TRACKER((ZObject *) tracker);
 
  /* Full garbage collection */
- while (z_object_tracker_garbage_collect(tracker_interface));
+ while (z_object_tracker_garbage_collect(tracker));
 
  /* Unload the object tracker */
  selfp->object_tracker = NULL;
@@ -264,15 +257,16 @@ void z_memory_allocator_set_object_tracker(Self *self, ZObjectTracker * value)
  if (value)
  z_object_ref(Z_OBJECT(value));
  }
-#line 54 "z-memory-allocator.zco"
+#line 46 "z-memory-allocator.zco"
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_dispose
 static void  z_memory_allocator_dispose(ZObject *object)
 {
  Self *self = (Self *) object;
  set_object_tracker(self, NULL);
+ PARENT_HANDLER(object);
  }
 #undef PARENT_HANDLER
-#line 60 "z-memory-allocator.zco"
+#line 53 "z-memory-allocator.zco"
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_reset
 static void  z_memory_allocator_reset(ZObject *object)
 {
@@ -281,7 +275,7 @@ static void  z_memory_allocator_reset(ZObject *object)
  PARENT_HANDLER(object);
  }
 #undef PARENT_HANDLER
-#line 67 "z-memory-allocator.zco"
+#line 60 "z-memory-allocator.zco"
 void *  z_memory_allocator_allocate(Self *self,int size)
 {
 	ZObject *obj = (ZObject *) self;
@@ -290,12 +284,12 @@ void *  z_memory_allocator_allocate(Self *self,int size)
 	unsigned long offset = common_global->svtable_off_list[z_memory_allocator_type_id];
 	((ZMemoryAllocatorClass *) ((char *) class_base + offset))->__allocate(self,size);
 }
-#line 67 "z-memory-allocator.zco"
+#line 60 "z-memory-allocator.zco"
 static void *  z_memory_allocator_virtual_allocate(Self *self,int size)
 {
  return 0; /* not handled */
  }
-#line 72 "z-memory-allocator.zco"
+#line 65 "z-memory-allocator.zco"
 void *  z_memory_allocator_allocate_aligned(Self *self,int size,int alignment)
 {
 	ZObject *obj = (ZObject *) self;
@@ -304,12 +298,12 @@ void *  z_memory_allocator_allocate_aligned(Self *self,int size,int alignment)
 	unsigned long offset = common_global->svtable_off_list[z_memory_allocator_type_id];
 	((ZMemoryAllocatorClass *) ((char *) class_base + offset))->__allocate_aligned(self,size,alignment);
 }
-#line 72 "z-memory-allocator.zco"
+#line 65 "z-memory-allocator.zco"
 static void *  z_memory_allocator_virtual_allocate_aligned(Self *self,int size,int alignment)
 {
  return 0; /* not handled */
  }
-#line 77 "z-memory-allocator.zco"
+#line 70 "z-memory-allocator.zco"
 int  z_memory_allocator_try_resize(Self *self,void *block,int new_size)
 {
 	ZObject *obj = (ZObject *) self;
@@ -318,12 +312,12 @@ int  z_memory_allocator_try_resize(Self *self,void *block,int new_size)
 	unsigned long offset = common_global->svtable_off_list[z_memory_allocator_type_id];
 	((ZMemoryAllocatorClass *) ((char *) class_base + offset))->__try_resize(self,block,new_size);
 }
-#line 77 "z-memory-allocator.zco"
+#line 70 "z-memory-allocator.zco"
 static int  z_memory_allocator_virtual_try_resize(Self *self,void *block,int new_size)
 {
  return 0; /* not handled */
  }
-#line 82 "z-memory-allocator.zco"
+#line 75 "z-memory-allocator.zco"
 void *  z_memory_allocator_resize(Self *self,void *block,int new_size)
 {
 	ZObject *obj = (ZObject *) self;
@@ -332,12 +326,12 @@ void *  z_memory_allocator_resize(Self *self,void *block,int new_size)
 	unsigned long offset = common_global->svtable_off_list[z_memory_allocator_type_id];
 	((ZMemoryAllocatorClass *) ((char *) class_base + offset))->__resize(self,block,new_size);
 }
-#line 82 "z-memory-allocator.zco"
+#line 75 "z-memory-allocator.zco"
 static void *  z_memory_allocator_virtual_resize(Self *self,void *block,int new_size)
 {
  return 0; /* not handled */
  }
-#line 87 "z-memory-allocator.zco"
+#line 80 "z-memory-allocator.zco"
 void  z_memory_allocator_deallocate(Self *self,void *block)
 {
 	ZObject *obj = (ZObject *) self;
@@ -346,12 +340,12 @@ void  z_memory_allocator_deallocate(Self *self,void *block)
 	unsigned long offset = common_global->svtable_off_list[z_memory_allocator_type_id];
 	((ZMemoryAllocatorClass *) ((char *) class_base + offset))->__deallocate(self,block);
 }
-#line 87 "z-memory-allocator.zco"
+#line 80 "z-memory-allocator.zco"
 static void  z_memory_allocator_virtual_deallocate(Self *self,void *block)
 {
  return; /* not handled */
  }
-#line 91 "z-memory-allocator.zco"
+#line 84 "z-memory-allocator.zco"
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
 static void z_memory_allocator_class_destroy(ZObjectGlobal *gbl)
 {
@@ -361,6 +355,6 @@ static void z_memory_allocator_class_destroy(ZObjectGlobal *gbl)
 
 #undef PARENT_HANDLER
 
-#line 91 "z-memory-allocator.zco"
+#line 84 "z-memory-allocator.zco"
 
 

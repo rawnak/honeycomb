@@ -68,8 +68,10 @@
 #define add_attached_property_map z_object_add_attached_property_map
 #line 288 "z-object.zco"
 #define map_compare z_object_map_compare
-#line 293 "z-object.zco"
+#line 295 "z-object.zco"
 #define get_allocator_ptr z_object_get_allocator_ptr
+#line 299 "z-object.zco"
+#define set_allocator_ptr z_object_set_allocator_ptr
 
 int z_object_type_id = -1;
 
@@ -85,6 +87,7 @@ static Self *__z_object_new(struct zco_context_t *ctx, ZMemoryAllocator *allocat
 	}
 	if (!self) {
 		self = (Self *) malloc(sizeof(Self));
+		z_object_set_allocator_ptr((ZObject *) self, allocator);
 		__z_object_init(ctx, self);
 	}
 	return self;
@@ -171,8 +174,6 @@ ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
 		z_map_insert((ZMap *) global->common.method_map, strdup("emit_signal"), (ZObjectSignalHandler) emit_signal);
 #line 277 "z-object.zco"
 		z_map_insert((ZMap *) global->common.method_map, strdup("add_attached_property_map"), (ZObjectSignalHandler) add_attached_property_map);
-#line 293 "z-object.zco"
-		z_map_insert((ZMap *) global->common.method_map, strdup("get_allocator_ptr"), (ZObjectSignalHandler) get_allocator_ptr);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZObjectGlobal *) global);
 		#endif
@@ -481,12 +482,17 @@ static int  z_object_map_compare(ZMap *map,const void *a,const void *b)
 {
  return strcmp(a, b);
  }
-#line 293 "z-object.zco"
+#line 295 "z-object.zco"
 ZMemoryAllocator *  z_object_get_allocator_ptr(Self *self)
 {
  return selfp->allocator;
  }
+#line 299 "z-object.zco"
+void z_object_set_allocator_ptr(Self *self, ZMemoryAllocator *  value)
+{
+ selfp->allocator = value;
+ }
 
-#line 297 "z-object.zco"
+#line 304 "z-object.zco"
 
 

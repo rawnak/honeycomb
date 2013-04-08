@@ -146,6 +146,7 @@ static Self *__z_string_new(struct zco_context_t *ctx, ZMemoryAllocator *allocat
 	}
 	if (!self) {
 		self = (Self *) malloc(sizeof(Self));
+		z_object_set_allocator_ptr((ZObject *) self, allocator);
 		__z_string_init(ctx, self);
 	}
 	return self;

@@ -45,19 +45,11 @@ class ZMemoryAllocator : ZObject
                 set
                 {
                         if (selfp->object_tracker) {
-                                ZObject *tracker = selfp->object_tracker;
-
-                                /*
-                                ZObjectGlobal *gbl = GLOBAL_FROM_OBJECT(tracker);
-                                int id = z_object_tracker_type_id;
-                                int offset = gbl->common.vtable_off_list[id];
-                                ZObjectTracker *tracker_interface = ((ZObjectTracker *) ((char *) (tracker) + offset));
-                                */
-
-                                ZObjectTracker *tracker_interface = Z_OBJECT_TRACKER(tracker);
+                                ZObjectTracker *tracker = selfp->object_tracker;
+                                ZObjectTracker *tracker_interface = Z_OBJECT_TRACKER((ZObject *) tracker);
 
                                 /* Full garbage collection */
-                                while (z_object_tracker_garbage_collect(tracker_interface));
+                                while (z_object_tracker_garbage_collect(tracker));
 
                                 /* Unload the object tracker */
                                 selfp->object_tracker = NULL;
@@ -75,6 +67,7 @@ class ZMemoryAllocator : ZObject
         {
                 Self *self = (Self *) object;
                 set_object_tracker(self, NULL);
+                PARENT_HANDLER(object);
         }
 
         override(ZObject) void reset(ZObject *object)

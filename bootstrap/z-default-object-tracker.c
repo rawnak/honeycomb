@@ -62,6 +62,7 @@ static Self *__z_default_object_tracker_new(struct zco_context_t *ctx, ZMemoryAl
 	}
 	if (!self) {
 		self = (Self *) malloc(sizeof(Self));
+		z_object_set_allocator_ptr((ZObject *) self, allocator);
 		__z_default_object_tracker_init(ctx, self);
 	}
 	return self;
