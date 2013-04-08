@@ -43,7 +43,6 @@ typedef struct ZMemoryAllocator ZMemoryAllocator;
 class ZObject 
 {
 	public void *class_base;
-	public virtual unsigned long *class_off_list;
 	public virtual ZCommonGlobal *real_global;
 	private unsigned int ref_count;
 	private void *attached_properties;
@@ -130,9 +129,10 @@ class ZObject
 	{
 		assert(selfp->ref_count > 0);
 		if (--selfp->ref_count == 0) {
-                        if (CTX_FROM_OBJECT(self)->object_tracker) {
-                                ZObjectTracker *object_tracker = (ZObjectTracker *) CTX_FROM_OBJECT(self)->object_tracker;
+                        if (selfp->allocator) {
+                                ZObjectTracker *object_tracker = z_memory_allocator_get_object_tracker(selfp->allocator);
                                 z_object_tracker_destroy(object_tracker, self);
+                                unref(Z_OBJECT(object_tracker));
                         } else {
                                 dispose(self);
                         }

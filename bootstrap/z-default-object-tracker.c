@@ -53,9 +53,13 @@ int z_default_object_tracker_type_id = -1;
 static Self *__z_default_object_tracker_new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
 {
 	Self *self = NULL;
-	ZObjectTracker *object_tracker = (ZObjectTracker *) ctx->object_tracker;
-	if (object_tracker)
-		self = (Self *) z_object_tracker_create(object_tracker, z_default_object_tracker_type_id);
+	if (allocator) {
+		ZObjectTracker *object_tracker = z_memory_allocator_get_object_tracker(allocator);
+		if (object_tracker) {
+			self = (Self *) z_object_tracker_create(object_tracker, z_default_object_tracker_type_id);
+			z_object_unref(Z_OBJECT(object_tracker));
+		}
+	}
 	if (!self) {
 		self = (Self *) malloc(sizeof(Self));
 		__z_default_object_tracker_init(ctx, self);
@@ -234,8 +238,8 @@ void __z_default_object_tracker_init(struct zco_context_t *ctx, Self *self)
 {
 	struct ZDefaultObjectTrackerGlobal *_global = z_default_object_tracker_get_type(ctx);
 	self->_global = _global;
-	__z_object_init(ctx, Z_OBJECT(self));
-	__z_object_tracker_init(ctx, Z_OBJECT_TRACKER(self));
+	__z_object_init(ctx, ((ZObject *) ((char *) self + GLOBAL_FROM_OBJECT(self)->common.vtable_off_list[z_object_type_id])));
+	__z_object_tracker_init(ctx, ((ZObjectTracker *) ((char *) self + GLOBAL_FROM_OBJECT(self)->common.vtable_off_list[z_object_tracker_type_id])));
 	((ZObject *) self)->class_base = (void *) CLASS_FROM_GLOBAL(_global);
 	((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (ZCommonGlobal *) _global;
 	#ifdef INIT_EXISTS

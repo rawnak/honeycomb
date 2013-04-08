@@ -22,6 +22,7 @@
 #include <z-object.h>
 #include <z-framework-events.h>
 #include <z-default-object-tracker.h>
+#include <z-default-memory-allocator.h>
 #include <z-vector-segment.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,7 +35,6 @@ void zco_context_init(struct zco_context_t *ctx)
 	ctx->type_count = 0;
 	ctx->types = 0;
 	ctx->marshal = NULL;
-        ctx->object_tracker = NULL;
 
         /* Set the default minimum segment capacity to be 3 times the overhead
            incurred by each segment. This means that there can be at most 40%
@@ -47,37 +47,23 @@ void zco_context_init(struct zco_context_t *ctx)
 
 	ctx->framework_events = z_framework_events_new(ctx, NULL);
 
-        /* Load the default object tracker
-           This must be the very last step in the context initialization process
-           (by convention). Loading the object tracker at the end of the context
-           initialization and unloading it at the start of the context destruction
-           ensures that we consistently use the correct tracker for every object. */
-        ZObjectTracker *tracker = (ZObjectTracker *) z_default_object_tracker_new(ctx, NULL);
-        zco_context_set_object_tracker(ctx, (void *) tracker);
+        /* Loading the object tracker must be the very last step in the very last
+           step in the context initialization process (by convention). Loading
+           the object tracker at the end of the context initialization and
+           unloading it at the start of the context destruction ensures that we
+           consistently use the correct tracker for every object. */
+
+        //ctx->default_allocator = z_default_memory_allocator_new(ctx, NULL);
+        //ZDefaultObjectTracker *tracker = z_default_object_tracker_new(ctx, NULL);
+        //z_memory_allocator_set_object_tracker(Z_MEMORY_ALLOCATOR(ctx->default_allocator), (ZObjectTracker *) tracker);
 }
 
 void zco_context_destroy(struct zco_context_t *ctx)
 {
 	int i;
-        ZObjectTracker *tracker = (ZObjectTracker *) ctx->object_tracker;
-
-        if (tracker) {
-                /* Full garbage collection */
-                while (z_object_tracker_garbage_collect((ZObjectTracker *) tracker));
-
-                /* Unload the object tracker
-                   This must be the very first step in the context destruction process
-                   (by convention). Loading the object tracker at the end of the context
-                   initialization and unloading it at the start of the context destruction
-                   ensures that we consistently use the correct tracker for every object.
-                   
-                   When we created the object tracker, we didn't have any trackers loaded.
-                   When we are unloading the object tracker, we must ensure that no trackers
-                   (itself) isn't loaded. To do this, we keep a reference to the pointer
-                   and set the pointer to NULL. */
-                ctx->object_tracker = NULL;
-                z_object_unref(Z_OBJECT(tracker));
-        }
+        
+        /* Release memory allocators */
+        //z_object_unref(Z_OBJECT(ctx->default_allocator));
 
 	z_object_unref((ZObject *) ctx->framework_events);
 
@@ -199,11 +185,6 @@ void zco_add_to_vtable(int **list, int *size, int type_id)
 void * zco_context_get_framework_events(struct zco_context_t *ctx)
 {
 	return ctx->framework_events;
-}
-
-void * zco_context_set_object_tracker(struct zco_context_t *ctx, void *object_tracker)
-{
-        ctx->object_tracker = object_tracker;
 }
 
 int zco_context_get_min_segment_capacity_by_size(struct zco_context_t *ctx)

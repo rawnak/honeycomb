@@ -118,3 +118,103 @@ There are two ways to reuse the same data for multiple vectors:
 
 
 
+=======================
+
+Allocators:
+
+
+There are multiple ways to implement allocators:
+- 1. Simple C functions that implement certain number of functions
+  Pro: very simple to code
+       no increase in object size
+  Con: cannot be changed during runtime
+
+- 2. A ZCO object that is assumed to be the allocator
+  Pro: simple to code
+  Con: cannot be changed during runtime
+       object must keep a flag of whether it is allocated using a customer allocator
+
+- 3. Same as #2 but with an interface
+  Pro: can be changed during runtime
+  Con: object must keep a reference to the allocator
+       small performance hit due to virtual method call
+
+- 4. Same as #3 but with individually assigned allocator per object
+  Pro: can be changed during runtime
+       different objects under a context can be associated with different allocators
+  Con: object must keep a reference to the allocator
+       small performance hti due to virtual method call
+       GET_NEW() will require an additional parameter
+
+Verdict: #4
+Bottom line is that the allocation requirements for different objects are different. A plain
+vector doesn't care about alignment but if the data within the vector needs to be wired for special
+reason (such as DMA), we can use a wired allocator to make sure it doesn't get swapped out. 
+
+More thoughts:
+
+1. system allocator - a pass through allocator that will delegate the responsibility to malloc/free
+                      this allocator is useful when using a memory profiler, such as valgrind
+2. slab allocator - the allocator maintains a certain number of bins, each associated with a block size.
+                    when a block is freed, it is added to a bin of that size.
+
+3. page allocator - another name for mmap. this is only useful for large, long-lived allocations
+
+4. stack allocator - similar to alloca except the buffer is in the heap. the idea is that there is no
+                     management of freed space. the allocator expects objects to be deleted in the
+                     reverse order in which it is created so there are no holes in the allocated region.
+5. flexible allocator - this is good for vectors or strings that can shrink/grow (more importantly grow).
+                        the slab allocator places every allocation in a certain bin so it is of fixed size,
+                        unless a complicated logic is implemented to consolidate two free objects into one
+                        double sized object. the flexible allocator can be used to allocate blocks
+                        that can be resized.
+
+Allocations made:
+- C strings
+  Always: System allocator
+  The user should be able to call free() on the C string. The use of C strings are discouraged
+  anyway so we don't care much about optimizing the allocator usage
+
+- Vector segment data
+  Default: Flexible allocator
+  Vector segments are resizable so we want to use the allocator that is resize friendly
+
+- ZObject instance
+  Default: Slab allocator
+  Instances of the same type are of the same size so we want to use an allocator that is optimized
+  to retrieve blocks of fixed size 
+
+- ZObject global
+  Always: Slab allocator
+  This is not unique to an instance so its allocator cannot be specified during instantiation.
+  Slab is used because the size is fixed.
+  
+- ZObject class
+  Always: Slab allocator
+  This is not unique to an instance so its allocator cannot be specified during instantiation.
+  Slab is used because the size is fixed.
+
+- Class offset list (Array)
+  Always: Slab allocator
+  This is not unique to an instance so its allocator cannot be specified during instantiation.
+  Slab is used because the size is fixed
+
+- Method map (ZMap)
+  Always: Slab allocator
+  This is not unique to an instance so its allocator cannot be specified during instantiation.
+  Items will be added to this map only once per type initialization. The flexible allocator
+  can be used here but the data would be much more packed (less fragmented) if we used the slab
+  allocator.
+  
+- Attached properties (ZMap)
+  Always: Slab allocator
+  This is not unique to an instance so its allocator cannot be specified during instantiation.
+  Items will be added to this map only once per type initialization. The flexible allocator
+  can be used here but the data would be much more packed (less fragmented) if we used the slab
+  allocator.
+
+
+
+
+
+

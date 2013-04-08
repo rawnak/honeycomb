@@ -43,9 +43,13 @@ int z_object_tracker_type_id = -1;
 static Self *__z_object_tracker_new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
 {
 	Self *self = NULL;
-	ZObjectTracker *object_tracker = (ZObjectTracker *) ctx->object_tracker;
-	if (object_tracker)
-		self = (Self *) z_object_tracker_create(object_tracker, z_object_tracker_type_id);
+	if (allocator) {
+		ZObjectTracker *object_tracker = z_memory_allocator_get_object_tracker(allocator);
+		if (object_tracker) {
+			self = (Self *) z_object_tracker_create(object_tracker, z_object_tracker_type_id);
+			z_object_unref(Z_OBJECT(object_tracker));
+		}
+	}
 	if (!self) {
 		self = (Self *) malloc(sizeof(Self));
 		__z_object_tracker_init(ctx, self);

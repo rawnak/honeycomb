@@ -38,6 +38,8 @@ add_executable(
       z-framework-events.c
       z-object-tracker.c
       z-default-object-tracker.c
+      z-memory-allocator.c
+      z-default-memory-allocator.c
 )
 
 target_link_libraries(bootstrap m)

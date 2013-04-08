@@ -1188,7 +1188,7 @@ class ZZcoSourceGenerator : ZObject
                 z_string_append_format(selfp->h_macros_head, "#define Self %S\n", class_name);
 
                 /* define the macro to upcast a derived object */
-                z_string_append_format(selfp->h_macros_head, "#define %S(s) ((%S *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->common.vtable_off_list[%S_type_id]))\n\n",
+                z_string_append_format(selfp->h_macros_head, "#define %S(s) ((%S *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[%S_type_id]))\n\n",
                                 current_class_name_uppercase,
                                 selfp->current_class_name_pascal,
                                 selfp->current_class_name_lowercase);
@@ -1574,15 +1574,18 @@ class ZZcoSourceGenerator : ZObject
                 /* declare the global variables */
                 z_file_write_format(selfp->source_file, "int %S_type_id = -1;\n\n", selfp->current_class_name_lowercase);
 
-
                 /* function prototypes in source file */
                 z_file_write_format(selfp->source_file,
                                 "static Self *__%S_new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)\n"
                                 "\x7b\n"
                                 "\tSelf *self = NULL;\n"
-                                "\tZObjectTracker *object_tracker = (ZObjectTracker *) ctx->object_tracker;\n"
-                                "\tif (object_tracker)\n"
-                                "\t\tself = (Self *) z_object_tracker_create(object_tracker, %S_type_id);\n"
+                                "\tif (allocator) \x7b\n"
+                                "\t\tZObjectTracker *object_tracker = z_memory_allocator_get_object_tracker(allocator);\n"
+                                "\t\tif (object_tracker) \x7b\n"
+                                "\t\t\tself = (Self *) z_object_tracker_create(object_tracker, %S_type_id);\n"
+                                "\t\t\tz_object_unref(Z_OBJECT(object_tracker));\n"
+                                "\t\t\x7d\n"
+                                "\t\x7d\n"
                                 "\tif (!self) {\n"
                                 "\t\tself = (Self *) malloc(sizeof(Self));\n"
                                 "\t\t__%S_init(ctx, self);\n"
@@ -1781,6 +1784,7 @@ class ZZcoSourceGenerator : ZObject
                                 selfp->current_class_name_pascal,
                                 selfp->current_class_name_lowercase);
 
+
                 /* to break a circular dependency between
                    vector -> object -> map -> vector,
 
@@ -1798,17 +1802,35 @@ class ZZcoSourceGenerator : ZObject
                 } else {
                         for (i=0; i < selfp->parent_class_count; ++i) {
                                 z_file_write_format(selfp->source_file,
-                                                "\t__%S_init(ctx, %S(self));\n",
+                                                "\t__%S_init(ctx, ((%S *) ((char *) self + GLOBAL_FROM_OBJECT(self)->common.vtable_off_list[%S_type_id])));\n",
                                                 selfp->parent_class_name_lowercase[i],
-                                                selfp->parent_class_name_uppercase[i]);
+                                                selfp->parent_class_name_pascal[i],
+                                                selfp->parent_class_name_lowercase[i]);
 
+
+//"((%S *) ((char *) (self) + GLOBAL_FROM_OBJECT(self)->common.vtable_off_list[%S_type_id]))"
                         }
+
+
+
+                        /*
+                z_string_append_format(selfp->h_macros_head,
+                                "#define %S(s) ((%S *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[%S_type_id]))\n\n",
+                                current_class_name_uppercase,
+                                selfp->current_class_name_pascal,
+                                selfp->current_class_name_lowercase);
+                                */
+
+                }
+
+                if (!selfp->is_interface) {
+                        z_file_write(selfp->source_file,
+                                        "\t((ZObject *) self)->class_base = (void *) CLASS_FROM_GLOBAL(_global);\n");
                 }
 
                 /* assign current class as the active class */
                 if (!selfp->is_interface) {
                         z_file_write(selfp->source_file,
-                                        "\t((ZObject *) self)->class_base = (void *) CLASS_FROM_GLOBAL(_global);\n"
 					"\t((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (ZCommonGlobal *) _global;\n");
                 }
 

@@ -27,7 +27,7 @@
 
 #include <zco-type.h>
 #define Self ZFile
-#define Z_FILE(s) ((ZFile *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->common.vtable_off_list[z_file_type_id]))
+#define Z_FILE(s) ((ZFile *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_file_type_id]))
 
 
 struct ZFilePrivate;

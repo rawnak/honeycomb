@@ -20,14 +20,14 @@
 
 #ifndef _Z_MEMORY_ALLOCATOR_H_
 #define _Z_MEMORY_ALLOCATOR_H_
-#line 3 "z-memory-allocator.zco"
+#line 4 "z-memory-allocator.zco"
 
 #include <z-object.h>
+#include <z-object-tracker.h>
 
 #include <zco-type.h>
-#include <z-memory-allocator.h>
 #define Self ZMemoryAllocator
-#define Z_MEMORY_ALLOCATOR(s) ((ZMemoryAllocator *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->common.vtable_off_list[z_memory_allocator_type_id]))
+#define Z_MEMORY_ALLOCATOR(s) ((ZMemoryAllocator *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_memory_allocator_type_id]))
 
 
 struct ZMemoryAllocatorPrivate;
@@ -43,6 +43,8 @@ typedef struct ZMemoryAllocatorClass ZMemoryAllocatorClass;
 typedef struct ZMemoryAllocator ZMemoryAllocator;
 
 struct ZMemoryAllocatorPrivate {
+#line 11 "z-memory-allocator.zco"
+	ZObjectTracker *object_tracker;
 };
 
 struct ZMemoryAllocatorProtected {
@@ -51,22 +53,30 @@ struct ZMemoryAllocatorProtected {
 struct ZMemoryAllocatorGlobal {
 	struct ZCommonGlobal common;
 	struct ZMemoryAllocatorClass *_class;
+#line 54 "z-memory-allocator.zco"
+	void  (*__parent_dispose)(ZObject *object);
+#line 60 "z-memory-allocator.zco"
+	void  (*__parent_reset)(ZObject *object);
+#line 91 "z-memory-allocator.zco"
+	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
 };
 
 struct ZMemoryAllocatorClass {
-#line 10 "z-memory-allocator.zco"
+	struct ZObjectClass parent_z_object;
+#line 67 "z-memory-allocator.zco"
 	void *  (*__allocate)(Self *self,int size);
-#line 15 "z-memory-allocator.zco"
+#line 72 "z-memory-allocator.zco"
 	void *  (*__allocate_aligned)(Self *self,int size,int alignment);
-#line 20 "z-memory-allocator.zco"
+#line 77 "z-memory-allocator.zco"
 	int  (*__try_resize)(Self *self,void *block,int new_size);
-#line 25 "z-memory-allocator.zco"
+#line 82 "z-memory-allocator.zco"
 	void *  (*__resize)(Self *self,void *block,int new_size);
-#line 30 "z-memory-allocator.zco"
+#line 87 "z-memory-allocator.zco"
 	void  (*__deallocate)(Self *self,void *block);
 };
 
 struct ZMemoryAllocator {
+	struct ZObject parent_z_object;
 	struct ZMemoryAllocatorGlobal *_global;
 	struct ZMemoryAllocatorPrivate _priv;
 	struct ZMemoryAllocatorProtected _prot;
@@ -75,15 +85,19 @@ extern int z_memory_allocator_type_id;
 ZMemoryAllocatorGlobal * z_memory_allocator_get_type(struct zco_context_t *ctx);
 void __z_memory_allocator_init(struct zco_context_t *ctx, ZMemoryAllocator *self);
 void __z_memory_allocator_class_init(struct zco_context_t *ctx, ZMemoryAllocatorClass *_class);
-#line 10 "z-memory-allocator.zco"
-void *  z_memory_allocator_allocate(Self *self,int size);
-#line 15 "z-memory-allocator.zco"
-void *  z_memory_allocator_allocate_aligned(Self *self,int size,int alignment);
 #line 20 "z-memory-allocator.zco"
-int  z_memory_allocator_try_resize(Self *self,void *block,int new_size);
+ZObjectTracker * z_memory_allocator_get_object_tracker(Self *self);
 #line 25 "z-memory-allocator.zco"
+void z_memory_allocator_set_object_tracker(Self *self, ZObjectTracker * value);
+#line 67 "z-memory-allocator.zco"
+void *  z_memory_allocator_allocate(Self *self,int size);
+#line 72 "z-memory-allocator.zco"
+void *  z_memory_allocator_allocate_aligned(Self *self,int size,int alignment);
+#line 77 "z-memory-allocator.zco"
+int  z_memory_allocator_try_resize(Self *self,void *block,int new_size);
+#line 82 "z-memory-allocator.zco"
 void *  z_memory_allocator_resize(Self *self,void *block,int new_size);
-#line 30 "z-memory-allocator.zco"
+#line 87 "z-memory-allocator.zco"
 void  z_memory_allocator_deallocate(Self *self,void *block);
 
 #undef Self

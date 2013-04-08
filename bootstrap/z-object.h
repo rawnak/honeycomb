@@ -33,7 +33,7 @@ typedef struct ZMemoryAllocator ZMemoryAllocator;
 
 #include <zco-type.h>
 #define Self ZObject
-#define Z_OBJECT(s) ((ZObject *) ((char *) (s) + GLOBAL_FROM_OBJECT(s)->common.vtable_off_list[z_object_type_id]))
+#define Z_OBJECT(s) ((ZObject *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_object_type_id]))
 
 
 struct ZObjectPrivate;
@@ -49,13 +49,13 @@ typedef struct ZObjectClass ZObjectClass;
 typedef struct ZObject ZObject;
 
 struct ZObjectPrivate {
-#line 28 "z-object.zco"
+#line 27 "z-object.zco"
 	unsigned int ref_count;
-#line 29 "z-object.zco"
+#line 28 "z-object.zco"
 	void *attached_properties;
-#line 30 "z-object.zco"
+#line 29 "z-object.zco"
 	void *signal_map;
-#line 31 "z-object.zco"
+#line 30 "z-object.zco"
 	ZMemoryAllocator *allocator;
 };
 
@@ -68,13 +68,12 @@ struct ZObjectGlobal {
 };
 
 struct ZObjectClass {
-	unsigned long * class_off_list;
 	ZCommonGlobal * real_global;
-#line 41 "z-object.zco"
+#line 40 "z-object.zco"
 	void  (*__class_destroy)(ZObjectGlobal *gbl);
-#line 76 "z-object.zco"
+#line 75 "z-object.zco"
 	void  (*__reset)(Self *self);
-#line 91 "z-object.zco"
+#line 90 "z-object.zco"
 	void  (*__dispose)(Self *self);
 };
 
@@ -85,21 +84,20 @@ struct ZObject {
 #line 25 "z-object.zco"
 	void *class_base;
 #line 26 "z-object.zco"
-#line 27 "z-object.zco"
 };
 extern int z_object_type_id;
 ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx);
 void __z_object_init(struct zco_context_t *ctx, ZObject *self);
 void __z_object_class_init(struct zco_context_t *ctx, ZObjectClass *_class);
-#line 41 "z-object.zco"
+#line 40 "z-object.zco"
 void  z_object_class_destroy(ZObjectGlobal *gbl);
-#line 76 "z-object.zco"
+#line 75 "z-object.zco"
 void  z_object_reset(Self *self);
-#line 91 "z-object.zco"
+#line 90 "z-object.zco"
 void  z_object_dispose(Self *self);
-#line 104 "z-object.zco"
+#line 103 "z-object.zco"
 void  z_object_ref(Self *self);
-#line 109 "z-object.zco"
+#line 108 "z-object.zco"
 void  z_object_unref(Self *self);
 #line 157 "z-object.zco"
 void *  z_object_connect(Self *self,char *name,ZObject *target,char *method_name,void *userdata);

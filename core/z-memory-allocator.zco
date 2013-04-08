@@ -45,27 +45,29 @@ class ZMemoryAllocator : ZObject
                 set
                 {
                         if (selfp->object_tracker) {
-                                ZObjectTracker *tracker = selfp->object_tracker;
+                                ZObject *tracker = selfp->object_tracker;
+
+                                /*
+                                ZObjectGlobal *gbl = GLOBAL_FROM_OBJECT(tracker);
+                                int id = z_object_tracker_type_id;
+                                int offset = gbl->common.vtable_off_list[id];
+                                ZObjectTracker *tracker_interface = ((ZObjectTracker *) ((char *) (tracker) + offset));
+                                */
+
+                                ZObjectTracker *tracker_interface = Z_OBJECT_TRACKER(tracker);
 
                                 /* Full garbage collection */
-                                while (z_object_tracker_garbage_collect((ZObjectTracker *) tracker));
+                                while (z_object_tracker_garbage_collect(tracker_interface));
 
-                                /* Unload the object tracker
-                                   This must be the very first step in the context destruction process
-                                   (by convention). Loading the object tracker at the end of the context
-                                   initialization and unloading it at the start of the context destruction
-                                   ensures that we consistently use the correct tracker for every object.
-                                   
-                                   When we created the object tracker, we didn't have any trackers loaded.
-                                   When we are unloading the object tracker, we must ensure that no trackers
-                                   (itself) isn't loaded. To do this, we keep a reference to the pointer
-                                   and set the pointer to NULL. */
+                                /* Unload the object tracker */
                                 selfp->object_tracker = NULL;
                                 z_object_unref(Z_OBJECT(tracker));
                         }
 
                         selfp->object_tracker = value;
-                        z_object_ref(Z_OBJECT(value));
+
+                        if (value)
+                                z_object_ref(Z_OBJECT(value));
                 }
         }
 
