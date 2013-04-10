@@ -1,7 +1,7 @@
 /* ZCO - Cross-platform Application Framework
  * Copyright (C) 2014  Rawnak Jahan Syeda
  *
- * z-default-memory-allocator.zco: Default memory allocator
+ * z-flex-memory-allocator.zco: Memory allocator for flexible blocks
  * This file is part of ZCO.
  *
  * This library is free software: you can redistribute it and/or modify
@@ -26,7 +26,7 @@
 %{
 %}
 
-class ZDefaultMemoryAllocator : ZMemoryAllocator
+class ZFlexMemoryAllocator : ZMemoryAllocator
 {
 	init(Self *self)
 	{
@@ -48,7 +48,7 @@ class ZDefaultMemoryAllocator : ZMemoryAllocator
 	override(ZMemoryAllocator)
 	void * allocate(ZMemoryAllocator *allocator, int size)
         {
-                return NULL;
+                return malloc(size);
         }
 
         override(ZMemoryAllocator)
@@ -60,19 +60,19 @@ class ZDefaultMemoryAllocator : ZMemoryAllocator
 	override(ZMemoryAllocator)
 	int try_resize(ZMemoryAllocator *allocator, void *block, int new_size)
         {
-                return 0;
+                return -1;
         }
 
         override(ZMemoryAllocator)
         void * resize(ZMemoryAllocator *allocator, void *block, int new_size)
         {
-                return NULL;
+                return realloc(block, new_size);
         }
 
 	override(ZMemoryAllocator)
 	void deallocate(ZMemoryAllocator *allocator, void *block)
         {
-                return;
+                free(block);
         }
 }
 

@@ -81,18 +81,21 @@ struct ZCommonGlobal {
 };
 typedef struct ZCommonGlobal ZCommonGlobal;
 
-struct ZDefaultMemoryAllocator;
-typedef struct ZDefaultMemoryAllocator ZDefaultMemoryAllocator;
+struct ZSysMemoryAllocator;
+struct ZSlabMemoryAllocator;
+struct ZFlexMemoryAllocator;
 
 struct zco_context_t {
-        ZCommonGlobal **types;
+        struct ZCommonGlobal **types;
         int type_count;
         void *marshal;                  /* ZClosureMarshal object */
         void *framework_events;         /* ZFrameworkEvents object */
         int min_segment_cap_by_size;    /* Minimum vector segment capacity */
         int min_segment_cap_by_count;   /* Minimum vector segment capacity */
 
-        ZDefaultMemoryAllocator *default_allocator;  /* System-level memory allocator */
+        struct ZSysMemoryAllocator *sys_allocator;   /* System-level memory allocator */
+        struct ZSlabMemoryAllocator *slab_allocator; /* Slab allocator */
+        struct ZFlexMemoryAllocator *flex_allocator; /* Flexible allocator */
 };
 
 void    zco_context_init(struct zco_context_t *ctx);

@@ -22,7 +22,9 @@
 #include <z-object.h>
 #include <z-framework-events.h>
 #include <z-default-object-tracker.h>
-#include <z-default-memory-allocator.h>
+#include <z-sys-memory-allocator.h>
+#include <z-slab-memory-allocator.h>
+#include <z-flex-memory-allocator.h>
 #include <z-vector-segment.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,6 +37,9 @@ void zco_context_init(struct zco_context_t *ctx)
 	ctx->type_count = 0;
 	ctx->types = 0;
 	ctx->marshal = NULL;
+        ctx->sys_allocator = NULL;
+        ctx->slab_allocator = NULL;
+        ctx->flex_allocator = NULL;
 
         /* Set the default minimum segment capacity to be 3 times the overhead
            incurred by each segment. This means that there can be at most 40%
@@ -47,16 +52,24 @@ void zco_context_init(struct zco_context_t *ctx)
 
 	ctx->framework_events = z_framework_events_new(ctx, NULL);
 
-        /* Loading the object tracker must be the very last step in the very last
-           step in the context initialization process (by convention). Loading
-           the object tracker at the end of the context initialization and
-           unloading it at the start of the context destruction ensures that we
-           consistently use the correct tracker for every object. */
+        /* Create the allocators */
+        ctx->sys_allocator = z_sys_memory_allocator_new(ctx, NULL);
+        ctx->slab_allocator = z_slab_memory_allocator_new(ctx, NULL);
+        ctx->flex_allocator = z_flex_memory_allocator_new(ctx, NULL);
 
-        ctx->default_allocator = z_default_memory_allocator_new(ctx, NULL);
-        ZDefaultObjectTracker *tracker = z_default_object_tracker_new(ctx, NULL);
-        z_memory_allocator_set_object_tracker(Z_MEMORY_ALLOCATOR(ctx->default_allocator), (ZObjectTracker *) tracker);
-        z_object_unref(Z_OBJECT(tracker));
+        /* Create an object tracker for each allocator */
+        ZDefaultObjectTracker *sys_tracker = z_default_object_tracker_new(ctx, NULL);
+        ZDefaultObjectTracker *slab_tracker = z_default_object_tracker_new(ctx, NULL);
+        ZDefaultObjectTracker *flex_tracker = z_default_object_tracker_new(ctx, NULL);
+
+        /* Assign the object tracker to the allocator */
+        z_memory_allocator_set_object_tracker(Z_MEMORY_ALLOCATOR(ctx->sys_allocator), (ZObjectTracker *) sys_tracker);
+        z_memory_allocator_set_object_tracker(Z_MEMORY_ALLOCATOR(ctx->slab_allocator), (ZObjectTracker *) slab_tracker);
+        z_memory_allocator_set_object_tracker(Z_MEMORY_ALLOCATOR(ctx->flex_allocator), (ZObjectTracker *) flex_tracker);
+
+        z_object_unref(Z_OBJECT(sys_tracker));
+        z_object_unref(Z_OBJECT(slab_tracker));
+        z_object_unref(Z_OBJECT(flex_tracker));
 }
 
 void zco_context_destroy(struct zco_context_t *ctx)
@@ -64,7 +77,9 @@ void zco_context_destroy(struct zco_context_t *ctx)
 	int i;
         
         /* Release memory allocators */
-        z_object_unref(Z_OBJECT(ctx->default_allocator));
+        z_object_unref(Z_OBJECT(ctx->flex_allocator));
+        z_object_unref(Z_OBJECT(ctx->slab_allocator));
+        z_object_unref(Z_OBJECT(ctx->sys_allocator));
 
 	z_object_unref((ZObject *) ctx->framework_events);
 

@@ -190,7 +190,9 @@ static void z_memory_allocator_init(Self *self)
  }
 ZObjectTracker * z_memory_allocator_get_object_tracker(Self *self)
 {
+ if (selfp->object_tracker)
  z_object_ref(Z_OBJECT(selfp->object_tracker));
+
  return selfp->object_tracker;
  }
 void z_memory_allocator_set_object_tracker(Self *self, ZObjectTracker * value)
@@ -262,7 +264,7 @@ int  z_memory_allocator_try_resize(Self *self,void *block,int new_size)
 }
 static int  z_memory_allocator_virtual_try_resize(Self *self,void *block,int new_size)
 {
- return 0; /* not handled */
+ return -1; /* not handled */
  }
 void *  z_memory_allocator_resize(Self *self,void *block,int new_size)
 {

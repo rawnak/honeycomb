@@ -46,6 +46,7 @@
 #define set_userdata z_vector_set_userdata
 #define get_begin z_vector_get_begin
 #define get_end z_vector_get_end
+#define create_segment z_vector_create_segment
 #define get_size z_vector_get_size
 #define set_size z_vector_set_size
 #define get_is_empty z_vector_get_is_empty
@@ -95,6 +96,7 @@ static int __map_compare(ZMap *map, const void *a, const void *b)
 static void z_vector_init(Self *self);
 static void  z_vector_reset(ZObject *object);
 static void  z_vector_dispose(ZObject *object);
+static ZVectorSegment * z_vector_create_segment(Self *self);
 static void  z_vector_split_segment(Self *self,ZVectorSegment *segment,ZVectorIter *iter);
 static void  z_vector_insert_segment_after(Self *self,ZVectorSegment *new_segment,ZVectorSegment *after);
 static void  z_vector_insert_segment_before(Self *self,ZVectorSegment *new_segment,ZVectorSegment *before);
@@ -322,6 +324,16 @@ ZVectorIter *  z_vector_get_end(Self *self)
  z_vector_iter_increment(iter);
  return iter;
  }
+static ZVectorSegment * z_vector_create_segment(Self *self)
+{
+ ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
+ struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
+
+ if (!allocator)
+ allocator = (ZMemoryAllocator *) ctx->flex_allocator;
+
+ return z_vector_segment_new(ctx, allocator);
+ }
 int  z_vector_get_size(Self *self)
 {
  return selfp->count;
@@ -340,7 +352,7 @@ void z_vector_set_size(Self *self, int  value)
  selfp->item_construct, selfp->item_destruct) != 0) {
 
  /* Failed to resize the tail. We need a new segment */
- ZVectorSegment *new_tail = z_vector_segment_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ ZVectorSegment *new_tail = create_segment(self);
  z_vector_segment_set_size(new_tail, value - selfp->count,
  selfp->item_size, selfp->storage_mode, selfp->userdata,
  selfp->item_construct, selfp->item_destruct);
@@ -471,7 +483,7 @@ static void  z_vector_split_segment(Self *self,ZVectorSegment *segment,ZVectorIt
                    in the second segment */
 
  /* create the new 2nd segment. */
- ZVectorSegment *new_segment = z_vector_segment_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ ZVectorSegment *new_segment = create_segment(self);
  ZVectorIter *new_iter = z_vector_segment_get_begin(new_segment);
  int rc = z_vector_segment_insert_range(new_segment, new_iter, segment, iter,
  NULL, selfp->item_size, selfp->storage_mode, selfp->userdata,
@@ -504,7 +516,7 @@ int  z_vector_insert(Self *self,ZVectorIter *iter,int n,void *item)
 
  if (index == 0) {
  /* Iterator is at the beginning of the segment. We needn't split the segment */
- ZVectorSegment *new_segment = z_vector_segment_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ ZVectorSegment *new_segment = create_segment(self);
 
  /* build the new segment */
  ZVectorIter *new_iter = z_vector_segment_get_begin(new_segment);
@@ -520,7 +532,7 @@ int  z_vector_insert(Self *self,ZVectorIter *iter,int n,void *item)
 
  } else if (index == segment_size) {
  /* Iterator is at the end of the segment. We needn't split the segment */
- ZVectorSegment *new_segment = z_vector_segment_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ ZVectorSegment *new_segment = create_segment(self);
  
  /* build the new segment */
  ZVectorIter *new_iter = z_vector_segment_get_begin(new_segment);
@@ -538,7 +550,7 @@ int  z_vector_insert(Self *self,ZVectorIter *iter,int n,void *item)
  split_segment(self, segment, iter);
 
  /* build the new segment */
- ZVectorSegment *new_segment = z_vector_segment_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ ZVectorSegment *new_segment = create_segment(self);
  ZVectorIter *new_iter = z_vector_segment_get_begin(new_segment);
  rc = z_vector_segment_insert(new_segment, new_iter, n, item, selfp->item_size, selfp->storage_mode,
  selfp->userdata, selfp->item_copy_construct);
@@ -639,7 +651,7 @@ int  z_vector_insert_range(Self *self,ZVectorIter *iter,ZVector *src,ZVectorIter
 
  if (t1 == NULL && t2 == NULL && z_vector_iter_get_index(temp_iter) == 0) {
  /* we can copy the whole segment */
- ZVectorSegment *new_segment = z_vector_segment_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ ZVectorSegment *new_segment = create_segment(self);
 
  /* build the new segment */
  ZVectorIter *new_iter = z_vector_segment_get_begin(new_segment);
@@ -668,7 +680,7 @@ int  z_vector_insert_range(Self *self,ZVectorIter *iter,ZVector *src,ZVectorIter
  assert(!selfp->head);
  assert(!selfp->tail);
 
- target_segment = z_vector_segment_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ target_segment = create_segment(self);
  
  selfp->head = target_segment;
  z_object_ref(Z_OBJECT(target_segment));
@@ -695,7 +707,7 @@ int  z_vector_insert_range(Self *self,ZVectorIter *iter,ZVector *src,ZVectorIter
 
  if (new_index == 0) {
  /* Iterator is at the beginning of the segment. We needn't split the segment */
- ZVectorSegment *new_segment = z_vector_segment_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ ZVectorSegment *new_segment = create_segment(self);
  
  ZVectorIter *new_iter = z_vector_segment_get_begin(new_segment);
  rc = z_vector_segment_insert_range(new_segment, new_iter, source_segment, t1,
@@ -718,7 +730,7 @@ int  z_vector_insert_range(Self *self,ZVectorIter *iter,ZVector *src,ZVectorIter
 
  } else if (new_index == segment_size) {
  /* Iterator is at the end of the segment. We needn't split the segment */
- ZVectorSegment *new_segment = z_vector_segment_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ ZVectorSegment *new_segment = create_segment(self);
  
  ZVectorIter *new_iter = z_vector_segment_get_begin(new_segment);
  rc = z_vector_segment_insert_range(new_segment, new_iter, source_segment, t1,
@@ -743,7 +755,7 @@ int  z_vector_insert_range(Self *self,ZVectorIter *iter,ZVector *src,ZVectorIter
  split_segment(self, target_segment, temp_iter);
 
  /* Iterator is in the middle of the segment. We have to split the segment */
- ZVectorSegment *new_segment = z_vector_segment_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ ZVectorSegment *new_segment = create_segment(self);
  
  /* build the new segment */
  ZVectorIter *new_iter = z_vector_segment_get_begin(new_segment);

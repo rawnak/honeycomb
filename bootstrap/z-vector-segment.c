@@ -358,13 +358,25 @@ static int  z_vector_segment_set_capacity(Self *self,int value,int item_size,int
  if (value * item_size < min_segment_capacity_by_size)
  value = (min_segment_capacity_by_size + item_size - 1) / item_size;
 
+ ZMemoryAllocator *alloc = z_object_get_allocator_ptr(Z_OBJECT(self));
+
+ if (alloc) {
  if (selfp->data) {
- /* FIXME: We cannot resize the buffer until we have an allocator to do so */
+ if (z_memory_allocator_try_resize(alloc, selfp->data, value * item_size) < 0) {
+ /* couldn't resize the block */
  return -1;
+ }
  } else {
- selfp->capacity = value;
+ selfp->data = z_memory_allocator_allocate(alloc, value * item_size);
+ }
+ } else {
+ if (selfp->data)
+ return -1;
+
  selfp->data = malloc(value * item_size);
  }
+
+ selfp->capacity = value;
 
  } else if (selfp->data) {
  selfp->capacity = 0;

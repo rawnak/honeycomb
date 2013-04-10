@@ -39,7 +39,9 @@ class ZMemoryAllocator : ZObject
         {
                 get
                 {
-                        z_object_ref(Z_OBJECT(selfp->object_tracker));
+                        if (selfp->object_tracker)
+                                z_object_ref(Z_OBJECT(selfp->object_tracker));
+
                         return selfp->object_tracker;
                 }
                 set
@@ -89,7 +91,7 @@ class ZMemoryAllocator : ZObject
 
         public virtual int try_resize(Self *self, void *block, int new_size)
         {
-                return 0; /* not handled */
+                return -1; /* not handled */
         }
 
         public virtual void * resize(Self *self, void *block, int new_size)
