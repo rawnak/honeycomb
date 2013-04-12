@@ -170,6 +170,7 @@ extern int z_zco_source_generator_type_id;
 ZZcoSourceGeneratorGlobal * z_zco_source_generator_get_type(struct zco_context_t *ctx);
 void __z_zco_source_generator_init(struct zco_context_t *ctx, ZZcoSourceGenerator *self);
 void __z_zco_source_generator_class_init(struct zco_context_t *ctx, ZZcoSourceGeneratorClass *_class);
+void  z_zco_source_generator_shutdown(Self *self);
 Self * z_zco_source_generator_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator);
 ZString *  z_zco_source_generator_new_string(Self *self,const char *s1);
 void  z_zco_source_generator_special_member_function_decl(Self *self,ZString *symbol,ZString *arglist,ZString *code);

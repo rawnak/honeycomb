@@ -54,7 +54,6 @@ class ZObject
 		selfp->ref_count = 1;
 		selfp->attached_properties = 0;
 		selfp->signal_map = 0;
-                selfp->allocator = 0;
 	}
 
         global virtual void class_destroy(ZObjectGlobal *gbl)
@@ -117,7 +116,11 @@ class ZObject
 			selfp->signal_map = NULL;
 		}
 
-		free(self);
+                ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->slab_allocator;
+                if (allocator)
+                        z_memory_allocator_deallocate(allocator, self);
+                else
+                        free(self);
 	}
 
 	public void ref(Self *self)
@@ -131,11 +134,14 @@ class ZObject
 		if (--selfp->ref_count == 0) {
                         if (selfp->allocator) {
                                 ZObjectTracker *object_tracker = z_memory_allocator_get_object_tracker(selfp->allocator);
-                                z_object_tracker_destroy(object_tracker, self);
-                                unref(Z_OBJECT(object_tracker));
-                        } else {
-                                dispose(self);
-                        }
+                                if (object_tracker) {
+                                        z_object_tracker_destroy(object_tracker, self);
+                                        unref(Z_OBJECT(object_tracker));
+                                        return;
+                                } 
+                        } 
+
+                        dispose(self);
                 }
         }
 

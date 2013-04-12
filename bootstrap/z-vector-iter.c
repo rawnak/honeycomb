@@ -34,6 +34,7 @@
 #define GET_NEW(ctx,allocator) __z_vector_iter_new(ctx,allocator)
 #define INIT_EXISTS
 #define init z_vector_iter_init
+#define validate z_vector_iter_validate
 #define new z_vector_iter_new
 #define dup z_vector_iter_dup
 #define get_segment z_vector_iter_get_segment
@@ -64,7 +65,11 @@ static Self *__z_vector_iter_new(struct zco_context_t *ctx, ZMemoryAllocator *al
 		}
 	}
 	if (!self) {
-		self = (Self *) malloc(sizeof(Self));
+		ZMemoryAllocator *obj_allocator = ctx->slab_allocator;
+		if (obj_allocator)
+			self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));
+		else
+			self = (Self *) malloc(sizeof(Self));
 		z_object_set_allocator_ptr((ZObject *) self, allocator);
 		__z_vector_iter_init(ctx, self);
 	}
@@ -78,6 +83,7 @@ static int __map_compare(ZMap *map, const void *a, const void *b)
 static void z_vector_iter_init(Self *self);
 static void  z_vector_iter_reset(ZObject *object);
 static void  z_vector_iter_dispose(ZObject *object);
+static void  z_vector_iter_validate(Self *self);
 static void z_vector_iter_class_destroy(ZObjectGlobal *gbl);
 
 static void cleanup_signal_arg(void *item, void *userdata)
@@ -216,6 +222,27 @@ static void  z_vector_iter_dispose(ZObject *object)
  PARENT_HANDLER(object);
  }
 #undef PARENT_HANDLER
+static void  z_vector_iter_validate(Self *self)
+{
+ ZVectorSegment *segment = selfp->segment;
+ int segment_size = z_vector_segment_get_size(segment);
+
+ if (segment_size != selfp->index)
+ return;
+
+ /* This iterator is pointing to the 'one past the last'
+                   element in the segment */
+ ZVectorSegment *next = z_vector_segment_get_next(segment);
+ if (!next)
+ return;
+
+
+ ZVectorIter *begin = z_vector_segment_get_begin(next);
+ assign(self, begin);
+ 
+ z_object_unref(Z_OBJECT(begin));
+ z_object_unref(Z_OBJECT(next));
+ }
 Self * z_vector_iter_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator)
 {
  Self *self = GET_NEW(ctx, allocator);
@@ -388,6 +415,8 @@ void  z_vector_iter_decrement(Self *self)
  }
 int  z_vector_iter_is_equal(Self *self,Self *other)
 {
+ validate(self);
+ validate(other);
  return selfp->segment == other->_priv.segment && selfp->index == get_index(other);
  }
 int  z_vector_iter_is_lte(Self *self,Self *other)

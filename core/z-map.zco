@@ -67,20 +67,11 @@ class ZMap : ZObject
                 Self *self = (Self *) object;
 
                 z_vector_clear(selfp->data);
-		z_object_unref(Z_OBJECT(selfp->data));
-		selfp->data = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
-
-                //z_object_reset(Z_OBJECT(selfp->data));
-
-                z_vector_set_item_size(selfp->data, 2 * sizeof(void *));
 
 		selfp->compare = NULL;
 		selfp->key_destruct = NULL;
 		selfp->value_destruct = NULL;
 		selfp->userdata = NULL;
-
-		z_vector_set_userdata(selfp->data, self);
-		z_vector_set_item_destruct(selfp->data, item_destroy);
 
                 PARENT_HANDLER(object);
         }

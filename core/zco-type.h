@@ -30,6 +30,11 @@
 #define CTX_FROM_OBJECT(o)       CTX_FROM_GLOBAL(GLOBAL_FROM_OBJECT(o))
 #define ALLOCATOR_FROM_OBJECT(o) z_object_get_allocator_ptr(Z_OBJECT(o))
 
+
+#define ALLOCATOR_FROM_OBJECT_OR_SYS(o) zco_context_get_object_or_sys_allocator(Z_OBJECT(o))
+#define ALLOCATOR_FROM_OBJECT_OR_SLAB(o) zco_context_get_object_or_slab_allocator(Z_OBJECT(o))
+#define ALLOCATOR_FROM_OBJECT_OR_FLEX(o) zco_context_get_object_or_flex_allocator(Z_OBJECT(o))
+
 struct ZCommonGlobal {
         /* vtable for object instance.
            This table maps type id to an offset. Given a type id of a parent
@@ -84,18 +89,24 @@ typedef struct ZCommonGlobal ZCommonGlobal;
 struct ZSysMemoryAllocator;
 struct ZSlabMemoryAllocator;
 struct ZFlexMemoryAllocator;
+struct ZMemoryAllocator;
+struct ZClosureMarshal;
+struct ZFrameworkEvents;
+struct ZObject;
 
 struct zco_context_t {
         struct ZCommonGlobal **types;
         int type_count;
-        void *marshal;                  /* ZClosureMarshal object */
-        void *framework_events;         /* ZFrameworkEvents object */
-        int min_segment_cap_by_size;    /* Minimum vector segment capacity */
-        int min_segment_cap_by_count;   /* Minimum vector segment capacity */
+        int min_segment_cap_by_size;                    /* Minimum vector segment capacity */
+        int min_segment_cap_by_count;                   /* Minimum vector segment capacity */
+        struct ZClosureMarshal *marshal;                /* ZClosureMarshal object */
+        struct ZFrameworkEvents *framework_events;      /* ZFrameworkEvents object */
+        void *object_tracker;
 
-        struct ZSysMemoryAllocator *sys_allocator;   /* System-level memory allocator */
-        struct ZSlabMemoryAllocator *slab_allocator; /* Slab allocator */
-        struct ZFlexMemoryAllocator *flex_allocator; /* Flexible allocator */
+
+        struct ZMemoryAllocator *sys_allocator;  /* System-level memory allocator */
+        struct ZMemoryAllocator *slab_allocator; /* Slab allocator */
+        struct ZMemoryAllocator *flex_allocator; /* Flexible allocator */
 };
 
 void    zco_context_init(struct zco_context_t *ctx);
@@ -107,6 +118,11 @@ int     zco_context_get_min_segment_capacity_by_size(struct zco_context_t *ctx);
 void    zco_context_set_min_segment_capacity_by_size(struct zco_context_t *ctx, int value);
 int     zco_context_get_min_segment_capacity_by_count(struct zco_context_t *ctx);
 void    zco_context_set_min_segment_capacity_by_count(struct zco_context_t *ctx, int value);
+
+
+struct ZMemoryAllocator * zco_context_get_object_or_sys_allocator(struct ZObject *object);
+struct ZMemoryAllocator * zco_context_get_object_or_slab_allocator(struct ZObject *object);
+struct ZMemoryAllocator * zco_context_get_object_or_flex_allocator(struct ZObject *object);
 
 
 ZCommonGlobal ** zco_get_ctx_type(struct zco_context_t *ctx, int type_id);

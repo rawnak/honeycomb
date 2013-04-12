@@ -69,10 +69,7 @@ class ZString : ZObject
 		if (selfp->token_it)
 			z_object_unref(Z_OBJECT(selfp->token_it));
 
-		z_object_unref(Z_OBJECT(selfp->data));
-		selfp->data = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
-
-                z_vector_set_item_size(selfp->data, sizeof(char));
+                z_vector_clear(selfp->data);
 
 		selfp->length = 0;
 		selfp->token_it = 0;

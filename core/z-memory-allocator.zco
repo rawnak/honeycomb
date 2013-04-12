@@ -21,6 +21,7 @@
 %h{
 #include <z-object.h>
 #include <z-object-tracker.h>
+#include <assert.h>
 %}
 
 %{
@@ -68,7 +69,13 @@ class ZMemoryAllocator : ZObject
         override(ZObject) void dispose(ZObject *object)
         {
                 Self *self = (Self *) object;
-                set_object_tracker(self, NULL);
+
+                /* The object tracker must be reset by the caller. Resetting
+                   object trackers for all memory allocators before resetting
+                   any allocator ensures that the allocators are present during
+                   the destruction of the objects. */
+                assert(selfp->object_tracker == NULL);
+
                 PARENT_HANDLER(object);
         }
 
@@ -78,7 +85,7 @@ class ZMemoryAllocator : ZObject
                 set_object_tracker(self, NULL);
                 PARENT_HANDLER(object);
         }
-                    
+
         public virtual void * allocate(Self *self, int size)
         {
                 return 0; /* not handled */

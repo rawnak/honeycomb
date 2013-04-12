@@ -48,7 +48,11 @@ static Self *__z_object_tracker_new(struct zco_context_t *ctx, ZMemoryAllocator 
 		}
 	}
 	if (!self) {
-		self = (Self *) malloc(sizeof(Self));
+		ZMemoryAllocator *obj_allocator = ctx->slab_allocator;
+		if (obj_allocator)
+			self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));
+		else
+			self = (Self *) malloc(sizeof(Self));
 		z_object_set_allocator_ptr((ZObject *) self, allocator);
 		__z_object_tracker_init(ctx, self);
 	}
@@ -151,7 +155,7 @@ int  z_object_tracker_destroy(Self *self,ZObject *target)
 }
 static int  z_object_tracker_virtual_destroy(Self *self,ZObject *target)
 {
- return 0; /* not handled */
+ return -1; /* not handled */
  }
 int  z_object_tracker_garbage_collect(Self *self)
 {
@@ -163,7 +167,7 @@ int  z_object_tracker_garbage_collect(Self *self)
 }
 static int  z_object_tracker_virtual_garbage_collect(Self *self)
 {
- return 0; /* not handled */
+ return 0; /* no objects collected */
  }
 
 

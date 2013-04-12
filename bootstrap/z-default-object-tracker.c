@@ -57,7 +57,11 @@ static Self *__z_default_object_tracker_new(struct zco_context_t *ctx, ZMemoryAl
 		}
 	}
 	if (!self) {
-		self = (Self *) malloc(sizeof(Self));
+		ZMemoryAllocator *obj_allocator = ctx->slab_allocator;
+		if (obj_allocator)
+			self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));
+		else
+			self = (Self *) malloc(sizeof(Self));
 		z_object_set_allocator_ptr((ZObject *) self, allocator);
 		__z_default_object_tracker_init(ctx, self);
 	}
@@ -294,19 +298,7 @@ static ZObject *  z_default_object_tracker_create(ZObjectTracker *tracker,int ty
  }
 
  /* reset the object state */
- if (type_id == 1) { // map
- //z_object_dispose(object);
- //object = NULL;
  z_object_reset(object);
-
- } else if (type_id == 9) { // string
- //z_object_dispose(object);
- //object = NULL;
- z_object_reset(object);
-
- } else {
- z_object_reset(object);
- }
 
 done:
  selfp->suspended = 0;
@@ -332,7 +324,7 @@ static int  z_default_object_tracker_destroy(ZObjectTracker *tracker,ZObject *ta
 
  ZMapIter *pos;
  ZVector *pool;
-
+ 
  pos = z_map_find(selfp->pools, INT_TO_PTR(id));
 
  if (pos) {
@@ -353,6 +345,8 @@ static int  z_default_object_tracker_destroy(ZObjectTracker *tracker,ZObject *ta
 
  selfp->suspended = 0;
  }
+
+ return 0;
  }
 #undef PARENT_HANDLER
 static int  z_default_object_tracker_garbage_collect_pool(Self *self,ZVector *pool)

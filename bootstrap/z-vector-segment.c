@@ -45,6 +45,7 @@
 #define get_size z_vector_segment_get_size
 #define set_size z_vector_segment_set_size
 #define get_capacity z_vector_segment_get_capacity
+#define deallocate z_vector_segment_deallocate
 #define set_capacity z_vector_segment_set_capacity
 #define is_in_bound z_vector_segment_is_in_bound
 #define get_item z_vector_segment_get_item
@@ -68,7 +69,11 @@ static Self *__z_vector_segment_new(struct zco_context_t *ctx, ZMemoryAllocator 
 		}
 	}
 	if (!self) {
-		self = (Self *) malloc(sizeof(Self));
+		ZMemoryAllocator *obj_allocator = ctx->slab_allocator;
+		if (obj_allocator)
+			self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));
+		else
+			self = (Self *) malloc(sizeof(Self));
 		z_object_set_allocator_ptr((ZObject *) self, allocator);
 		__z_vector_segment_init(ctx, self);
 	}
@@ -82,6 +87,7 @@ static int __map_compare(ZMap *map, const void *a, const void *b)
 static void z_vector_segment_init(Self *self);
 static void  z_vector_segment_reset(ZObject *object);
 static void  z_vector_segment_dispose(ZObject *object);
+static void  z_vector_segment_deallocate(Self *self);
 static int  z_vector_segment_set_capacity(Self *self,int value,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_construct,ZVectorItemCallback item_destruct);
 static void z_vector_segment_class_destroy(ZObjectGlobal *gbl);
 
@@ -211,10 +217,8 @@ static void  z_vector_segment_reset(ZObject *object)
  set_prev(self, NULL);
  set_next(self, NULL);
 
- if (selfp->data)
- free(selfp->data);
- 
- selfp->data = 0;
+ deallocate(self);
+
  selfp->start = 0;
  selfp->count = 0;
  selfp->capacity = 0;
@@ -230,10 +234,7 @@ static void  z_vector_segment_dispose(ZObject *object)
  set_prev(self, NULL);
  set_next(self, NULL);
 
- if (selfp->data)
- free(selfp->data);
- 
- selfp->data = 0;
+ deallocate(self);
 
  PARENT_HANDLER(object);
  }
@@ -339,6 +340,19 @@ int  z_vector_segment_get_capacity(Self *self)
 {
  return selfp->capacity;
  }
+static void  z_vector_segment_deallocate(Self *self)
+{
+ if (selfp->data) {
+ ZMemoryAllocator *alloc = z_object_get_allocator_ptr(Z_OBJECT(self));
+
+ if (alloc)
+ z_memory_allocator_deallocate(alloc, selfp->data);
+ else
+ free(selfp->data);
+ }
+
+ selfp->data = NULL;
+ }
 static int  z_vector_segment_set_capacity(Self *self,int value,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_construct,ZVectorItemCallback item_destruct)
 {
  if (value < selfp->count) {
@@ -380,9 +394,7 @@ static int  z_vector_segment_set_capacity(Self *self,int value,int item_size,int
 
  } else if (selfp->data) {
  selfp->capacity = 0;
-
- free(selfp->data);
- selfp->data = NULL;
+ deallocate(self);
  }
 
  return 0;
@@ -410,6 +422,7 @@ void *  z_vector_segment_get_item(Self *self,ZVectorIter *iter,int item_size,int
 
  } else {
  fprintf(stderr, "Index out of bound. max=%d, index=%d\n", selfp->count-1, index);
+ abort();
  }
 
  return NULL;

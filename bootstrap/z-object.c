@@ -70,7 +70,11 @@ static Self *__z_object_new(struct zco_context_t *ctx, ZMemoryAllocator *allocat
 		}
 	}
 	if (!self) {
-		self = (Self *) malloc(sizeof(Self));
+		ZMemoryAllocator *obj_allocator = ctx->slab_allocator;
+		if (obj_allocator)
+			self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));
+		else
+			self = (Self *) malloc(sizeof(Self));
 		z_object_set_allocator_ptr((ZObject *) self, allocator);
 		__z_object_init(ctx, self);
 	}
@@ -168,7 +172,6 @@ static void z_object_init(Self *self)
  selfp->ref_count = 1;
  selfp->attached_properties = 0;
  selfp->signal_map = 0;
- selfp->allocator = 0;
  }
 void  z_object_class_destroy(ZObjectGlobal *gbl)
 {
@@ -250,6 +253,10 @@ static void  z_object_virtual_dispose(Self *self)
  selfp->signal_map = NULL;
  }
 
+ ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->slab_allocator;
+ if (allocator)
+ z_memory_allocator_deallocate(allocator, self);
+ else
  free(self);
  }
 void  z_object_ref(Self *self)
@@ -262,11 +269,14 @@ void  z_object_unref(Self *self)
  if (--selfp->ref_count == 0) {
  if (selfp->allocator) {
  ZObjectTracker *object_tracker = z_memory_allocator_get_object_tracker(selfp->allocator);
+ if (object_tracker) {
  z_object_tracker_destroy(object_tracker, self);
  unref(Z_OBJECT(object_tracker));
- } else {
+ return;
+ } 
+ } 
+
  dispose(self);
- }
  }
  }
 static ZObjectSignalHandler  z_object_lookup_method(Self *self,char *method_name)

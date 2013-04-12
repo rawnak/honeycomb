@@ -1327,6 +1327,7 @@ int main(int argc, char **argv)
 
 	rc = yyparse();
 
+        z_zco_source_generator_shutdown(source_generator);
 	z_object_unref(Z_OBJECT(source_generator));
 	zco_context_destroy(&context);
 

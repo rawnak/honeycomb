@@ -60,10 +60,8 @@ class ZVectorSegment : ZObject
                 set_prev(self, NULL);
                 set_next(self, NULL);
 
-                if (selfp->data)
-                        free(selfp->data);
-                
-                selfp->data = 0;
+                deallocate(self);
+
                 selfp->start = 0;
 		selfp->count = 0;
 		selfp->capacity = 0;
@@ -78,14 +76,11 @@ class ZVectorSegment : ZObject
                 set_prev(self, NULL);
                 set_next(self, NULL);
 
-                if (selfp->data)
-                        free(selfp->data);
-                
-                selfp->data = 0;
+                deallocate(self);
 
 		PARENT_HANDLER(object);
 	}
-
+        
 	public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
 	{
 		Self *self = GET_NEW(ctx, allocator);
@@ -207,6 +202,20 @@ done:
                 return selfp->capacity;
         }
 
+        private void deallocate(Self *self)
+        {
+                if (selfp->data) {
+                        ZMemoryAllocator *alloc = z_object_get_allocator_ptr(Z_OBJECT(self));
+
+                        if (alloc)
+                                z_memory_allocator_deallocate(alloc, selfp->data);
+                        else
+                                free(selfp->data);
+                }
+
+                selfp->data = NULL;
+        }
+
         private int set_capacity(Self *self, int value, int item_size, int storage_mode, void *userdata,
                         ZVectorItemCallback item_construct, ZVectorItemCallback item_destruct)
         {
@@ -249,9 +258,7 @@ done:
 
                 } else if (selfp->data) {
                         selfp->capacity = 0;
-
-                        free(selfp->data);
-                        selfp->data = NULL;
+                        deallocate(self);
                 }
 
                 return 0;
@@ -285,6 +292,7 @@ done:
 
 		} else {
 			fprintf(stderr, "Index out of bound. max=%d, index=%d\n", selfp->count-1, index);
+                        abort();
 		}
 
 		return NULL;

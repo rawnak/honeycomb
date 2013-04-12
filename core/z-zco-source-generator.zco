@@ -216,6 +216,12 @@ class ZZcoSourceGenerator : ZObject
            z_string_set_cstring(selfp->z_object_class_name_pascal, "ZObject", Z_STRING_ENCODING_UTF8);
         }
 
+        public void shutdown(Self *self)
+        {
+                z_file_write(selfp->header_file, "\n#endif\n");
+                z_file_write(selfp->source_file, "\n\n");
+        }
+
 	override(ZObject) void dispose(ZObject *object)
 	{
 		Self *self = (Self *) object;
@@ -254,9 +260,6 @@ class ZZcoSourceGenerator : ZObject
                 z_object_unref(Z_OBJECT(selfp->z_object_class_name_pascal));
 
                 free(selfp->header_filename);
-
-                z_file_write(selfp->header_file, "\n#endif\n");
-                z_file_write(selfp->source_file, "\n\n");
 
                 z_file_close(selfp->header_file);
                 z_file_close(selfp->source_file);
@@ -1588,7 +1591,11 @@ class ZZcoSourceGenerator : ZObject
                                 "\t\t\x7d\n"
                                 "\t\x7d\n"
                                 "\tif (!self) {\n"
-                                "\t\tself = (Self *) malloc(sizeof(Self));\n"
+                                "\t\tZMemoryAllocator *obj_allocator = ctx->slab_allocator;\n"
+                                "\t\tif (obj_allocator)\n"
+                                "\t\t\tself = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));\n"
+                                "\t\telse\n"
+                                "\t\t\tself = (Self *) malloc(sizeof(Self));\n"
                                 "\t\tz_object_set_allocator_ptr((ZObject *) self, allocator);\n"
                                 "\t\t__%S_init(ctx, self);\n"
                                 "\t}\n"

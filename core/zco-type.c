@@ -40,6 +40,7 @@ void zco_context_init(struct zco_context_t *ctx)
         ctx->sys_allocator = NULL;
         ctx->slab_allocator = NULL;
         ctx->flex_allocator = NULL;
+        ctx->object_tracker = NULL;
 
         /* Set the default minimum segment capacity to be 3 times the overhead
            incurred by each segment. This means that there can be at most 40%
@@ -50,12 +51,14 @@ void zco_context_init(struct zco_context_t *ctx)
            segment holds a single item, it is nothing more than a linked list. */
         zco_context_set_min_segment_capacity_by_count(ctx, 2);
 
-	ctx->framework_events = z_framework_events_new(ctx, NULL);
-
         /* Create the allocators */
-        ctx->sys_allocator = z_sys_memory_allocator_new(ctx, NULL);
-        ctx->slab_allocator = z_slab_memory_allocator_new(ctx, NULL);
-        ctx->flex_allocator = z_flex_memory_allocator_new(ctx, NULL);
+        ZSysMemoryAllocator *sys_allocator = z_sys_memory_allocator_new(ctx, NULL);
+        ZSlabMemoryAllocator *slab_allocator = z_slab_memory_allocator_new(ctx, NULL);
+        ZFlexMemoryAllocator *flex_allocator = z_flex_memory_allocator_new(ctx, NULL);
+
+        ctx->sys_allocator = (ZMemoryAllocator *) sys_allocator;
+        ctx->slab_allocator = (ZMemoryAllocator *) slab_allocator;
+        ctx->flex_allocator = (ZMemoryAllocator *) flex_allocator;
 
         /* Create an object tracker for each allocator */
         ZDefaultObjectTracker *sys_tracker = z_default_object_tracker_new(ctx, NULL);
@@ -63,31 +66,30 @@ void zco_context_init(struct zco_context_t *ctx)
         ZDefaultObjectTracker *flex_tracker = z_default_object_tracker_new(ctx, NULL);
 
         /* Assign the object tracker to the allocator */
-        z_memory_allocator_set_object_tracker(Z_MEMORY_ALLOCATOR(ctx->sys_allocator), (ZObjectTracker *) sys_tracker);
-        z_memory_allocator_set_object_tracker(Z_MEMORY_ALLOCATOR(ctx->slab_allocator), (ZObjectTracker *) slab_tracker);
-        z_memory_allocator_set_object_tracker(Z_MEMORY_ALLOCATOR(ctx->flex_allocator), (ZObjectTracker *) flex_tracker);
+        z_memory_allocator_set_object_tracker((ZMemoryAllocator *) sys_allocator, (ZObjectTracker *) sys_tracker);
+        z_memory_allocator_set_object_tracker((ZMemoryAllocator *) slab_allocator, (ZObjectTracker *) slab_tracker);
+        z_memory_allocator_set_object_tracker((ZMemoryAllocator *) flex_allocator, (ZObjectTracker *) flex_tracker);
 
         z_object_unref(Z_OBJECT(sys_tracker));
         z_object_unref(Z_OBJECT(slab_tracker));
         z_object_unref(Z_OBJECT(flex_tracker));
+
+	ctx->framework_events = z_framework_events_new(ctx, NULL);
 }
 
 void zco_context_destroy(struct zco_context_t *ctx)
 {
 	int i;
-        
-        /* Release memory allocators */
-        z_object_unref(Z_OBJECT(ctx->flex_allocator));
-        z_object_unref(Z_OBJECT(ctx->slab_allocator));
-        z_object_unref(Z_OBJECT(ctx->sys_allocator));
 
 	z_object_unref((ZObject *) ctx->framework_events);
 
+        /* Release the marshaller */
 	if (ctx->marshal) {
 		z_object_unref((ZObject *) ctx->marshal);
 		ctx->marshal = NULL;
 	}
 
+        /* Release all method maps used for signals */
 	for (i=0; i < ctx->type_count; ++i) {
 		struct ZCommonGlobal *global = ctx->types[i];
 
@@ -95,6 +97,45 @@ void zco_context_destroy(struct zco_context_t *ctx)
 			z_object_unref((ZObject *) global->method_map);
 	}
 
+        /* Full garbage collection on all allocators.
+           Since running GC in one object tracker may push items into the pool
+           of another object tracker, we cannot assume one tracker's pool is
+           clear until all the trackers' pool have been cleared */
+        ZObjectTracker *flex_tracker = z_memory_allocator_get_object_tracker(ctx->flex_allocator);
+        ZObjectTracker *slab_tracker = z_memory_allocator_get_object_tracker(ctx->slab_allocator);
+        ZObjectTracker *sys_tracker = z_memory_allocator_get_object_tracker(ctx->sys_allocator);
+
+        int objects_released;
+
+        do {
+                objects_released = 0;
+
+                if (flex_tracker)
+                        objects_released += z_object_tracker_garbage_collect(flex_tracker);
+
+                if (slab_tracker)
+                        objects_released += z_object_tracker_garbage_collect(slab_tracker);
+
+                if (sys_tracker)
+                        objects_released += z_object_tracker_garbage_collect(sys_tracker);
+
+        } while (objects_released);
+
+        if (flex_tracker)
+                z_object_unref(Z_OBJECT(flex_tracker));
+
+        if (slab_tracker)
+                z_object_unref(Z_OBJECT(slab_tracker));
+
+        if (sys_tracker)
+                z_object_unref(Z_OBJECT(sys_tracker));
+
+        /* Release the object trackers */
+        z_memory_allocator_set_object_tracker(ctx->flex_allocator, NULL);
+        z_memory_allocator_set_object_tracker(ctx->slab_allocator, NULL);
+        z_memory_allocator_set_object_tracker(ctx->sys_allocator, NULL);
+
+        /* Destroy objects for class static */
 	for (i=ctx->type_count - 1; i >= 0; --i) {
 		struct ZCommonGlobal *global = ctx->types[i];
 
@@ -104,6 +145,29 @@ void zco_context_destroy(struct zco_context_t *ctx)
 			if (global->is_object) {
 				z_object_class_destroy(obj_global);
 			}
+		}
+	}
+
+        /* Release memory allocators */
+        ZMemoryAllocator *flex_allocator = ctx->flex_allocator;
+        ZMemoryAllocator *slab_allocator = ctx->slab_allocator;
+        ZMemoryAllocator *sys_allocator = ctx->sys_allocator;
+
+        ctx->flex_allocator = NULL;
+        ctx->slab_allocator = NULL;
+        ctx->sys_allocator = NULL;
+
+        z_object_unref(Z_OBJECT(flex_allocator));
+        z_object_unref(Z_OBJECT(slab_allocator));
+        z_object_unref(Z_OBJECT(sys_allocator));
+
+        /* Free class static */
+	for (i=ctx->type_count - 1; i >= 0; --i) {
+		struct ZCommonGlobal *global = ctx->types[i];
+
+		if (global) {
+                        struct ZObjectGlobal *obj_global = ((ZObjectGlobal *) global);
+
 			free(obj_global->_class);
 			free(global->vtable_off_list);
                         free(global->svtable_off_list);
@@ -222,5 +286,40 @@ void zco_context_set_min_segment_capacity_by_count(struct zco_context_t *ctx, in
 {
         ctx->min_segment_cap_by_count = value;
 }
+
+ZMemoryAllocator * zco_context_get_object_or_sys_allocator(ZObject *object)
+{
+        ZMemoryAllocator *allocator = z_object_get_allocator_ptr(object);
+        struct zco_context_t *ctx = CTX_FROM_OBJECT(object);
+
+        if (!allocator)
+                allocator = (ZMemoryAllocator *) ctx->sys_allocator;
+
+        return allocator;
+}
+
+ZMemoryAllocator * zco_context_get_object_or_slab_allocator(ZObject *object)
+{
+        ZMemoryAllocator *allocator = z_object_get_allocator_ptr(object);
+        struct zco_context_t *ctx = CTX_FROM_OBJECT(object);
+
+        if (!allocator)
+                allocator = (ZMemoryAllocator *) ctx->slab_allocator;
+
+        return allocator;
+}
+
+ZMemoryAllocator * zco_context_get_object_or_flex_allocator(ZObject *object)
+{
+        ZMemoryAllocator *allocator = z_object_get_allocator_ptr(object);
+        struct zco_context_t *ctx = CTX_FROM_OBJECT(object);
+
+        if (!allocator)
+                allocator = (ZMemoryAllocator *) ctx->flex_allocator;
+
+        return allocator;
+}
+
+
 
 

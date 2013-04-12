@@ -54,7 +54,11 @@ static Self *__z_memory_allocator_new(struct zco_context_t *ctx, ZMemoryAllocato
 		}
 	}
 	if (!self) {
-		self = (Self *) malloc(sizeof(Self));
+		ZMemoryAllocator *obj_allocator = ctx->slab_allocator;
+		if (obj_allocator)
+			self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));
+		else
+			self = (Self *) malloc(sizeof(Self));
 		z_object_set_allocator_ptr((ZObject *) self, allocator);
 		__z_memory_allocator_init(ctx, self);
 	}
@@ -218,7 +222,13 @@ void z_memory_allocator_set_object_tracker(Self *self, ZObjectTracker * value)
 static void  z_memory_allocator_dispose(ZObject *object)
 {
  Self *self = (Self *) object;
- set_object_tracker(self, NULL);
+
+ /* The object tracker must be reset by the caller. Resetting
+                   object trackers for all memory allocators before resetting
+                   any allocator ensures that the allocators are present during
+                   the destruction of the objects. */
+ assert(selfp->object_tracker == NULL);
+
  PARENT_HANDLER(object);
  }
 #undef PARENT_HANDLER

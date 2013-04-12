@@ -47,7 +47,11 @@ static Self *__z_slab_memory_allocator_new(struct zco_context_t *ctx, ZMemoryAll
 		}
 	}
 	if (!self) {
-		self = (Self *) malloc(sizeof(Self));
+		ZMemoryAllocator *obj_allocator = ctx->slab_allocator;
+		if (obj_allocator)
+			self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));
+		else
+			self = (Self *) malloc(sizeof(Self));
 		z_object_set_allocator_ptr((ZObject *) self, allocator);
 		__z_slab_memory_allocator_init(ctx, self);
 	}

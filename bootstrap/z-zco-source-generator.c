@@ -40,6 +40,7 @@ typedef void(*CallbackFunc)(struct ZZcoSourceGenerator *self, int is_first, ZStr
 #define GET_NEW(ctx,allocator) __z_zco_source_generator_new(ctx,allocator)
 #define INIT_EXISTS
 #define init z_zco_source_generator_init
+#define shutdown z_zco_source_generator_shutdown
 #define new z_zco_source_generator_new
 #define new_string z_zco_source_generator_new_string
 #define print_line_number z_zco_source_generator_print_line_number
@@ -104,7 +105,11 @@ static Self *__z_zco_source_generator_new(struct zco_context_t *ctx, ZMemoryAllo
 		}
 	}
 	if (!self) {
-		self = (Self *) malloc(sizeof(Self));
+		ZMemoryAllocator *obj_allocator = ctx->slab_allocator;
+		if (obj_allocator)
+			self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));
+		else
+			self = (Self *) malloc(sizeof(Self));
 		z_object_set_allocator_ptr((ZObject *) self, allocator);
 		__z_zco_source_generator_init(ctx, self);
 	}
@@ -209,6 +214,7 @@ ZZcoSourceGeneratorGlobal * z_zco_source_generator_get_type(struct zco_context_t
 		global->common.method_map = z_map_new(ctx, NULL);
 		z_map_set_compare(global->common.method_map, __map_compare);
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
+		z_map_insert((ZMap *) global->common.method_map, strdup("shutdown"), (ZObjectSignalHandler) shutdown);
 		z_map_insert((ZMap *) global->common.method_map, strdup("new"), (ZObjectSignalHandler) new);
 		z_map_insert((ZMap *) global->common.method_map, strdup("new_string"), (ZObjectSignalHandler) new_string);
 		z_map_insert((ZMap *) global->common.method_map, strdup("special_member_function_decl"), (ZObjectSignalHandler) special_member_function_decl);
@@ -331,6 +337,11 @@ static void z_zco_source_generator_init(Self *self)
  z_string_set_cstring(selfp->str_class_destroy, "class_destroy", Z_STRING_ENCODING_UTF8);
  z_string_set_cstring(selfp->z_object_class_name_pascal, "ZObject", Z_STRING_ENCODING_UTF8);
  }
+void  z_zco_source_generator_shutdown(Self *self)
+{
+ z_file_write(selfp->header_file, "\n#endif\n");
+ z_file_write(selfp->source_file, "\n\n");
+ }
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_dispose
 static void  z_zco_source_generator_dispose(ZObject *object)
 {
@@ -370,9 +381,6 @@ static void  z_zco_source_generator_dispose(ZObject *object)
  z_object_unref(Z_OBJECT(selfp->z_object_class_name_pascal));
 
  free(selfp->header_filename);
-
- z_file_write(selfp->header_file, "\n#endif\n");
- z_file_write(selfp->source_file, "\n\n");
 
  z_file_close(selfp->header_file);
  z_file_close(selfp->source_file);
@@ -1666,7 +1674,11 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
  "\t\t\x7d\n"
  "\t\x7d\n"
  "\tif (!self) {\n"
- "\t\tself = (Self *) malloc(sizeof(Self));\n"
+ "\t\tZMemoryAllocator *obj_allocator = ctx->slab_allocator;\n"
+ "\t\tif (obj_allocator)\n"
+ "\t\t\tself = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));\n"
+ "\t\telse\n"
+ "\t\t\tself = (Self *) malloc(sizeof(Self));\n"
  "\t\tz_object_set_allocator_ptr((ZObject *) self, allocator);\n"
  "\t\t__%S_init(ctx, self);\n"
  "\t}\n"

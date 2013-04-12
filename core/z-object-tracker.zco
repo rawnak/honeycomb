@@ -34,12 +34,12 @@ interface ZObjectTracker
 
         public virtual int destroy(Self *self, ZObject *target)
         {
-                return 0; /* not handled */
+                return -1; /* not handled */
         }
 
         public virtual int garbage_collect(Self *self)
         {
-                return 0; /* not handled */
+                return 0; /* no objects collected */
         }
 }
 

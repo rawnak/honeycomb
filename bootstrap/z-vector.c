@@ -82,7 +82,11 @@ static Self *__z_vector_new(struct zco_context_t *ctx, ZMemoryAllocator *allocat
 		}
 	}
 	if (!self) {
-		self = (Self *) malloc(sizeof(Self));
+		ZMemoryAllocator *obj_allocator = ctx->slab_allocator;
+		if (obj_allocator)
+			self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));
+		else
+			self = (Self *) malloc(sizeof(Self));
 		z_object_set_allocator_ptr((ZObject *) self, allocator);
 		__z_vector_init(ctx, self);
 	}
@@ -326,13 +330,7 @@ ZVectorIter *  z_vector_get_end(Self *self)
  }
 static ZVectorSegment * z_vector_create_segment(Self *self)
 {
- ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
- struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
-
- if (!allocator)
- allocator = (ZMemoryAllocator *) ctx->flex_allocator;
-
- return z_vector_segment_new(ctx, allocator);
+ return z_vector_segment_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT_OR_FLEX(self));
  }
 int  z_vector_get_size(Self *self)
 {

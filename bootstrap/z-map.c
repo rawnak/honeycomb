@@ -83,7 +83,11 @@ static Self *__z_map_new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
 		}
 	}
 	if (!self) {
-		self = (Self *) malloc(sizeof(Self));
+		ZMemoryAllocator *obj_allocator = ctx->slab_allocator;
+		if (obj_allocator)
+			self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));
+		else
+			self = (Self *) malloc(sizeof(Self));
 		z_object_set_allocator_ptr((ZObject *) self, allocator);
 		__z_map_init(ctx, self);
 	}
@@ -238,20 +242,11 @@ static void  z_map_reset(ZObject *object)
  Self *self = (Self *) object;
 
  z_vector_clear(selfp->data);
- z_object_unref(Z_OBJECT(selfp->data));
- selfp->data = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
-
- //z_object_reset(Z_OBJECT(selfp->data));
-
- z_vector_set_item_size(selfp->data, 2 * sizeof(void *));
 
  selfp->compare = NULL;
  selfp->key_destruct = NULL;
  selfp->value_destruct = NULL;
  selfp->userdata = NULL;
-
- z_vector_set_userdata(selfp->data, self);
- z_vector_set_item_destruct(selfp->data, item_destroy);
 
  PARENT_HANDLER(object);
  }

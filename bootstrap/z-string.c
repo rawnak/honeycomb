@@ -99,7 +99,11 @@ static Self *__z_string_new(struct zco_context_t *ctx, ZMemoryAllocator *allocat
 		}
 	}
 	if (!self) {
-		self = (Self *) malloc(sizeof(Self));
+		ZMemoryAllocator *obj_allocator = ctx->slab_allocator;
+		if (obj_allocator)
+			self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));
+		else
+			self = (Self *) malloc(sizeof(Self));
 		z_object_set_allocator_ptr((ZObject *) self, allocator);
 		__z_string_init(ctx, self);
 	}
@@ -271,10 +275,7 @@ static void  z_string_reset(ZObject *object)
  if (selfp->token_it)
  z_object_unref(Z_OBJECT(selfp->token_it));
 
- z_object_unref(Z_OBJECT(selfp->data));
- selfp->data = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
-
- z_vector_set_item_size(selfp->data, sizeof(char));
+ z_vector_clear(selfp->data);
 
  selfp->length = 0;
  selfp->token_it = 0;

@@ -61,6 +61,28 @@ class ZVectorIter : ZObject
 		PARENT_HANDLER(object);
 	}
 
+        private void validate(Self *self)
+        {
+                ZVectorSegment *segment = selfp->segment;
+                int segment_size = z_vector_segment_get_size(segment);
+
+                if (segment_size != selfp->index)
+                        return;
+
+                /* This iterator is pointing to the 'one past the last'
+                   element in the segment */
+                ZVectorSegment *next = z_vector_segment_get_next(segment);
+                if (!next)
+                        return;
+
+
+                ZVectorIter *begin = z_vector_segment_get_begin(next);
+                assign(self, begin);
+                
+                z_object_unref(Z_OBJECT(begin));
+                z_object_unref(Z_OBJECT(next));
+        }
+
 	public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
 	{
 		Self *self = GET_NEW(ctx, allocator);
@@ -252,6 +274,8 @@ class ZVectorIter : ZObject
 
 	public int is_equal(Self *self, Self *other)
 	{
+                validate(self);
+                validate(other);
 		return selfp->segment == other->_priv.segment && selfp->index == get_index(other);
 	}
 

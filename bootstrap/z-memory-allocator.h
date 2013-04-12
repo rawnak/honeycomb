@@ -23,6 +23,7 @@
 
 #include <z-object.h>
 #include <z-object-tracker.h>
+#include <assert.h>
 
 #include <zco-type.h>
 #define Self ZMemoryAllocator
