@@ -105,6 +105,10 @@ class ZVector : ZObject
 
 	public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
 	{
+                if (!allocator) {
+                        allocator = ctx->flex_allocator;
+                }
+
 		Self *self = GET_NEW(ctx, allocator);
 		return self;
 	}
@@ -206,7 +210,7 @@ class ZVector : ZObject
 
         private ZVectorSegment *create_segment(Self *self)
         {
-                return z_vector_segment_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT_OR_FLEX(self));
+                return z_vector_segment_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
         }
 
 	/* The current count of the number of elements in the vector.

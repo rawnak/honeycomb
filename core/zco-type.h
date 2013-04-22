@@ -118,6 +118,7 @@ int     zco_context_get_min_segment_capacity_by_size(struct zco_context_t *ctx);
 void    zco_context_set_min_segment_capacity_by_size(struct zco_context_t *ctx, int value);
 int     zco_context_get_min_segment_capacity_by_count(struct zco_context_t *ctx);
 void    zco_context_set_min_segment_capacity_by_count(struct zco_context_t *ctx, int value);
+void    zco_context_full_garbage_collect(struct zco_context_t *ctx);
 
 
 struct ZMemoryAllocator * zco_context_get_object_or_sys_allocator(struct ZObject *object);

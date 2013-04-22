@@ -299,7 +299,6 @@ static ZObject *  z_default_object_tracker_create(ZObjectTracker *tracker,int ty
 
  /* reset the object state */
  z_object_reset(object);
-
 done:
  selfp->suspended = 0;
  return object;

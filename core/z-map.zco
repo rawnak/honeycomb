@@ -93,6 +93,9 @@ class ZMap : ZObject
 
 	public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
 	{
+                if (!allocator)
+                        allocator = ctx->flex_allocator;
+
 		Self *self = GET_NEW(ctx, allocator);
 		return self;
 	}

@@ -241,6 +241,9 @@ static void  z_vector_segment_dispose(ZObject *object)
 #undef PARENT_HANDLER
 Self * z_vector_segment_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator)
 {
+ if (!allocator)
+ allocator = ctx->flex_allocator;
+
  Self *self = GET_NEW(ctx, allocator);
  return self;
  }

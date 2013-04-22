@@ -31,6 +31,7 @@
 #include <assert.h>
 
 static int next_id = -1;
+static int last_allocator_id = -1;
 
 void zco_context_init(struct zco_context_t *ctx)
 {
@@ -60,6 +61,11 @@ void zco_context_init(struct zco_context_t *ctx)
         ctx->slab_allocator = (ZMemoryAllocator *) slab_allocator;
         ctx->flex_allocator = (ZMemoryAllocator *) flex_allocator;
 
+        /* Keep note of the last type id for which the object buffer was not
+           allocated using the slab allocator. */
+        if (last_allocator_id == -1)
+                last_allocator_id = next_id;
+
         /* Create an object tracker for each allocator */
         ZDefaultObjectTracker *sys_tracker = z_default_object_tracker_new(ctx, NULL);
         ZDefaultObjectTracker *slab_tracker = z_default_object_tracker_new(ctx, NULL);
@@ -74,6 +80,7 @@ void zco_context_init(struct zco_context_t *ctx)
         z_object_unref(Z_OBJECT(slab_tracker));
         z_object_unref(Z_OBJECT(flex_tracker));
 
+        /* Create an object to manage framework events */
 	ctx->framework_events = z_framework_events_new(ctx, NULL);
 }
 
@@ -81,6 +88,7 @@ void zco_context_destroy(struct zco_context_t *ctx)
 {
 	int i;
 
+        /* Release framework events */
 	z_object_unref((ZObject *) ctx->framework_events);
 
         /* Release the marshaller */
@@ -89,51 +97,23 @@ void zco_context_destroy(struct zco_context_t *ctx)
 		ctx->marshal = NULL;
 	}
 
-        /* Release all method maps used for signals */
-	for (i=0; i < ctx->type_count; ++i) {
+        /* Release method maps used for signals that use the slab allocator
+           to allocate space for the object buffer */
+	for (i=ctx->type_count-1; i>last_allocator_id ; --i) {
 		struct ZCommonGlobal *global = ctx->types[i];
 
 		if (global)
 			z_object_unref((ZObject *) global->method_map);
 	}
 
-        /* Full garbage collection on all allocators.
-           Since running GC in one object tracker may push items into the pool
-           of another object tracker, we cannot assume one tracker's pool is
-           clear until all the trackers' pool have been cleared */
-        ZObjectTracker *flex_tracker = z_memory_allocator_get_object_tracker(ctx->flex_allocator);
-        ZObjectTracker *slab_tracker = z_memory_allocator_get_object_tracker(ctx->slab_allocator);
-        ZObjectTracker *sys_tracker = z_memory_allocator_get_object_tracker(ctx->sys_allocator);
-
-        int objects_released;
-
-        do {
-                objects_released = 0;
-
-                if (flex_tracker)
-                        objects_released += z_object_tracker_garbage_collect(flex_tracker);
-
-                if (slab_tracker)
-                        objects_released += z_object_tracker_garbage_collect(slab_tracker);
-
-                if (sys_tracker)
-                        objects_released += z_object_tracker_garbage_collect(sys_tracker);
-
-        } while (objects_released);
-
-        if (flex_tracker)
-                z_object_unref(Z_OBJECT(flex_tracker));
-
-        if (slab_tracker)
-                z_object_unref(Z_OBJECT(slab_tracker));
-
-        if (sys_tracker)
-                z_object_unref(Z_OBJECT(sys_tracker));
+        /* Perform full garbage collection */
+        zco_context_full_garbage_collect(ctx);
 
         /* Release the object trackers */
         z_memory_allocator_set_object_tracker(ctx->flex_allocator, NULL);
         z_memory_allocator_set_object_tracker(ctx->slab_allocator, NULL);
         z_memory_allocator_set_object_tracker(ctx->sys_allocator, NULL);
+
 
         /* Destroy objects for class static */
 	for (i=ctx->type_count - 1; i >= 0; --i) {
@@ -160,6 +140,17 @@ void zco_context_destroy(struct zco_context_t *ctx)
         z_object_unref(Z_OBJECT(flex_allocator));
         z_object_unref(Z_OBJECT(slab_allocator));
         z_object_unref(Z_OBJECT(sys_allocator));
+
+        /* Release the remaining  method maps used for signals. This includes
+           the maps that were included before the slab allocator was available
+           for use. This is why it has to be deallocated after the allocators
+           have been uninstalled. */
+	for (i=last_allocator_id; i>=0; --i) {
+		struct ZCommonGlobal *global = ctx->types[i];
+
+		if (global)
+			z_object_unref((ZObject *) global->method_map);
+	}
 
         /* Free class static */
 	for (i=ctx->type_count - 1; i >= 0; --i) {
@@ -285,6 +276,43 @@ int zco_context_get_min_segment_capacity_by_count(struct zco_context_t *ctx)
 void zco_context_set_min_segment_capacity_by_count(struct zco_context_t *ctx, int value)
 {
         ctx->min_segment_cap_by_count = value;
+}
+
+void zco_context_full_garbage_collect(struct zco_context_t *ctx)
+{
+        /* Full garbage collection on all allocators.
+           Since running GC in one object tracker may push items into the pool
+           of another object tracker, we cannot assume one tracker's pool is
+           clear until all the trackers' pool have been cleared */
+        ZObjectTracker *flex_tracker = z_memory_allocator_get_object_tracker(ctx->flex_allocator);
+        ZObjectTracker *slab_tracker = z_memory_allocator_get_object_tracker(ctx->slab_allocator);
+        ZObjectTracker *sys_tracker = z_memory_allocator_get_object_tracker(ctx->sys_allocator);
+
+        int objects_released;
+
+        do {
+                objects_released = 0;
+
+                if (flex_tracker)
+                        objects_released += z_object_tracker_garbage_collect(flex_tracker);
+
+                if (slab_tracker)
+                        objects_released += z_object_tracker_garbage_collect(slab_tracker);
+
+                if (sys_tracker)
+                        objects_released += z_object_tracker_garbage_collect(sys_tracker);
+
+        } while (objects_released);
+
+        if (flex_tracker)
+                z_object_unref(Z_OBJECT(flex_tracker));
+
+        if (slab_tracker)
+                z_object_unref(Z_OBJECT(slab_tracker));
+
+        if (sys_tracker)
+                z_object_unref(Z_OBJECT(sys_tracker));
+
 }
 
 ZMemoryAllocator * zco_context_get_object_or_sys_allocator(ZObject *object)

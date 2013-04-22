@@ -129,7 +129,6 @@ class ZDefaultObjectTracker : ZObject,ZObjectTracker
 
                 /* reset the object state */
                 z_object_reset(object);
-
 done:
                 selfp->suspended = 0;
                 return object;
