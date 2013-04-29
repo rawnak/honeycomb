@@ -53,7 +53,7 @@ struct ZSysMemoryAllocatorGlobal {
 	void  (*__parent_dispose)(ZObject *object);
 	void *  (*__parent_allocate)(ZMemoryAllocator *allocator,int size);
 	void *  (*__parent_allocate_aligned)(ZMemoryAllocator *allocator,int size,int alignment);
-	int  (*__parent_try_resize)(ZMemoryAllocator *allocator,void *block,int new_size);
+	int  (*__parent_get_usable_size)(ZMemoryAllocator *allocator,void *block);
 	void *  (*__parent_resize)(ZMemoryAllocator *allocator,void *block,int new_size);
 	void  (*__parent_deallocate)(ZMemoryAllocator *allocator,void *block);
 	void (*__parent_class_destroy)(ZObjectGlobal *gbl);

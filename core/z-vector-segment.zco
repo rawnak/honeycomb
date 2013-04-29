@@ -32,6 +32,8 @@ typedef void(*ZVectorItemCallback)(void *item, void *userdata);
 #include <stdio.h>
 #include <errno.h>
 #include <assert.h>
+#include <malloc.h>
+
 %}
 
 class ZVectorSegment : ZObject
@@ -150,7 +152,7 @@ class ZVectorSegment : ZObject
                 if (selfp->count < value) {
                         /* grow the vector */
                         if (selfp->capacity < value) {
-                                rc = set_capacity(self, value * 2, item_size, storage_mode, userdata,
+                                rc = set_capacity(self, value, value * 2, item_size, storage_mode, userdata,
                                                 item_construct, item_destruct);
                                 
                                 if (rc)
@@ -219,45 +221,69 @@ done:
                 selfp->data = NULL;
         }
 
-        private int set_capacity(Self *self, int value, int item_size, int storage_mode, void *userdata,
-                        ZVectorItemCallback item_construct, ZVectorItemCallback item_destruct)
+        private int set_capacity(Self *self, int min_value, int max_value, int item_size, int storage_mode,
+                        void *userdata, ZVectorItemCallback item_construct, ZVectorItemCallback item_destruct)
         {
-                if (value < selfp->count) {
-                        set_size(self, value, item_size, storage_mode, userdata, item_construct, item_destruct);
-                        selfp->count = value;
+                if (max_value < selfp->count) {
+                        set_size(self, max_value, item_size, storage_mode, userdata, item_construct, item_destruct);
+                        selfp->count = max_value;
                 }
 
-                if (value) {
+                if (max_value) {
                         int min_segment_capacity_by_size = zco_context_get_min_segment_capacity_by_size(CTX_FROM_OBJECT(self));
                         int min_segment_capacity_by_count = zco_context_get_min_segment_capacity_by_count(CTX_FROM_OBJECT(self));
 
                         /* restrict minimum segment size by count */
-                        if (value < min_segment_capacity_by_count)
-                                value = min_segment_capacity_by_count;
+                        if (min_value < min_segment_capacity_by_count)
+                                min_value = min_segment_capacity_by_count;
+
+                        if (max_value < min_segment_capacity_by_count)
+                                max_value = min_segment_capacity_by_count;
 
                         /* restrict minimum segment size by size in bytes */
-                        if (value * item_size < min_segment_capacity_by_size)
-                                value = (min_segment_capacity_by_size + item_size - 1) / item_size;
+                        if (min_value * item_size < min_segment_capacity_by_size)
+                                min_value = (min_segment_capacity_by_size + item_size - 1) / item_size;
+
+                        if (max_value * item_size < min_segment_capacity_by_size)
+                                max_value = (min_segment_capacity_by_size + item_size - 1) / item_size;
 
                         ZMemoryAllocator *alloc = z_object_get_allocator_ptr(Z_OBJECT(self));
+                        int new_capacity = 0;
 
                         if (alloc) {
                                 if (selfp->data) {
-                                        if (z_memory_allocator_try_resize(alloc, selfp->data, value * item_size) < 0) {
+                                        int available_capacity = z_memory_allocator_get_usable_size(alloc, selfp->data) / item_size;
+
+                                        if (available_capacity >= min_value) {
+                                                new_capacity = (available_capacity < max_value)? available_capacity : max_value;
+                                                void *new_p = z_memory_allocator_resize(alloc, selfp->data, new_capacity * item_size);
+                                                assert(new_p == selfp->data);
+                                        } else {
                                                 /* couldn't resize the block */
                                                 return -1;
                                         }
                                 } else {
-                                        selfp->data = z_memory_allocator_allocate(alloc, value * item_size);
+                                        new_capacity = max_value;
+                                        selfp->data = z_memory_allocator_allocate(alloc, new_capacity * item_size);
                                 }
                         } else {
-                                if (selfp->data)
-                                        return -1;
-
-                                selfp->data = malloc(value * item_size);
+                                if (selfp->data) {
+                                        int available_capacity = malloc_usable_size(selfp->data);
+                                        if (available_capacity >= min_value) {
+                                                new_capacity = (available_capacity < max_value)? available_capacity : max_value;
+                                                void *new_p = realloc(selfp->data, new_capacity * item_size);
+                                                assert(new_p == selfp->data);
+                                        } else {
+                                                /* couldn't resize the block */
+                                                return -1;
+                                        }
+                                } else {
+                                        new_capacity = max_value;
+                                        selfp->data = malloc(new_capacity * item_size);
+                                }
                         }
 
-                        selfp->capacity = value;
+                        selfp->capacity = new_capacity;
 
                 } else if (selfp->data) {
                         selfp->capacity = 0;

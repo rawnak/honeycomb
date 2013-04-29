@@ -116,7 +116,7 @@ class ZObject
 			selfp->signal_map = NULL;
 		}
 
-                ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->slab_allocator;
+                ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
                 if (allocator)
                         z_memory_allocator_deallocate(allocator, self);
                 else

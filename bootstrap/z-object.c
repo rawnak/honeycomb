@@ -70,7 +70,7 @@ static Self *__z_object_new(struct zco_context_t *ctx, ZMemoryAllocator *allocat
 		}
 	}
 	if (!self) {
-		ZMemoryAllocator *obj_allocator = ctx->slab_allocator;
+		ZMemoryAllocator *obj_allocator = ctx->fixed_allocator;
 		if (obj_allocator)
 			self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));
 		else
@@ -253,7 +253,7 @@ static void  z_object_virtual_dispose(Self *self)
  selfp->signal_map = NULL;
  }
 
- ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->slab_allocator;
+ ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
  if (allocator)
  z_memory_allocator_deallocate(allocator, self);
  else

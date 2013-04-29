@@ -1,7 +1,7 @@
 /* ZCO - Cross-platform Application Framework
  * Copyright (C) 2014  Rawnak Jahan Syeda
  *
- * z-flex-memory-allocator.c: Bootstrap file for z-flex-memory-allocator.zco
+ * z-slab-memory-allocator.c: Bootstrap file for z-slab-memory-allocator.zco
  * This file is part of ZCO.
  *
  * This library is free software: you can redistribute it and/or modify
@@ -24,36 +24,37 @@
 #include <z-map.h>
 #include <string.h>
 #include <z-memory-allocator.h>
-#include <z-flex-memory-allocator.h>
+#include <z-simple-memory-allocator.h>
 #include <zco-type.h>
 #include <stdlib.h>
-#define Self ZFlexMemoryAllocator
+#define Self ZSimpleMemoryAllocator
 #define selfp (&self->_priv)
-#define GET_NEW(ctx,allocator) __z_flex_memory_allocator_new(ctx,allocator)
+#define GET_NEW(ctx,allocator) __z_simple_memory_allocator_new(ctx,allocator)
 #define INIT_EXISTS
-#define init z_flex_memory_allocator_init
-#define new z_flex_memory_allocator_new
+#define init z_simple_memory_allocator_init
+#define new z_simple_memory_allocator_new
+#define ensure_bin z_simple_memory_allocator_ensure_bin
 
-int z_flex_memory_allocator_type_id = -1;
+int z_simple_memory_allocator_type_id = -1;
 
-static Self *__z_flex_memory_allocator_new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
+static Self *__z_simple_memory_allocator_new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
 {
 	Self *self = NULL;
 	if (allocator) {
 		ZObjectTracker *object_tracker = z_memory_allocator_get_object_tracker(allocator);
 		if (object_tracker) {
-			self = (Self *) z_object_tracker_create(object_tracker, z_flex_memory_allocator_type_id);
+			self = (Self *) z_object_tracker_create(object_tracker, z_simple_memory_allocator_type_id);
 			z_object_unref(Z_OBJECT(object_tracker));
 		}
 	}
 	if (!self) {
-		ZMemoryAllocator *obj_allocator = ctx->slab_allocator;
+		ZMemoryAllocator *obj_allocator = ctx->fixed_allocator;
 		if (obj_allocator)
 			self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));
 		else
 			self = (Self *) malloc(sizeof(Self));
 		z_object_set_allocator_ptr((ZObject *) self, allocator);
-		__z_flex_memory_allocator_init(ctx, self);
+		__z_simple_memory_allocator_init(ctx, self);
 	}
 	return self;
 }
@@ -62,40 +63,41 @@ static int __map_compare(ZMap *map, const void *a, const void *b)
 {
 	return strcmp(a, b);
 }
-static void z_flex_memory_allocator_init(Self *self);
-static void  z_flex_memory_allocator_dispose(ZObject *object);
-static void *  z_flex_memory_allocator_allocate(ZMemoryAllocator *allocator,int size);
-static void *  z_flex_memory_allocator_allocate_aligned(ZMemoryAllocator *allocator,int size,int alignment);
-static int  z_flex_memory_allocator_try_resize(ZMemoryAllocator *allocator,void *block,int new_size);
-static void *  z_flex_memory_allocator_resize(ZMemoryAllocator *allocator,void *block,int new_size);
-static void  z_flex_memory_allocator_deallocate(ZMemoryAllocator *allocator,void *block);
-static void z_flex_memory_allocator_class_destroy(ZObjectGlobal *gbl);
+static void z_simple_memory_allocator_init(Self *self);
+static void  z_simple_memory_allocator_dispose(ZObject *object);
+static void  z_simple_memory_allocator_ensure_bin(Self *self,int size);
+static void *  z_simple_memory_allocator_allocate(ZMemoryAllocator *allocator,int size);
+static void *  z_simple_memory_allocator_allocate_aligned(ZMemoryAllocator *allocator,int size,int alignment);
+static int  z_simple_memory_allocator_get_usable_size(ZMemoryAllocator *allocator,void *block);
+static void *  z_simple_memory_allocator_resize(ZMemoryAllocator *allocator,void *block,int new_size);
+static void  z_simple_memory_allocator_deallocate(ZMemoryAllocator *allocator,void *block);
+static void z_simple_memory_allocator_class_destroy(ZObjectGlobal *gbl);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
 	ZObject **obj = (ZObject **) item;
 	z_object_unref(*obj);
 }
-ZFlexMemoryAllocatorGlobal * z_flex_memory_allocator_get_type(struct zco_context_t *ctx)
+ZSimpleMemoryAllocatorGlobal * z_simple_memory_allocator_get_type(struct zco_context_t *ctx)
 {
 	ZCommonGlobal **global_ptr = NULL;
-	if (z_flex_memory_allocator_type_id != -1) {
-		global_ptr = zco_get_ctx_type(ctx, z_flex_memory_allocator_type_id);
+	if (z_simple_memory_allocator_type_id != -1) {
+		global_ptr = zco_get_ctx_type(ctx, z_simple_memory_allocator_type_id);
 	}
 	if (!global_ptr || !*global_ptr) {
-		struct ZFlexMemoryAllocatorGlobal *global = (ZFlexMemoryAllocatorGlobal *) malloc(sizeof(struct ZFlexMemoryAllocatorGlobal));
+		struct ZSimpleMemoryAllocatorGlobal *global = (ZSimpleMemoryAllocatorGlobal *) malloc(sizeof(struct ZSimpleMemoryAllocatorGlobal));
 		global->common.ctx = ctx;
-		global->_class = malloc(sizeof(struct ZFlexMemoryAllocatorClass));
-		memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct ZFlexMemoryAllocatorClass));
-		global->common.name = "ZFlexMemoryAllocator";
+		global->_class = malloc(sizeof(struct ZSimpleMemoryAllocatorClass));
+		memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct ZSimpleMemoryAllocatorClass));
+		global->common.name = "ZSimpleMemoryAllocator";
 		global->common.vtable_off_list = NULL;
 		global->common.vtable_off_size = 0;
 		global->common.svtable_off_list = NULL;
 		global->common.svtable_off_size = 0;
 		global->common.is_object = 1;
 
-		struct ZFlexMemoryAllocator temp;
-		struct ZFlexMemoryAllocatorClass temp_class;
+		struct ZSimpleMemoryAllocator temp;
+		struct ZSimpleMemoryAllocatorClass temp_class;
 
 		{
 			struct ZMemoryAllocatorGlobal *p_global = z_memory_allocator_get_type(ctx);
@@ -117,72 +119,72 @@ ZFlexMemoryAllocatorGlobal * z_flex_memory_allocator_get_type(struct zco_context
 			ZMemoryAllocatorClass *p2_class = (ZMemoryAllocatorClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_memory_allocator_type_id]);
 			memcpy(p2_class, p1_class, sizeof(struct ZMemoryAllocatorClass));
 		}
-		if (z_flex_memory_allocator_type_id == -1)
-			z_flex_memory_allocator_type_id = zco_allocate_type_id();
-		global->common.id = z_flex_memory_allocator_type_id;
-		zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, z_flex_memory_allocator_type_id);
-		zco_add_to_vtable(&global->common.svtable_off_list, &global->common.svtable_off_size, z_flex_memory_allocator_type_id);
-		global_ptr = zco_get_ctx_type(ctx, z_flex_memory_allocator_type_id);
+		if (z_simple_memory_allocator_type_id == -1)
+			z_simple_memory_allocator_type_id = zco_allocate_type_id();
+		global->common.id = z_simple_memory_allocator_type_id;
+		zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, z_simple_memory_allocator_type_id);
+		zco_add_to_vtable(&global->common.svtable_off_list, &global->common.svtable_off_size, z_simple_memory_allocator_type_id);
+		global_ptr = zco_get_ctx_type(ctx, z_simple_memory_allocator_type_id);
 		*global_ptr = (ZCommonGlobal *) global;
 		
 		{
 			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
 			global->__parent_dispose = p_class->__dispose;
-			p_class->__dispose = z_flex_memory_allocator_dispose;
+			p_class->__dispose = z_simple_memory_allocator_dispose;
 		}
 		{
 			ZMemoryAllocatorClass *p_class = (ZMemoryAllocatorClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_memory_allocator_type_id]);
 			global->__parent_allocate = p_class->__allocate;
-			p_class->__allocate = z_flex_memory_allocator_allocate;
+			p_class->__allocate = z_simple_memory_allocator_allocate;
 		}
 		{
 			ZMemoryAllocatorClass *p_class = (ZMemoryAllocatorClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_memory_allocator_type_id]);
 			global->__parent_allocate_aligned = p_class->__allocate_aligned;
-			p_class->__allocate_aligned = z_flex_memory_allocator_allocate_aligned;
+			p_class->__allocate_aligned = z_simple_memory_allocator_allocate_aligned;
 		}
 		{
 			ZMemoryAllocatorClass *p_class = (ZMemoryAllocatorClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_memory_allocator_type_id]);
-			global->__parent_try_resize = p_class->__try_resize;
-			p_class->__try_resize = z_flex_memory_allocator_try_resize;
+			global->__parent_get_usable_size = p_class->__get_usable_size;
+			p_class->__get_usable_size = z_simple_memory_allocator_get_usable_size;
 		}
 		{
 			ZMemoryAllocatorClass *p_class = (ZMemoryAllocatorClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_memory_allocator_type_id]);
 			global->__parent_resize = p_class->__resize;
-			p_class->__resize = z_flex_memory_allocator_resize;
+			p_class->__resize = z_simple_memory_allocator_resize;
 		}
 		{
 			ZMemoryAllocatorClass *p_class = (ZMemoryAllocatorClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_memory_allocator_type_id]);
 			global->__parent_deallocate = p_class->__deallocate;
-			p_class->__deallocate = z_flex_memory_allocator_deallocate;
+			p_class->__deallocate = z_simple_memory_allocator_deallocate;
 		}
 		{
 			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
 			global->__parent_class_destroy = p_class->__class_destroy;
-			p_class->__class_destroy = z_flex_memory_allocator_class_destroy;
+			p_class->__class_destroy = z_simple_memory_allocator_class_destroy;
 		}
-		__z_flex_memory_allocator_class_init(ctx, (ZFlexMemoryAllocatorClass *) CLASS_FROM_GLOBAL(global));
+		__z_simple_memory_allocator_class_init(ctx, (ZSimpleMemoryAllocatorClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx, NULL);
 		z_map_set_compare(global->common.method_map, __map_compare);
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
 		z_map_insert((ZMap *) global->common.method_map, strdup("new"), (ZObjectSignalHandler) new);
 		#ifdef GLOBAL_INIT_EXISTS
-			global_init((ZFlexMemoryAllocatorGlobal *) global);
+			global_init((ZSimpleMemoryAllocatorGlobal *) global);
 		#endif
 		return global;
 	}
-	return (ZFlexMemoryAllocatorGlobal *) *global_ptr;
+	return (ZSimpleMemoryAllocatorGlobal *) *global_ptr;
 }
 
-void __z_flex_memory_allocator_class_init(struct zco_context_t *ctx, ZFlexMemoryAllocatorClass *_class)
+void __z_simple_memory_allocator_class_init(struct zco_context_t *ctx, ZSimpleMemoryAllocatorClass *_class)
 {
 	__z_memory_allocator_class_init(ctx, (ZMemoryAllocatorClass *) _class);
 	#ifdef CLASS_INIT_EXISTS
 		class_init(ctx, _class);
 	#endif
 }
-void __z_flex_memory_allocator_init(struct zco_context_t *ctx, Self *self)
+void __z_simple_memory_allocator_init(struct zco_context_t *ctx, Self *self)
 {
-	struct ZFlexMemoryAllocatorGlobal *_global = z_flex_memory_allocator_get_type(ctx);
+	struct ZSimpleMemoryAllocatorGlobal *_global = z_simple_memory_allocator_get_type(ctx);
 	self->_global = _global;
 	__z_memory_allocator_init(ctx, (ZMemoryAllocator *) (self));
 	((ZObject *) self)->class_base = (void *) CLASS_FROM_GLOBAL(_global);
@@ -191,55 +193,61 @@ void __z_flex_memory_allocator_init(struct zco_context_t *ctx, Self *self)
 		init(self);
 	#endif
 }
-static void z_flex_memory_allocator_init(Self *self)
+static void z_simple_memory_allocator_init(Self *self)
 {
+ selfp->bins = NULL;
+ selfp->nbins = 0;
  }
-Self * z_flex_memory_allocator_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator)
+Self * z_simple_memory_allocator_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator)
 {
  Self *self = GET_NEW(ctx, allocator);
  return self;
  }
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_dispose
-static void  z_flex_memory_allocator_dispose(ZObject *object)
+static void  z_simple_memory_allocator_dispose(ZObject *object)
 {
  Self *self = (Self *) object;
  PARENT_HANDLER(object);
  }
 #undef PARENT_HANDLER
+static void  z_simple_memory_allocator_ensure_bin(Self *self,int size)
+{
+ 
+ }
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_allocate
-static void *  z_flex_memory_allocator_allocate(ZMemoryAllocator *allocator,int size)
+static void *  z_simple_memory_allocator_allocate(ZMemoryAllocator *allocator,int size)
 {
  return malloc(size);
  }
 #undef PARENT_HANDLER
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_allocate_aligned
-static void *  z_flex_memory_allocator_allocate_aligned(ZMemoryAllocator *allocator,int size,int alignment)
+static void *  z_simple_memory_allocator_allocate_aligned(ZMemoryAllocator *allocator,int size,int alignment)
 {
  return NULL;
  }
 #undef PARENT_HANDLER
-#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_try_resize
-static int  z_flex_memory_allocator_try_resize(ZMemoryAllocator *allocator,void *block,int new_size)
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_get_usable_size
+static int  z_simple_memory_allocator_get_usable_size(ZMemoryAllocator *allocator,void *block)
 {
- return -1;
+ return malloc_usable_size(block);
  }
 #undef PARENT_HANDLER
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_resize
-static void *  z_flex_memory_allocator_resize(ZMemoryAllocator *allocator,void *block,int new_size)
+static void *  z_simple_memory_allocator_resize(ZMemoryAllocator *allocator,void *block,int new_size)
 {
  return realloc(block, new_size);
  }
 #undef PARENT_HANDLER
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_deallocate
-static void  z_flex_memory_allocator_deallocate(ZMemoryAllocator *allocator,void *block)
+static void  z_simple_memory_allocator_deallocate(ZMemoryAllocator *allocator,void *block)
 {
  free(block);
  }
 #undef PARENT_HANDLER
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
-static void z_flex_memory_allocator_class_destroy(ZObjectGlobal *gbl)
+static void z_simple_memory_allocator_class_destroy(ZObjectGlobal *gbl)
 {
-	ZFlexMemoryAllocatorGlobal *_global = (ZFlexMemoryAllocatorGlobal *) gbl;
+	ZSimpleMemoryAllocatorGlobal *_global = (ZSimpleMemoryAllocatorGlobal *) gbl;
 
 }
 

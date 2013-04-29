@@ -1,7 +1,7 @@
 /* ZCO - Cross-platform Application Framework
  * Copyright (C) 2014  Rawnak Jahan Syeda
  *
- * z-flex-memory-allocator.zco: Memory allocator for flexible blocks
+ * z-slab-memory-allocator.zco: Memory allocator for fixed-size blocks
  * This file is part of ZCO.
  *
  * This library is free software: you can redistribute it and/or modify
@@ -18,18 +18,43 @@
  * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/* Simple allocator
+
+   The slab allocator is designed to return a fixed-size block of memory as
+   fast as possible.
+ */
+
 %h{
 #include <z-memory-allocator.h>
 #include <z-object.h>
+#include <malloc.h>
 %}
 
 %{
+/* The simple allocator stores a list of bins containing a list of free blocks.
+   The blocks are chained with a single linked list, where the 'next' pointer
+   is stored within the free space. This means that the smallest block size
+   is that of a pointer:
+     bin 0:  8-byte blocks
+     bin 1:  16-byte blocks
+     bin 2:  24-byte blocks
+     bin 3:  32-byte blocks
+     ...
+
+   The block sizes are always 64-bit aligned
+
+ */
 %}
 
-class ZFlexMemoryAllocator : ZMemoryAllocator
+class ZSimpleMemoryAllocator : ZMemoryAllocator
 {
+        private void *bins;
+        private int nbins;
+
 	init(Self *self)
 	{
+                selfp->bins = NULL;
+                selfp->nbins = 0;
 	}
 
 	public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
@@ -42,7 +67,12 @@ class ZFlexMemoryAllocator : ZMemoryAllocator
         void dispose(ZObject *object)
         {
                 Self *self = (Self *) object;
-		PARENT_HANDLER(object);
+		PARENT_HANDLER(object);loc
+        }
+
+        private void ensure_bin(Self *self, int size)
+        {
+                
         }
 
 	override(ZMemoryAllocator)
@@ -58,9 +88,9 @@ class ZFlexMemoryAllocator : ZMemoryAllocator
         }
 
 	override(ZMemoryAllocator)
-	int try_resize(ZMemoryAllocator *allocator, void *block, int new_size)
+	int get_usable_size(ZMemoryAllocator *allocator, void *block)
         {
-                return -1;
+                return malloc_usable_size(block);
         }
 
         override(ZMemoryAllocator)

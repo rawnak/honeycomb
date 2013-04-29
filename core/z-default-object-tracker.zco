@@ -144,6 +144,7 @@ done:
                 } else {
                         selfp->suspended = 1;
 
+
                         /* We can't use GLOBAL_FROM_OBJECT() here because we are interested in the Global struct of
                            the derived class, not ZObject. CLASS_FROM_OBJECT() returns the Class struct for the
                            derived class and GLOBAL_FROM_CLASS() returns the Global struct of the derived class.

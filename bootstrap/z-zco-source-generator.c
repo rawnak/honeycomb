@@ -105,7 +105,7 @@ static Self *__z_zco_source_generator_new(struct zco_context_t *ctx, ZMemoryAllo
 		}
 	}
 	if (!self) {
-		ZMemoryAllocator *obj_allocator = ctx->slab_allocator;
+		ZMemoryAllocator *obj_allocator = ctx->fixed_allocator;
 		if (obj_allocator)
 			self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));
 		else
@@ -1674,7 +1674,7 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
  "\t\t\x7d\n"
  "\t\x7d\n"
  "\tif (!self) {\n"
- "\t\tZMemoryAllocator *obj_allocator = ctx->slab_allocator;\n"
+ "\t\tZMemoryAllocator *obj_allocator = ctx->fixed_allocator;\n"
  "\t\tif (obj_allocator)\n"
  "\t\t\tself = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));\n"
  "\t\telse\n"

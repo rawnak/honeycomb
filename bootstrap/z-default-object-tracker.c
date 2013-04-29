@@ -57,7 +57,7 @@ static Self *__z_default_object_tracker_new(struct zco_context_t *ctx, ZMemoryAl
 		}
 	}
 	if (!self) {
-		ZMemoryAllocator *obj_allocator = ctx->slab_allocator;
+		ZMemoryAllocator *obj_allocator = ctx->fixed_allocator;
 		if (obj_allocator)
 			self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));
 		else
@@ -313,6 +313,7 @@ static int  z_default_object_tracker_destroy(ZObjectTracker *tracker,ZObject *ta
  z_object_dispose(target);
  } else {
  selfp->suspended = 1;
+
 
  /* We can't use GLOBAL_FROM_OBJECT() here because we are interested in the Global struct of
                            the derived class, not ZObject. CLASS_FROM_OBJECT() returns the Class struct for the

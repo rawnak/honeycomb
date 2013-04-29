@@ -61,7 +61,7 @@ struct ZMemoryAllocatorClass {
 	struct ZObjectClass parent_z_object;
 	void *  (*__allocate)(Self *self,int size);
 	void *  (*__allocate_aligned)(Self *self,int size,int alignment);
-	int  (*__try_resize)(Self *self,void *block,int new_size);
+	int  (*__get_usable_size)(Self *self,void *block);
 	void *  (*__resize)(Self *self,void *block,int new_size);
 	void  (*__deallocate)(Self *self,void *block);
 };
@@ -80,7 +80,7 @@ ZObjectTracker * z_memory_allocator_get_object_tracker(Self *self);
 void z_memory_allocator_set_object_tracker(Self *self, ZObjectTracker * value);
 void *  z_memory_allocator_allocate(Self *self,int size);
 void *  z_memory_allocator_allocate_aligned(Self *self,int size,int alignment);
-int  z_memory_allocator_try_resize(Self *self,void *block,int new_size);
+int  z_memory_allocator_get_usable_size(Self *self,void *block);
 void *  z_memory_allocator_resize(Self *self,void *block,int new_size);
 void  z_memory_allocator_deallocate(Self *self,void *block);
 

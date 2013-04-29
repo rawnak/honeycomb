@@ -96,7 +96,7 @@ class ZMemoryAllocator : ZObject
                 return 0; /* not handled */
         }
 
-        public virtual int try_resize(Self *self, void *block, int new_size)
+        public virtual int get_usable_size(Self *self, void *block)
         {
                 return -1; /* not handled */
         }

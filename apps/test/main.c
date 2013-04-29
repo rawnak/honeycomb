@@ -153,8 +153,6 @@ int main(int argc, char **argv)
                         zco_context_full_garbage_collect(&context);
                 }
         } else {
-                zco_context_set_min_segment_capacity_by_size(&context, 500);
-
                 for (i = 1; i < TestSetEnd; ++i) {
                         if (test_set_number == 0 || test_set_number == i)
                                 TestDriverSet[i](&context, test_case_number);

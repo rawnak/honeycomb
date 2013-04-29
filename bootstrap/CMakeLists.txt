@@ -40,8 +40,8 @@ add_executable(
       z-default-object-tracker.c
       z-memory-allocator.c
       z-sys-memory-allocator.c
-      z-slab-memory-allocator.c
-      z-flex-memory-allocator.c
+      z-simple-memory-allocator.c
+      z-buddy-memory-allocator.c
 )
 
 target_link_libraries(bootstrap m)

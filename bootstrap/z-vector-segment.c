@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <assert.h>
+#include <malloc.h>
 
 #include <z-object-tracker.h>
 #include <z-map.h>
@@ -69,7 +70,7 @@ static Self *__z_vector_segment_new(struct zco_context_t *ctx, ZMemoryAllocator 
 		}
 	}
 	if (!self) {
-		ZMemoryAllocator *obj_allocator = ctx->slab_allocator;
+		ZMemoryAllocator *obj_allocator = ctx->fixed_allocator;
 		if (obj_allocator)
 			self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));
 		else
@@ -376,21 +377,32 @@ static int  z_vector_segment_set_capacity(Self *self,int value,int item_size,int
  value = (min_segment_capacity_by_size + item_size - 1) / item_size;
 
  ZMemoryAllocator *alloc = z_object_get_allocator_ptr(Z_OBJECT(self));
+ int new_size = value * item_size;
 
  if (alloc) {
  if (selfp->data) {
- if (z_memory_allocator_try_resize(alloc, selfp->data, value * item_size) < 0) {
+ if (z_memory_allocator_get_usable_size(alloc, selfp->data) >= new_size) {
+ void *new_p = z_memory_allocator_resize(alloc, selfp->data, new_size);
+ assert(new_p == selfp->data);
+ } else {
  /* couldn't resize the block */
  return -1;
  }
  } else {
- selfp->data = z_memory_allocator_allocate(alloc, value * item_size);
+ selfp->data = z_memory_allocator_allocate(alloc, new_size);
  }
  } else {
- if (selfp->data)
+ if (selfp->data) {
+ if (malloc_usable_size(selfp->data) >= new_size) {
+ void *new_p = realloc(selfp->data, new_size);
+ assert(new_p == selfp->data);
+ } else {
+ /* couldn't resize the block */
  return -1;
-
- selfp->data = malloc(value * item_size);
+ }
+ } else {
+ selfp->data = malloc(new_size);
+ }
  }
 
  selfp->capacity = value;

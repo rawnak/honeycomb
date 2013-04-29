@@ -71,8 +71,8 @@ parse_zco(z-object-tracker)
 parse_zco(z-default-object-tracker)
 parse_zco(z-memory-allocator)
 parse_zco(z-sys-memory-allocator)
-parse_zco(z-slab-memory-allocator)
-parse_zco(z-flex-memory-allocator)
+parse_zco(z-simple-memory-allocator)
+parse_zco(z-buddy-memory-allocator)
 
 add_library(
       zclib-core SHARED
@@ -96,7 +96,7 @@ add_library(
       z-default-object-tracker.c
       z-memory-allocator.c
       z-sys-memory-allocator.c
-      z-slab-memory-allocator.c
-      z-flex-memory-allocator.c
+      z-simple-memory-allocator.c
+      z-buddy-memory-allocator.c
       )
 

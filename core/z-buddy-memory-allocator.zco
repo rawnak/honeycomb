@@ -1,7 +1,7 @@
 /* ZCO - Cross-platform Application Framework
  * Copyright (C) 2014  Rawnak Jahan Syeda
  *
- * z-slab-memory-allocator.zco: Memory allocator for fixed-size blocks
+ * z-flex-memory-allocator.zco: Memory allocator for flexible blocks
  * This file is part of ZCO.
  *
  * This library is free software: you can redistribute it and/or modify
@@ -24,9 +24,10 @@
 %}
 
 %{
+#include <malloc.h>
 %}
 
-class ZSlabMemoryAllocator : ZMemoryAllocator
+class ZBuddyMemoryAllocator : ZMemoryAllocator
 {
 	init(Self *self)
 	{
@@ -58,9 +59,9 @@ class ZSlabMemoryAllocator : ZMemoryAllocator
         }
 
 	override(ZMemoryAllocator)
-	int try_resize(ZMemoryAllocator *allocator, void *block, int new_size)
+	int get_usable_size(ZMemoryAllocator *allocator, void *block)
         {
-                return -1;
+                return malloc_usable_size(block);
         }
 
         override(ZMemoryAllocator)

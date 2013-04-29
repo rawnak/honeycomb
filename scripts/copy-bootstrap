@@ -1,6 +1,6 @@
 #!/bin/bash
 
-classes=( z-zco-source-generator z-closure z-closure-marshal z-map-iter z-map z-object z-string-iter z-string z-vector-iter z-vector z-vector-segment z-file z-framework-events z-value z-object-tracker z-default-object-tracker z-memory-allocator z-sys-memory-allocator z-slab-memory-allocator z-flex-memory-allocator)
+classes=( z-zco-source-generator z-closure z-closure-marshal z-map-iter z-map z-object z-string-iter z-string z-vector-iter z-vector z-vector-segment z-file z-framework-events z-value z-object-tracker z-default-object-tracker z-memory-allocator z-sys-memory-allocator z-simple-memory-allocator z-buddy-memory-allocator)
 
 for class_name in ${classes[@]}; do
    grep -v "#line" build/core/$class_name.c > bootstrap/$class_name.c

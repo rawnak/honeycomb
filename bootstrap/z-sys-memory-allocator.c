@@ -19,6 +19,7 @@
  */
 
 
+#include <malloc.h>
 
 #include <z-object-tracker.h>
 #include <z-map.h>
@@ -47,7 +48,7 @@ static Self *__z_sys_memory_allocator_new(struct zco_context_t *ctx, ZMemoryAllo
 		}
 	}
 	if (!self) {
-		ZMemoryAllocator *obj_allocator = ctx->slab_allocator;
+		ZMemoryAllocator *obj_allocator = ctx->fixed_allocator;
 		if (obj_allocator)
 			self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));
 		else
@@ -66,7 +67,7 @@ static void z_sys_memory_allocator_init(Self *self);
 static void  z_sys_memory_allocator_dispose(ZObject *object);
 static void *  z_sys_memory_allocator_allocate(ZMemoryAllocator *allocator,int size);
 static void *  z_sys_memory_allocator_allocate_aligned(ZMemoryAllocator *allocator,int size,int alignment);
-static int  z_sys_memory_allocator_try_resize(ZMemoryAllocator *allocator,void *block,int new_size);
+static int  z_sys_memory_allocator_get_usable_size(ZMemoryAllocator *allocator,void *block);
 static void *  z_sys_memory_allocator_resize(ZMemoryAllocator *allocator,void *block,int new_size);
 static void  z_sys_memory_allocator_deallocate(ZMemoryAllocator *allocator,void *block);
 static void z_sys_memory_allocator_class_destroy(ZObjectGlobal *gbl);
@@ -142,8 +143,8 @@ ZSysMemoryAllocatorGlobal * z_sys_memory_allocator_get_type(struct zco_context_t
 		}
 		{
 			ZMemoryAllocatorClass *p_class = (ZMemoryAllocatorClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_memory_allocator_type_id]);
-			global->__parent_try_resize = p_class->__try_resize;
-			p_class->__try_resize = z_sys_memory_allocator_try_resize;
+			global->__parent_get_usable_size = p_class->__get_usable_size;
+			p_class->__get_usable_size = z_sys_memory_allocator_get_usable_size;
 		}
 		{
 			ZMemoryAllocatorClass *p_class = (ZMemoryAllocatorClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_memory_allocator_type_id]);
@@ -218,10 +219,10 @@ static void *  z_sys_memory_allocator_allocate_aligned(ZMemoryAllocator *allocat
  return NULL;
  }
 #undef PARENT_HANDLER
-#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_try_resize
-static int  z_sys_memory_allocator_try_resize(ZMemoryAllocator *allocator,void *block,int new_size)
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_get_usable_size
+static int  z_sys_memory_allocator_get_usable_size(ZMemoryAllocator *allocator,void *block)
 {
- return -1;
+ return malloc_usable_size(block);
  }
 #undef PARENT_HANDLER
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_resize

@@ -37,7 +37,7 @@
 #define set_object_tracker z_memory_allocator_set_object_tracker
 #define allocate z_memory_allocator_allocate
 #define allocate_aligned z_memory_allocator_allocate_aligned
-#define try_resize z_memory_allocator_try_resize
+#define get_usable_size z_memory_allocator_get_usable_size
 #define resize z_memory_allocator_resize
 #define deallocate z_memory_allocator_deallocate
 
@@ -54,7 +54,7 @@ static Self *__z_memory_allocator_new(struct zco_context_t *ctx, ZMemoryAllocato
 		}
 	}
 	if (!self) {
-		ZMemoryAllocator *obj_allocator = ctx->slab_allocator;
+		ZMemoryAllocator *obj_allocator = ctx->fixed_allocator;
 		if (obj_allocator)
 			self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));
 		else
@@ -74,7 +74,7 @@ static void  z_memory_allocator_dispose(ZObject *object);
 static void  z_memory_allocator_reset(ZObject *object);
 static void *  z_memory_allocator_virtual_allocate(Self *self,int size);
 static void *  z_memory_allocator_virtual_allocate_aligned(Self *self,int size,int alignment);
-static int  z_memory_allocator_virtual_try_resize(Self *self,void *block,int new_size);
+static int  z_memory_allocator_virtual_get_usable_size(Self *self,void *block);
 static void *  z_memory_allocator_virtual_resize(Self *self,void *block,int new_size);
 static void  z_memory_allocator_virtual_deallocate(Self *self,void *block);
 static void z_memory_allocator_class_destroy(ZObjectGlobal *gbl);
@@ -145,7 +145,7 @@ ZMemoryAllocatorGlobal * z_memory_allocator_get_type(struct zco_context_t *ctx)
 		}
 		CLASS_FROM_GLOBAL(global)->__allocate = z_memory_allocator_virtual_allocate;
 		CLASS_FROM_GLOBAL(global)->__allocate_aligned = z_memory_allocator_virtual_allocate_aligned;
-		CLASS_FROM_GLOBAL(global)->__try_resize = z_memory_allocator_virtual_try_resize;
+		CLASS_FROM_GLOBAL(global)->__get_usable_size = z_memory_allocator_virtual_get_usable_size;
 		CLASS_FROM_GLOBAL(global)->__resize = z_memory_allocator_virtual_resize;
 		CLASS_FROM_GLOBAL(global)->__deallocate = z_memory_allocator_virtual_deallocate;
 		{
@@ -159,7 +159,7 @@ ZMemoryAllocatorGlobal * z_memory_allocator_get_type(struct zco_context_t *ctx)
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
 		z_map_insert((ZMap *) global->common.method_map, strdup("allocate"), (ZObjectSignalHandler) allocate);
 		z_map_insert((ZMap *) global->common.method_map, strdup("allocate_aligned"), (ZObjectSignalHandler) allocate_aligned);
-		z_map_insert((ZMap *) global->common.method_map, strdup("try_resize"), (ZObjectSignalHandler) try_resize);
+		z_map_insert((ZMap *) global->common.method_map, strdup("get_usable_size"), (ZObjectSignalHandler) get_usable_size);
 		z_map_insert((ZMap *) global->common.method_map, strdup("resize"), (ZObjectSignalHandler) resize);
 		z_map_insert((ZMap *) global->common.method_map, strdup("deallocate"), (ZObjectSignalHandler) deallocate);
 		#ifdef GLOBAL_INIT_EXISTS
@@ -264,15 +264,15 @@ static void *  z_memory_allocator_virtual_allocate_aligned(Self *self,int size,i
 {
  return 0; /* not handled */
  }
-int  z_memory_allocator_try_resize(Self *self,void *block,int new_size)
+int  z_memory_allocator_get_usable_size(Self *self,void *block)
 {
 	ZObject *obj = (ZObject *) self;
 	ZObjectClass *class_base = (ZObjectClass *) obj->class_base;
 	ZCommonGlobal *common_global = class_base->real_global;
 	unsigned long offset = common_global->svtable_off_list[z_memory_allocator_type_id];
-	((ZMemoryAllocatorClass *) ((char *) class_base + offset))->__try_resize(self,block,new_size);
+	((ZMemoryAllocatorClass *) ((char *) class_base + offset))->__get_usable_size(self,block);
 }
-static int  z_memory_allocator_virtual_try_resize(Self *self,void *block,int new_size)
+static int  z_memory_allocator_virtual_get_usable_size(Self *self,void *block)
 {
  return -1; /* not handled */
  }

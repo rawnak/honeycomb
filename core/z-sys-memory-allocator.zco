@@ -24,6 +24,7 @@
 %}
 
 %{
+#include <malloc.h>
 %}
 
 class ZSysMemoryAllocator : ZMemoryAllocator
@@ -58,9 +59,9 @@ class ZSysMemoryAllocator : ZMemoryAllocator
         }
 
 	override(ZMemoryAllocator)
-	int try_resize(ZMemoryAllocator *allocator, void *block, int new_size)
+	int get_usable_size(ZMemoryAllocator *allocator, void *block)
         {
-                return -1;
+                return malloc_usable_size(block);
         }
 
         override(ZMemoryAllocator)

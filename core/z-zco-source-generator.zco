@@ -1591,7 +1591,7 @@ class ZZcoSourceGenerator : ZObject
                                 "\t\t\x7d\n"
                                 "\t\x7d\n"
                                 "\tif (!self) {\n"
-                                "\t\tZMemoryAllocator *obj_allocator = ctx->slab_allocator;\n"
+                                "\t\tZMemoryAllocator *obj_allocator = ctx->fixed_allocator;\n"
                                 "\t\tif (obj_allocator)\n"
                                 "\t\t\tself = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));\n"
                                 "\t\telse\n"
