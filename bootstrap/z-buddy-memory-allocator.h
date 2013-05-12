@@ -57,6 +57,7 @@ struct ZBuddyMemoryAllocatorGlobal {
 	void *  (*__parent_resize)(ZMemoryAllocator *allocator,void *block,int new_size);
 	void  (*__parent_deallocate)(ZMemoryAllocator *allocator,void *block);
 	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
+	void (*__parent___delete)(ZObject *self);
 };
 
 struct ZBuddyMemoryAllocatorClass {

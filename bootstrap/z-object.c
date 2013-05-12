@@ -44,6 +44,7 @@
 #define class_destroy z_object_class_destroy
 #define cleanup_attached_properties z_object_cleanup_attached_properties
 #define reset z_object_reset
+#define __delete z_object___delete
 #define dispose z_object_dispose
 #define ref z_object_ref
 #define unref z_object_unref
@@ -89,6 +90,7 @@ static void z_object_init(Self *self);
 static void  z_object_virtual_class_destroy(ZObjectGlobal *gbl);
 static void  z_object_cleanup_attached_properties(Self *self);
 static void  z_object_virtual_reset(Self *self);
+static void  z_object_virtual___delete(Self *self);
 static void  z_object_virtual_dispose(Self *self);
 static ZObjectSignalHandler  z_object_lookup_method(Self *self,char *method_name);
 static int  z_object_map_compare(ZMap *map,const void *a,const void *b);
@@ -129,12 +131,14 @@ ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
 		
 		CLASS_FROM_GLOBAL(global)->__class_destroy = z_object_virtual_class_destroy;
 		CLASS_FROM_GLOBAL(global)->__reset = z_object_virtual_reset;
+		CLASS_FROM_GLOBAL(global)->____delete = z_object_virtual___delete;
 		CLASS_FROM_GLOBAL(global)->__dispose = z_object_virtual_dispose;
 		__z_object_class_init(ctx, (ZObjectClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx, NULL);
 		z_map_set_compare(global->common.method_map, __map_compare);
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
 		z_map_insert((ZMap *) global->common.method_map, strdup("reset"), (ZObjectSignalHandler) reset);
+		z_map_insert((ZMap *) global->common.method_map, strdup("__delete"), (ZObjectSignalHandler) __delete);
 		z_map_insert((ZMap *) global->common.method_map, strdup("dispose"), (ZObjectSignalHandler) dispose);
 		z_map_insert((ZMap *) global->common.method_map, strdup("ref"), (ZObjectSignalHandler) ref);
 		z_map_insert((ZMap *) global->common.method_map, strdup("unref"), (ZObjectSignalHandler) unref);
@@ -235,6 +239,22 @@ static void  z_object_virtual_reset(Self *self)
                    disconnected, all closure lists must be empty before self
                    can have a reference count of 0 */
  }
+void  z_object___delete(Self *self)
+{
+	ZObject *obj = (ZObject *) self;
+	ZObjectClass *class_base = (ZObjectClass *) obj->class_base;
+	ZCommonGlobal *common_global = class_base->real_global;
+	unsigned long offset = common_global->svtable_off_list[z_object_type_id];
+	((ZObjectClass *) ((char *) class_base + offset))->____delete(self);
+}
+static void  z_object_virtual___delete(Self *self)
+{
+ ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
+ if (allocator)
+ z_memory_allocator_deallocate(allocator, self);
+ else
+ free(self);
+ }
 void  z_object_dispose(Self *self)
 {
 	ZObject *obj = (ZObject *) self;
@@ -253,11 +273,7 @@ static void  z_object_virtual_dispose(Self *self)
  selfp->signal_map = NULL;
  }
 
- ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
- if (allocator)
- z_memory_allocator_deallocate(allocator, self);
- else
- free(self);
+ __delete(self);
  }
 void  z_object_ref(Self *self)
 {

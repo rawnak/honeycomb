@@ -1422,6 +1422,7 @@ class ZZcoSourceGenerator : ZObject
                                 ZString *arglist = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
                                 ZString *code = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
 
+                                /* define class_destroy function */
                                 z_string_set_cstring(symbol, "class_destroy", Z_STRING_ENCODING_UTF8);
                                 z_string_set_cstring(arglist, "(ZObjectGlobal *gbl)", Z_STRING_ENCODING_UTF8);
                                 z_string_append_format(code,
@@ -1435,6 +1436,27 @@ class ZZcoSourceGenerator : ZObject
 
                                 //selfp->access_mode == ACCESS_GLOBAL;
                                 ZString *virtual_base = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                                z_string_set_cstring(virtual_base, "ZObject", Z_STRING_ENCODING_UTF8);
+                                enable_override_mode(self, virtual_base);
+                                z_object_unref(Z_OBJECT(virtual_base));
+
+                                override_member_function_decl(self, selfp->str_void, symbol, arglist, code);
+
+
+                                /* define __delete function */
+                                z_string_set_cstring(symbol, "__delete", Z_STRING_ENCODING_UTF8);
+                                z_string_set_cstring(arglist, "(ZObject *self)", Z_STRING_ENCODING_UTF8);
+                                z_string_clear(code);
+                                z_string_append_format(code,
+                                                "\x7b\n"
+                                                "\tZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;\n"
+                                                "\tif (allocator)\n"
+                                                "\t\tz_memory_allocator_deallocate_by_size(allocator, self, sizeof(Self));\n"
+                                                "\telse\n"
+                                                "\t\tfree(self);\n"
+                                                "\x7d\n");
+
+                                virtual_base = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
                                 z_string_set_cstring(virtual_base, "ZObject", Z_STRING_ENCODING_UTF8);
                                 enable_override_mode(self, virtual_base);
                                 z_object_unref(Z_OBJECT(virtual_base));

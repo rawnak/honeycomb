@@ -52,6 +52,7 @@ struct ZFileGlobal {
 	struct ZCommonGlobal common;
 	struct ZFileClass *_class;
 	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
+	void (*__parent___delete)(ZObject *self);
 };
 
 struct ZFileClass {

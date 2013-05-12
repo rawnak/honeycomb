@@ -214,6 +214,27 @@ Allocations made:
   allocator.
 
 
+=====================================
+Possible implementation of allocators
+
+Method #1:
+The smallest block size is void*. When a block is freed, the address of another free
+block of the same size is assigned into this block and this block becomes the head
+node in the single linked list.
+
+A mapping from block_size to block_head will be used to determine the head of a chain
+when an allocation is requested.
+***********************
+
+Method#2:
+
+
+
+
+
+
+
+
 
 
 

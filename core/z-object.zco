@@ -106,6 +106,13 @@ class ZObject
                    can have a reference count of 0 */
         }
 
+        public virtual void __delete(Self *self)
+        {
+                /* This method must be overridden by derived classes. The
+                   derived classes must NOT call PARENT_HANDLER */
+                abort();
+        }
+
 	public virtual void dispose(Self *self)
 	{
                 cleanup_attached_properties(self);
@@ -116,11 +123,7 @@ class ZObject
 			selfp->signal_map = NULL;
 		}
 
-                ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
-                if (allocator)
-                        z_memory_allocator_deallocate(allocator, self);
-                else
-                        free(self);
+                __delete(self);
 	}
 
 	public void ref(Self *self)

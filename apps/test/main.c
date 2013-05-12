@@ -44,6 +44,20 @@ void (*TestDriverSet[]) (struct zco_context_t *, int) = {
 	[TestSetSignal] = signal_test
 };
 
+int is_printing;
+
+void trace(const char *fmt, ...)
+{
+        va_list ap;
+
+        if (!is_printing)
+                return;
+
+        va_start(ap, fmt);
+        vprintf(fmt, ap);
+        va_end(ap);
+}
+
 int main(int argc, char **argv)
 {
 	/* getting argument list and options */
@@ -139,10 +153,16 @@ int main(int argc, char **argv)
         zco_context_init(&context);
 
         if (try_segments) {
+                is_printing = 0;
                 for (capacity = 500; capacity >= 1; --capacity) {
 
-                        printf("Testing with minimum vector capacity of %d bytes\n"
-                               "================================================", capacity);
+                        if (is_printing) {
+                                printf("Testing with minimum vector capacity of %d bytes\n"
+                                       "================================================", capacity);
+                        } else { 
+                                printf("Testing with minimum vector capacity of %d bytes\n", capacity);
+                        }
+
                         zco_context_set_min_segment_capacity_by_size(&context, capacity);
 
                         for (i = 1; i < TestSetEnd; ++i) {
@@ -153,6 +173,7 @@ int main(int argc, char **argv)
                         zco_context_full_garbage_collect(&context);
                 }
         } else {
+                is_printing = 1;
                 for (i = 1; i < TestSetEnd; ++i) {
                         if (test_set_number == 0 || test_set_number == i)
                                 TestDriverSet[i](&context, test_case_number);

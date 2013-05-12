@@ -30,7 +30,7 @@
 static void print_string(ZString *str)
 {
 	char *out = z_string_get_cstring(str, Z_STRING_ENCODING_UTF8);
-	printf("%s\n", out);
+	trace("%s\n", out);
 	free(out);
 }
 
@@ -51,8 +51,8 @@ static void case1(struct zco_context_t *context)
 	ZStringIter *it, *end;
 	int i;
 
-	printf("======================\n");
-	printf("ZString case #1:\n");
+	trace("======================\n");
+	trace("ZString case #1:\n");
 
 	str = z_string_new(context, NULL);
 	z_string_set_cstring(str, test_string, Z_STRING_ENCODING_UTF8);
@@ -60,7 +60,7 @@ static void case1(struct zco_context_t *context)
 	it = z_string_get_begin(str);
 	end = z_string_get_end(str);
 
-	printf("string contains: ");
+	trace("string contains: ");
 
 	for (i = 0; !z_string_iter_is_equal(it, end); z_string_iter_increment(it), ++i) {
 		uint32_t ch = z_string_get_char(str, it);
@@ -69,7 +69,7 @@ static void case1(struct zco_context_t *context)
 
 	/* print the string */
 	print_string(str);
-	printf("\n");
+	trace("\n");
 
 	z_object_unref(Z_OBJECT(str));
 	z_object_unref(Z_OBJECT(it));
@@ -84,15 +84,15 @@ static void case2(struct zco_context_t *context)
 	ZString *str;
 	int size, length;
 
-	printf("======================\n");
-	printf("ZString case #2:\n");
+	trace("======================\n");
+	trace("ZString case #2:\n");
 
 	str = z_string_new(context, NULL);
 	z_string_set_cstring(str, test_string, Z_STRING_ENCODING_UTF8);
 	length = z_string_get_length(str);
 
-	printf("The length of the string is %d characters\n", length);
-	printf("\n\n");
+	trace("The length of the string is %d characters\n", length);
+	trace("\n\n");
 
 	assert(length == 11);
 
@@ -107,13 +107,13 @@ static void case3(struct zco_context_t *context)
 	ZString *str;
 	int i, length;
 
-	printf("======================\n");
-	printf("ZString case #3:\n");
+	trace("======================\n");
+	trace("ZString case #3:\n");
 
 	str = z_string_new(context, NULL);
 	z_string_set_cstring(str, test_string, Z_STRING_ENCODING_UTF8);
 
-	printf("string contains (before clearing): ");
+	trace("string contains (before clearing): ");
 
 	it = z_string_get_begin(str);
 	end = z_string_get_end(str);
@@ -131,15 +131,15 @@ static void case3(struct zco_context_t *context)
 
 	length = z_string_get_length(str);
 
-	printf("The length of the string is %d characters\n", length);
-	printf("String is empty: %d\n", z_string_get_is_empty(str));
-	printf("\n\n");
+	trace("The length of the string is %d characters\n", length);
+	trace("String is empty: %d\n", z_string_get_is_empty(str));
+	trace("\n\n");
 
 	assert(length == 11);
 
 	z_string_clear(str);
 
-	printf("string contains (after clearing): ");
+	trace("string contains (after clearing): ");
 
 	it = z_string_get_begin(str);
 	end = z_string_get_end(str);
@@ -154,9 +154,9 @@ static void case3(struct zco_context_t *context)
 
 	length = z_string_get_length(str);
 
-	printf("The length of the string is %d characters\n", length);
-	printf("String is empty: %d\n", z_string_get_is_empty(str));
-	printf("\n\n");
+	trace("The length of the string is %d characters\n", length);
+	trace("String is empty: %d\n", z_string_get_is_empty(str));
+	trace("\n\n");
 
 	assert(length == 0);
 
@@ -175,8 +175,8 @@ static void case4(struct zco_context_t *context)
 	ZString *str1, *str2, *str3;
 	int i, length;
 
-	printf("======================\n");
-	printf("ZString case #4:\n");
+	trace("======================\n");
+	trace("ZString case #4:\n");
 
 	str1 = z_string_new(context, NULL);
 	str2 = z_string_new(context, NULL);
@@ -185,7 +185,7 @@ static void case4(struct zco_context_t *context)
 	z_string_set_cstring(str2, test_string1, Z_STRING_ENCODING_UTF8);
 	z_string_set_cstring(str3, test_string2, Z_STRING_ENCODING_UTF8);
 
-	printf("string contains (before appending anything): ");
+	trace("string contains (before appending anything): ");
 
 	it = z_string_get_begin(str1);
 	end = z_string_get_end(str1);
@@ -204,15 +204,15 @@ static void case4(struct zco_context_t *context)
 
 	length = z_string_get_length(str1);
 
-	printf("The length of the string is %d characters\n", length);
-	printf("\n\n");
+	trace("The length of the string is %d characters\n", length);
+	trace("\n\n");
 
 	assert(length == 0);
 
 	z_string_append(str1, str2, NULL, NULL);
 	z_object_unref(Z_OBJECT(str2));
 
-	printf("string contains (after appending first string): ");
+	trace("string contains (after appending first string): ");
 
 	it = z_string_get_begin(str1);
 	end = z_string_get_end(str1);
@@ -230,15 +230,15 @@ static void case4(struct zco_context_t *context)
 
 	length = z_string_get_length(str1);
 
-	printf("The length of the string is %d characters\n", length);
-	printf("\n\n");
+	trace("The length of the string is %d characters\n", length);
+	trace("\n\n");
 
 	assert(length == sizeof(test_string1) - 1);
 
 	z_string_append(str1, str3, NULL, NULL);
 	z_object_unref(Z_OBJECT(str3));
 
-	printf("string contains (after appending both strings): ");
+	trace("string contains (after appending both strings): ");
 
 	it = z_string_get_begin(str1);
 	end = z_string_get_end(str1);
@@ -256,8 +256,8 @@ static void case4(struct zco_context_t *context)
 
 	length = z_string_get_length(str1);
 
-	printf("The length of the string is %d characters\n", length);
-	printf("\n\n");
+	trace("The length of the string is %d characters\n", length);
+	trace("\n\n");
 
 	assert(length == sizeof(test_string12) - 1);
 
@@ -272,8 +272,8 @@ static void case5(struct zco_context_t *context)
 	ZStringIter *it, *end;
 	int i;
 
-	printf("======================\n");
-	printf("ZString case #5:\n");
+	trace("======================\n");
+	trace("ZString case #5:\n");
 
 	str = z_string_new(context, NULL);
 
@@ -284,7 +284,7 @@ static void case5(struct zco_context_t *context)
 	it = z_string_get_begin(str);
 	end = z_string_get_end(str);
 
-	printf("string contains: ");
+	trace("string contains: ");
 
 	for (i = 0; !z_string_iter_is_equal(it, end); z_string_iter_increment(it), ++i) {
 		uint32_t ch = z_string_get_char(str, it);
@@ -296,7 +296,7 @@ static void case5(struct zco_context_t *context)
 
 	/* print the string */
 	print_string(str);
-	printf("\n");
+	trace("\n");
 
 	z_object_unref(Z_OBJECT(str));
 }
@@ -326,8 +326,8 @@ static void case6(struct zco_context_t *context)
 	ZStringIter *it, *first, *last, *end;
 	int i;
 
-	printf("======================\n");
-	printf("ZString case #6:\n");
+	trace("======================\n");
+	trace("ZString case #6:\n");
 
 	str1 = z_string_new(context, NULL);
 	str2 = z_string_new(context, NULL);
@@ -354,9 +354,9 @@ static void case6(struct zco_context_t *context)
 	last = z_string_get_end(str1);
 	z_string_iter_advance(first, 15);
 	z_string_iter_advance(last, -15);
-        printf("inserting str1 into str3\n");
+        trace("inserting str1 into str3\n");
 	z_string_insert(str3, it, str1, first, last);
-        printf("done with str1\n");
+        trace("done with str1\n");
 	z_object_unref(Z_OBJECT(it));
 	z_object_unref(Z_OBJECT(first));
 	z_object_unref(Z_OBJECT(last));
@@ -367,9 +367,9 @@ static void case6(struct zco_context_t *context)
 	z_string_iter_advance(it, 25);
 	z_string_iter_advance(first, 15);
 	z_string_iter_advance(last, -15);
-        printf("inserting str2 into str3\n");
+        trace("inserting str2 into str3\n");
 	z_string_insert(str3, it, str2, first, last);
-        printf("done with str2\n");
+        trace("done with str2\n");
 	z_object_unref(Z_OBJECT(it));
 	z_object_unref(Z_OBJECT(first));
 	z_object_unref(Z_OBJECT(last));
@@ -377,18 +377,18 @@ static void case6(struct zco_context_t *context)
 	it = z_string_get_begin(str3);
 	end = z_string_get_end(str3);
 
-	printf("string contains: ");
+	trace("string contains: ");
 
 	for (i = 0; !z_string_iter_is_equal(it, end); z_string_iter_increment(it), ++i) {
 		uint32_t ch = z_string_get_char(str3, it);
-//                fprintf(stderr, "i=%d, test_string12=%d(%c), ch=%d(%c)\n",
+//                ftrace(stderr, "i=%d, test_string12=%d(%c), ch=%d(%c)\n",
 //                                i, test_string12[i], test_string12[i], ch, ch);
 		assert(test_string12[i] == (int8_t) ch);
 	}
 
 	/* print the string */
 	print_string(str3);
-	printf("\n");
+	trace("\n");
 
 	z_object_unref(Z_OBJECT(it));
 	z_object_unref(Z_OBJECT(end));
@@ -410,8 +410,8 @@ static void case7(struct zco_context_t *context)
 	ZStringIter *it, *first, *last, *end;
 	int i, len;
 
-	printf("======================\n");
-	printf("ZString case #7:\n");
+	trace("======================\n");
+	trace("ZString case #7:\n");
 
 	str1 = z_string_new(context, NULL);
 	str2 = z_string_new(context, NULL);
@@ -444,7 +444,7 @@ static void case7(struct zco_context_t *context)
 	it = z_string_get_begin(str3);
 	end = z_string_get_end(str3);
 
-	printf("string contains: ");
+	trace("string contains: ");
 
 	for (i = 0; !z_string_iter_is_equal(it, end); z_string_iter_increment(it), ++i) {
 		uint32_t ch = z_string_get_char(str3, it);
@@ -456,7 +456,7 @@ static void case7(struct zco_context_t *context)
 
 	/* print the string */
 	print_string(str3);
-	printf("\n");
+	trace("\n");
 
 	z_object_unref(Z_OBJECT(str3));
 	z_object_unref(Z_OBJECT(str2));
@@ -473,8 +473,8 @@ static void case8(struct zco_context_t *context)
 	ZStringIter *it, *end;
 	int i;
 
-	printf("======================\n");
-	printf("ZString case #8:\n");
+	trace("======================\n");
+	trace("ZString case #8:\n");
 
 	str1 = z_string_new(context, NULL);
 	z_string_set_cstring(str1, test_string1, Z_STRING_ENCODING_UTF8);
@@ -494,11 +494,11 @@ static void case8(struct zco_context_t *context)
 	end = z_string_get_end(str1);
 
 
-	printf("string contains: ");
+	trace("string contains: ");
 
 	for (i = 0; !z_string_iter_is_equal(it, end); z_string_iter_increment(it), ++i) {
 		uint32_t ch = z_string_get_char(str1, it);
-//                fprintf(stderr, "i=%d, test_string12[i]=%d(%c), ch=%d(%c)\n",
+//                ftrace(stderr, "i=%d, test_string12[i]=%d(%c), ch=%d(%c)\n",
 //                                i, test_string12[i], test_string12[i], ch, ch);
 //                fflush(stderr);
 
@@ -509,12 +509,12 @@ static void case8(struct zco_context_t *context)
 	z_object_unref(Z_OBJECT(end));
 
 	/* print the string */
-        printf("\n\nstart printing\n");
+        trace("\n\nstart printing\n");
 
 	print_string(str1);
-	printf("\n");
+	trace("\n");
 
-        printf("end printing\n");
+        trace("end printing\n");
         fflush(stdout);
 
         assert(Z_OBJECT(str1)->_priv.ref_count > 0);
@@ -534,8 +534,8 @@ static void case9(struct zco_context_t *context)
 	ZStringIter *it1, *it2, *first, *last, *end;
 	int i;
 
-	printf("======================\n");
-	printf("ZString case #9:\n");
+	trace("======================\n");
+	trace("ZString case #9:\n");
 
 	str1 = z_string_new(context, NULL);
 	str2 = z_string_new(context, NULL);
@@ -571,7 +571,7 @@ static void case9(struct zco_context_t *context)
 	z_object_unref(Z_OBJECT(first));
 	z_object_unref(Z_OBJECT(last));
 
-	printf("string contains: ");
+	trace("string contains: ");
 
 	it1 = z_string_get_begin(str3);
 	end = z_string_get_end(str3);
@@ -579,7 +579,7 @@ static void case9(struct zco_context_t *context)
 	for (i = 0; !z_string_iter_is_equal(it1, end); z_string_iter_increment(it1), ++i) {
 		uint32_t ch = z_string_get_char(str3, it1);
 
-//                fprintf(stderr, "i=%d, test_string12=%d(%c), ch=%d(%c)\n",
+//                ftrace(stderr, "i=%d, test_string12=%d(%c), ch=%d(%c)\n",
 //                                i, test_string12[i], test_string12[i], ch, ch);
 
 
@@ -591,7 +591,7 @@ static void case9(struct zco_context_t *context)
 
 	/* print the string */
 	print_string(str3);
-	printf("\n");
+	trace("\n");
 
 	z_object_unref(Z_OBJECT(str3));
 	z_object_unref(Z_OBJECT(str2));
@@ -611,8 +611,8 @@ static void case10(struct zco_context_t *context)
 	ZStringIter *it1, *it2, *first, *last, *end;
 	int i, len;
 
-	printf("======================\n");
-	printf("ZString case #10:\n");
+	trace("======================\n");
+	trace("ZString case #10:\n");
 
 	str1 = z_string_new(context, NULL);
 	str2 = z_string_new(context, NULL);
@@ -650,7 +650,7 @@ static void case10(struct zco_context_t *context)
 	it1 = z_string_get_begin(str3);
 	end = z_string_get_end(str3);
 
-	printf("string contains: ");
+	trace("string contains: ");
 
 	for (i = 0; !z_string_iter_is_equal(it1, end); z_string_iter_increment(it1), ++i) {
 		uint32_t ch = z_string_get_char(str3, it1);
@@ -662,7 +662,7 @@ static void case10(struct zco_context_t *context)
 
 	/* print the string */
 	print_string(str3);
-	printf("\n");
+	trace("\n");
 
 	z_object_unref(Z_OBJECT(str3));
 	z_object_unref(Z_OBJECT(str2));
@@ -678,8 +678,8 @@ static void case11(struct zco_context_t *context)
 	char test_string[] = "This is my first string. ";
 	int i, size;
 
-	printf("======================\n");
-	printf("ZString case #11:\n");
+	trace("======================\n");
+	trace("ZString case #11:\n");
 
 	str = z_string_new(context, NULL);
 
@@ -689,14 +689,14 @@ static void case11(struct zco_context_t *context)
 	size = sizeof(test_string);
 
 	for (i = 0; i < size; ++i) {
-		fputc(buffer[i], stdout);
+		trace("%c", buffer[i]);
 		assert(buffer[i] == test_string[i]);
 	}
 
 	free(buffer);
 	z_object_unref(Z_OBJECT(str));
 
-	printf("\n\n");
+	trace("\n\n");
 }
 
 static void case12(struct zco_context_t *context)
@@ -709,8 +709,8 @@ static void case12(struct zco_context_t *context)
 	ZStringIter *it1, *it2;
 	int rc;
 
-	printf("======================\n");
-	printf("ZString case #12:\n");
+	trace("======================\n");
+	trace("ZString case #12:\n");
 
 	red = z_string_new(context, NULL);
 	green = z_string_new(context, NULL);
@@ -724,7 +724,7 @@ static void case12(struct zco_context_t *context)
 	it2 = z_string_get_begin(red);
 	rc = z_string_compare(green, it1, red, it2, 0, -1);
 	assert(rc < 0);
-	printf("comparing %s[0..10] with %s[0..8]: %d\n", test_green, test_red, rc);
+	trace("comparing %s[0..10] with %s[0..8]: %d\n", test_green, test_red, rc);
 
 	z_object_unref(Z_OBJECT(it1));
 	z_object_unref(Z_OBJECT(it2));
@@ -734,7 +734,7 @@ static void case12(struct zco_context_t *context)
 	z_string_iter_advance(it1, 6);
 	rc = z_string_compare(green, it1, apple, it2, 0, 5);
 	assert(rc == 0);
-	printf("comparing %s[6..10] with %s[0..4]: %d\n", test_green, test_apple, rc);
+	trace("comparing %s[6..10] with %s[0..4]: %d\n", test_green, test_apple, rc);
 
 	z_object_unref(Z_OBJECT(it1));
 	z_object_unref(Z_OBJECT(it2));
@@ -744,7 +744,7 @@ static void case12(struct zco_context_t *context)
 	z_string_iter_advance(it1, 4);
 	rc = z_string_compare(red, it1, apple, it2, 0, 5);
 	assert(rc == 0);
-	printf("comparing %s[4..8] with %s[0..4]: %d\n", test_red, test_apple, rc);
+	trace("comparing %s[4..8] with %s[0..4]: %d\n", test_red, test_apple, rc);
 
 	z_object_unref(Z_OBJECT(it1));
 	z_object_unref(Z_OBJECT(it2));
@@ -755,7 +755,7 @@ static void case12(struct zco_context_t *context)
 	z_string_iter_advance(it2, 4);
 	rc = z_string_compare(green, it1, red, it2, 0, 5);
 	assert(rc == 0);
-	printf("comparing %s[6..10] with %s[4..8]: %d\n", test_green, test_red, rc);
+	trace("comparing %s[6..10] with %s[4..8]: %d\n", test_green, test_red, rc);
 
 	z_object_unref(Z_OBJECT(it1));
 	z_object_unref(Z_OBJECT(it2));
@@ -763,7 +763,7 @@ static void case12(struct zco_context_t *context)
 	z_object_unref(Z_OBJECT(green));
 	z_object_unref(Z_OBJECT(red));
 
-	fputs("\n", stdout);
+        trace("\n");
 }
 
 static void case13(struct zco_context_t *context)
@@ -774,8 +774,8 @@ static void case13(struct zco_context_t *context)
 	char test_hay[] = "This is first. This is second. This is third.";
 	int idx, position, positions[3] = { 13, 29, 44 };
 
-	printf("======================\n");
-	printf("ZString case #13:\n");
+	trace("======================\n");
+	trace("ZString case #13:\n");
 
 	hay = z_string_new(context, NULL);
 
@@ -787,7 +787,7 @@ static void case13(struct zco_context_t *context)
 	while (z_string_find_char(hay, it, '.', 0)) {
 		position = z_string_iter_get_index(it);
 
-		printf("needle found in position: %d\n", position);
+		trace("needle found in position: %d\n", position);
 		fflush(stdout);
 
 		assert(position == positions[idx]);
@@ -799,7 +799,7 @@ static void case13(struct zco_context_t *context)
 	z_object_unref(Z_OBJECT(it));
 	z_object_unref(Z_OBJECT(hay));
 
-	printf("\n\n");
+	trace("\n\n");
 }
 
 static void case14(struct zco_context_t *context)
@@ -812,8 +812,8 @@ static void case14(struct zco_context_t *context)
 	char test_needle[] = "needle";
 	int idx, position, positions[2] = { 14, 44 };
 
-	printf("======================\n");
-	printf("ZString case #14:\n");
+	trace("======================\n");
+	trace("ZString case #14:\n");
 
 	hay = z_string_new(context, NULL);
 	needle = z_string_new(context, NULL);
@@ -826,7 +826,7 @@ static void case14(struct zco_context_t *context)
 	while (z_string_find(hay, it, needle, 0)) {
 		position = z_string_iter_get_index(it);
 
-		printf("needle found in position: %d\n", position);
+		trace("needle found in position: %d\n", position);
 		fflush(stdout);
 
 		assert(position == positions[idx]);
@@ -839,7 +839,7 @@ static void case14(struct zco_context_t *context)
 	z_object_unref(Z_OBJECT(needle));
 	z_object_unref(Z_OBJECT(hay));
 
-	printf("\n\n");
+	trace("\n\n");
 }
 
 static void case15(struct zco_context_t *context)
@@ -852,8 +852,8 @@ static void case15(struct zco_context_t *context)
 	char test_string[] = "R*pl*c* th* v*w*ls *n th*s s*nt*nc* by *st*r*sks.";
 	int idx;
 
-	printf("======================\n");
-	printf("ZString case #15:\n");
+	trace("======================\n");
+	trace("ZString case #15:\n");
 
 	hay = z_string_new(context, NULL);
 	list = z_string_new(context, NULL);
@@ -879,7 +879,7 @@ static void case15(struct zco_context_t *context)
 
 	/* print the string */
 	print_string(hay);
-	printf("\n");
+	trace("\n");
 
 	z_object_unref(Z_OBJECT(it));
 	z_object_unref(Z_OBJECT(end));
@@ -897,8 +897,8 @@ static void case16(struct zco_context_t *context)
 	char test_string[] = "*e**a*e **e *o**o*a*** i* **i* *e**e**e ** a**e*i***.";
 	int idx;
 
-	printf("======================\n");
-	printf("ZString case #16:\n");
+	trace("======================\n");
+	trace("ZString case #16:\n");
 
 	hay = z_string_new(context, NULL);
 	list = z_string_new(context, NULL);
@@ -924,7 +924,7 @@ static void case16(struct zco_context_t *context)
 
 	/* print the string */
 	print_string(hay);
-	printf("\n");
+	trace("\n");
 
 	z_object_unref(Z_OBJECT(it));
 	z_object_unref(Z_OBJECT(end));
@@ -947,8 +947,8 @@ static void case17(struct zco_context_t *context)
 	};
 	int i;
 
-	printf("======================\n");
-	printf("ZString case #17:\n");
+	trace("======================\n");
+	trace("ZString case #17:\n");
 
 	hay = z_string_new(context, NULL);
 	space_string = z_string_new(context, NULL);
@@ -997,7 +997,7 @@ static void case17(struct zco_context_t *context)
 	z_object_unref(Z_OBJECT(space_string));
 	z_object_unref(Z_OBJECT(hay));
 
-	printf("\n\n");
+	trace("\n\n");
 }
 
 void z_string_test(struct zco_context_t *context, int id)

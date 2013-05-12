@@ -76,6 +76,9 @@ class ZMemoryAllocator : ZObject
                    the destruction of the objects. */
                 assert(selfp->object_tracker == NULL);
 
+                /* Notify allocators to start cleaning up */
+                garbage_collect(self);
+
                 PARENT_HANDLER(object);
         }
 
@@ -109,6 +112,19 @@ class ZMemoryAllocator : ZObject
         public virtual void deallocate(Self *self, void *block)
         {
                 return; /* not handled */
+        }
+
+        public virtual void deallocate_by_size(Self *self, void *block, int size)
+        {
+                deallocate(self, block);
+        }
+
+        public virtual int garbage_collect(Self *self)
+        {
+                if (selfp->object_tracker)
+                        return z_object_tracker_garbage_collect(selfp->object_tracker);
+
+                return 0;
         }
 }
 

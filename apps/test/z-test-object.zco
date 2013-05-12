@@ -24,6 +24,7 @@
 %}
 
 %{
+#include <zco-test.h>
 #include <stdio.h>
 %}
 
@@ -63,14 +64,14 @@ class ZTestObject : ZObject
 	public void close1(Self *self, ZString *message)
 	{
 		char *s = z_string_get_cstring(message, Z_STRING_ENCODING_UTF8);
-		printf("close1 called!!  message = %s\n", s);
+		trace("close1 called!!  message = %s\n", s);
 		free(s);
 	}
 
 	public void close2(Self *self, ZString *message)
 	{
 		char *s = z_string_get_cstring(message, Z_STRING_ENCODING_UTF8);
-		printf("close2 called!! message = %s\n", s);
+		trace("close2 called!! message = %s\n", s);
 		free(s);
 	}
 

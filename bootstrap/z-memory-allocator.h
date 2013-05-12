@@ -55,6 +55,7 @@ struct ZMemoryAllocatorGlobal {
 	void  (*__parent_dispose)(ZObject *object);
 	void  (*__parent_reset)(ZObject *object);
 	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
+	void (*__parent___delete)(ZObject *self);
 };
 
 struct ZMemoryAllocatorClass {
@@ -64,6 +65,8 @@ struct ZMemoryAllocatorClass {
 	int  (*__get_usable_size)(Self *self,void *block);
 	void *  (*__resize)(Self *self,void *block,int new_size);
 	void  (*__deallocate)(Self *self,void *block);
+	void  (*__deallocate_by_size)(Self *self,void *block,int size);
+	int  (*__garbage_collect)(Self *self);
 };
 
 struct ZMemoryAllocator {
@@ -83,6 +86,8 @@ void *  z_memory_allocator_allocate_aligned(Self *self,int size,int alignment);
 int  z_memory_allocator_get_usable_size(Self *self,void *block);
 void *  z_memory_allocator_resize(Self *self,void *block,int new_size);
 void  z_memory_allocator_deallocate(Self *self,void *block);
+void  z_memory_allocator_deallocate_by_size(Self *self,void *block,int size);
+int  z_memory_allocator_garbage_collect(Self *self);
 
 #undef Self
 

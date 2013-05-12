@@ -46,8 +46,8 @@ static void case1(struct zco_context_t *context)
 	int test_result[3] = { 200, 100, 300 };
 	int i;
 
-	printf("======================\n");
-	printf("ZMap case #1:\n");
+	trace("======================\n");
+	trace("ZMap case #1:\n");
 
         /* Here is a sequence of steps:
            1. map object is destroyed
@@ -76,15 +76,15 @@ static void case1(struct zco_context_t *context)
 	it = z_map_get_begin(mymap);
 	end = z_map_get_end(mymap);
 
-	printf("mymap contains:");
+	trace("mymap contains:");
 
 	for (i = 0; !z_map_iter_is_equal(it, end); z_map_iter_increment(it), ++i) {
 		int x = PTR_TO_INT(z_map_get_value(mymap, it));
-		printf(" %d", x);
+		trace(" %d", x);
 		assert(test_result[i] == x);
 	}
 
-	printf("\n\n");
+	trace("\n\n");
 	z_object_unref(Z_OBJECT(end));
 	z_object_unref(Z_OBJECT(it));
 	z_object_unref(Z_OBJECT(mymap));
@@ -99,8 +99,8 @@ static void case2(struct zco_context_t *context)
 	int test_value[3] = { 10, 20, 30 };
 	int i;
 
-	printf("======================\n");
-	printf("ZMap case #2:\n");
+	trace("======================\n");
+	trace("ZMap case #2:\n");
 
 	mymap = z_map_new(context, NULL);
 	z_map_set_key_destruct(mymap, (ZMapItemCallback) z_object_unref);
@@ -118,7 +118,7 @@ static void case2(struct zco_context_t *context)
 	z_string_set_cstring(key, "c", Z_STRING_ENCODING_UTF8);
 	z_map_assign(mymap, key, INT_TO_PTR(30));
 
-	printf("mymap contains:\n");
+	trace("mymap contains:\n");
 
 	/* create the test key strings */
 	test_key[0] = z_string_new(context, NULL);
@@ -145,7 +145,7 @@ static void case2(struct zco_context_t *context)
 		raw_key = z_string_get_cstring(key, Z_STRING_ENCODING_UTF8);
 		value = PTR_TO_INT(z_map_get_value(mymap, first));
 
-		printf("\tkey: %s, value: %d\n", raw_key, value);
+		trace("\tkey: %s, value: %d\n", raw_key, value);
 		free(raw_key);
 
 		assert(z_string_compare(key, NULL, test_key[i], NULL, 0, -1) == 0);
@@ -161,7 +161,7 @@ static void case2(struct zco_context_t *context)
 	z_object_unref(Z_OBJECT(test_key[1]));
 	z_object_unref(Z_OBJECT(test_key[0]));
 
-	printf("\n\n");
+	trace("\n\n");
 	z_object_unref(Z_OBJECT(mymap));
 }
 
@@ -172,8 +172,8 @@ static void case3(struct zco_context_t *context)
 	ZString *key;
 	int size;
 
-	printf("======================\n");
-	printf("ZMap case #3:\n");
+	trace("======================\n");
+	trace("ZMap case #3:\n");
 
 	mymap = z_map_new(context, NULL);
 	z_map_set_key_destruct(mymap, (ZMapItemCallback) z_object_unref);
@@ -193,7 +193,7 @@ static void case3(struct zco_context_t *context)
 	z_map_assign(mymap, key, INT_TO_PTR(302));
 
 	size = z_map_get_size(mymap);
-	printf("mymap size = %d\n", size);
+	trace("mymap size = %d\n", size);
 	assert(size == 3);
 
 	z_object_unref(Z_OBJECT(mymap));
@@ -209,8 +209,8 @@ static void case4(struct zco_context_t *context)
 	char *raw_str;
 	int size, found;
 
-	printf("======================\n");
-	printf("ZMap case #4:\n");
+	trace("======================\n");
+	trace("ZMap case #4:\n");
 
 	mymap = z_map_new(context, NULL);
 	z_map_set_key_destruct(mymap, (ZMapItemCallback) z_object_unref);
@@ -264,10 +264,10 @@ static void case4(struct zco_context_t *context)
 
 	if (value) {
 		raw_str = z_string_get_cstring(value, Z_STRING_ENCODING_UTF8);
-		printf("mymap['a'] = %s\n", raw_str);
+		trace("mymap['a'] = %s\n", raw_str);
 		free(raw_str);
 	} else {
-		printf("mymap['a'] = undefined\n");
+		trace("mymap['a'] = undefined\n");
 	}
 
 	/* print mymap['b'] */
@@ -279,10 +279,10 @@ static void case4(struct zco_context_t *context)
 
 	if (value) {
 		raw_str = z_string_get_cstring(value, Z_STRING_ENCODING_UTF8);
-		printf("mymap['b'] = %s\n", raw_str);
+		trace("mymap['b'] = %s\n", raw_str);
 		free(raw_str);
 	} else {
-		printf("mymap['b'] = undefined\n");
+		trace("mymap['b'] = undefined\n");
 	}
 
 	/* print mymap['c'] */
@@ -294,19 +294,19 @@ static void case4(struct zco_context_t *context)
 
 	if (value) {
 		raw_str = z_string_get_cstring(value, Z_STRING_ENCODING_UTF8);
-		printf("mymap['c'] = %s\n", raw_str);
+		trace("mymap['c'] = %s\n", raw_str);
 		free(raw_str);
 	} else {
-		printf("mymap['c'] = undefined\n");
+		trace("mymap['c'] = undefined\n");
 	}
 
 	/* print mymap['d'] */
 	it = z_map_find(mymap, key4);
 	assert(it == NULL);
-	printf("mymap['d'] = (none)\n");
+	trace("mymap['d'] = (none)\n");
 
 	size = z_map_get_size(mymap);
-	printf("mymap size = %d\n", size);
+	trace("mymap size = %d\n", size);
 	assert(size == 3);
 
 	z_object_unref(Z_OBJECT(mymap));
@@ -324,8 +324,8 @@ static void case5(struct zco_context_t *context)
 	int test_result[4] = { 100, 300, 400, 200 };
 	int i;
 
-	printf("======================\n");
-	printf("ZMap case #5:\n");
+	trace("======================\n");
+	trace("ZMap case #5:\n");
 
 	mymap = z_map_new(context, NULL);
 	z_map_set_key_destruct(mymap, (ZMapItemCallback) z_object_unref);
@@ -355,15 +355,15 @@ static void case5(struct zco_context_t *context)
 	it = z_map_get_begin(mymap);
 	end = z_map_get_end(mymap);
 
-	printf("mymap contains:");
+	trace("mymap contains:");
 
 	for (i = 0; !z_map_iter_is_equal(it, end); z_map_iter_increment(it), ++i) {
 		int x = PTR_TO_INT(z_map_get_value(mymap, it));
-		printf(" %d", x);
+		trace(" %d", x);
 		assert(test_result[i] == x);
 	}
 
-	printf("\n\n");
+	trace("\n\n");
 	z_object_unref(Z_OBJECT(mymap));
 	z_object_unref(Z_OBJECT(it));
 	z_object_unref(Z_OBJECT(end));
@@ -378,8 +378,8 @@ static void case6(struct zco_context_t *context)
 	int test_result[2] = { 10, 40 };
 	int i;
 
-	printf("======================\n");
-	printf("ZMap case #6:\n");
+	trace("======================\n");
+	trace("ZMap case #6:\n");
 
 	mymap = z_map_new(context, NULL);
 	z_map_set_key_destruct(mymap, (ZMapItemCallback) z_object_unref);
@@ -428,15 +428,15 @@ static void case6(struct zco_context_t *context)
 	it = z_map_get_begin(mymap);
 	end = z_map_get_end(mymap);
 
-	printf("mymap contains:");
+	trace("mymap contains:");
 
 	for (i = 0; !z_map_iter_is_equal(it, end); z_map_iter_increment(it), ++i) {
 		int x = PTR_TO_INT(z_map_get_value(mymap, it));
-		printf(" %d", x);
+		trace(" %d", x);
 		assert(test_result[i] == x);
 	}
 
-	printf("\n\n");
+	trace("\n\n");
 	z_object_unref(Z_OBJECT(end));
 	z_object_unref(Z_OBJECT(it));
 	z_object_unref(Z_OBJECT(mymap));
@@ -452,8 +452,8 @@ static void case7(struct zco_context_t *context)
 	int test_result2[2] = { 1101, 2202 };
 	int i;
 
-	printf("======================\n");
-	printf("ZMap case #7:\n");
+	trace("======================\n");
+	trace("ZMap case #7:\n");
 
 	mymap = z_map_new(context, NULL);
 	z_map_set_key_destruct(mymap, (ZMapItemCallback) z_object_unref);
@@ -474,17 +474,17 @@ static void case7(struct zco_context_t *context)
 	it = z_map_get_begin(mymap);
 	end = z_map_get_end(mymap);
 
-	printf("mymap contains:");
+	trace("mymap contains:");
 
 	for (i = 0; !z_map_iter_is_equal(it, end); z_map_iter_increment(it), ++i) {
 		int x = PTR_TO_INT(z_map_get_value(mymap, it));
-		printf(" %d", x);
+		trace(" %d", x);
 		assert(test_result1[i] == x);
 	}
 
 	z_object_unref(Z_OBJECT(end));
 	z_object_unref(Z_OBJECT(it));
-	printf("\n\n");
+	trace("\n\n");
 
 	z_map_clear(mymap);
 
@@ -499,15 +499,15 @@ static void case7(struct zco_context_t *context)
 	it = z_map_get_begin(mymap);
 	end = z_map_get_end(mymap);
 
-	printf("mymap contains:");
+	trace("mymap contains:");
 
 	for (i = 0; !z_map_iter_is_equal(it, end); z_map_iter_increment(it), ++i) {
 		int x = PTR_TO_INT(z_map_get_value(mymap, it));
-		printf(" %d", x);
+		trace(" %d", x);
 		assert(test_result2[i] == x);
 	}
 
-	printf("\n\n");
+	trace("\n\n");
 
 	z_object_unref(Z_OBJECT(end));
 	z_object_unref(Z_OBJECT(it));
@@ -523,8 +523,8 @@ static void case8(struct zco_context_t *context)
 	int test_result[2] = { 20, 100 };
 	int i;
 
-	printf("======================\n");
-	printf("ZMap case #8:\n");
+	trace("======================\n");
+	trace("ZMap case #8:\n");
 
 	mymap = z_map_new(context, NULL);
 	z_map_set_key_destruct(mymap, (ZMapItemCallback) z_object_unref);
@@ -562,15 +562,15 @@ static void case8(struct zco_context_t *context)
 	it = z_map_get_begin(mymap);
 	end = z_map_get_end(mymap);
 
-	printf("mymap contains:");
+	trace("mymap contains:");
 
 	for (i = 0; !z_map_iter_is_equal(it, end); z_map_iter_increment(it), ++i) {
 		int x = PTR_TO_INT(z_map_get_value(mymap, it));
-		printf(" %d", x);
+		trace(" %d", x);
 		assert(test_result[i] == x);
 	}
 
-	printf("\n\n");
+	trace("\n\n");
 	z_object_unref(Z_OBJECT(mymap));
 	z_object_unref(Z_OBJECT(end));
 	z_object_unref(Z_OBJECT(it));

@@ -30,10 +30,11 @@
 /* convenience macro */
 #define DEFINE_TEST(id_num,callback)  if(id==0 || id==id_num) { callback(context); }
 
+void trace(const char *fmt, ...);
+
 void z_vector_test(struct zco_context_t *, int);
 void z_string_test(struct zco_context_t *, int);
 void z_map_test(struct zco_context_t *, int);
 void signal_test(struct zco_context_t *, int);
-void z_gateway_application_test(struct zco_context_t *, int);
 
 #endif

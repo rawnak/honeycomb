@@ -31,8 +31,8 @@ static void case1(struct zco_context_t *context)
 	ZVectorIter *it, *end;
 	int i;
 
-	printf("======================\n");
-	printf("Vector case #1:\n");
+	trace("======================\n");
+	trace("Vector case #1:\n");
 
 	vec = z_vector_new(context, NULL);
         z_vector_set_item_size(vec, sizeof(int));
@@ -44,16 +44,16 @@ static void case1(struct zco_context_t *context)
 	it = z_vector_get_begin(vec);
 	end = z_vector_get_end(vec);
 
-	printf("vec contains:");
+	trace("vec contains:");
 
 	for (i = 1; !z_vector_iter_is_equal(it, end); z_vector_iter_increment(it), ++i) {
 
 		int x = *((int *)z_vector_get_item(vec, it));
-		printf(" %d", x);
+		trace(" %d", x);
 		assert(i == x);
 	}
 
-	printf("\n\n");
+	trace("\n\n");
 
 	z_object_unref(Z_OBJECT(vec));
 	z_object_unref(Z_OBJECT(it));
@@ -67,15 +67,15 @@ static void case2(struct zco_context_t *context)
 	ZVectorIter *end;
 	int i, size;
 
-	printf("======================\n");
-	printf("Vector case #2:\n");
+	trace("======================\n");
+	trace("Vector case #2:\n");
 
 	vec = z_vector_new(context, NULL);
         z_vector_set_item_size(vec, sizeof(int));
 
 	/* size == 0 */
 	size = z_vector_get_size(vec);
-	printf("0. size: %d\n", size);
+	trace("0. size: %d\n", size);
 
 	assert(size == 0);
 
@@ -85,7 +85,7 @@ static void case2(struct zco_context_t *context)
 	}
 
 	size = z_vector_get_size(vec);
-	printf("1. size: %d\n", size);
+	trace("1. size: %d\n", size);
 
 	assert(size == 10);
 
@@ -95,7 +95,7 @@ static void case2(struct zco_context_t *context)
 	z_vector_insert(vec, end, 10, &x);
 
 	size = z_vector_get_size(vec);
-	printf("2. size: %d\n", size);
+	trace("2. size: %d\n", size);
 
 	assert(size == 20);
 
@@ -103,7 +103,7 @@ static void case2(struct zco_context_t *context)
 	z_vector_pop_back(vec, NULL);
 
 	size = z_vector_get_size(vec);
-	printf("3. size: %d\n", size);
+	trace("3. size: %d\n", size);
 
 	assert(size == 19);
 
@@ -123,8 +123,8 @@ static void case3(struct zco_context_t *context)
 	ZVectorIter *it;
 	int i;
 
-	printf("======================\n");
-	printf("Vector case #3:\n");
+	trace("======================\n");
+	trace("Vector case #3:\n");
 
 	vec = z_vector_new(context, NULL);
         z_vector_set_item_size(vec, sizeof(int));
@@ -137,7 +137,7 @@ static void case3(struct zco_context_t *context)
 	z_vector_set_size(vec, 5);
 	z_vector_set_size(vec, 12);
 
-	printf("vec contains:");
+	trace("vec contains:");
 	int size = z_vector_get_size(vec);
 
         it = z_vector_get_begin(vec);
@@ -146,11 +146,11 @@ static void case3(struct zco_context_t *context)
 		int x = *((int *) z_vector_get_item(vec, it));
 		z_vector_iter_increment(it);
 
-		printf(" %d", x);
+		trace(" %d", x);
 		assert((i < 5 && x == i + 1) || (i >= 5 && x == 100));
 	}
 
-	printf("\n\n");
+	trace("\n\n");
 
 	z_object_unref(Z_OBJECT(it));
 	z_object_unref(Z_OBJECT(vec));
@@ -162,8 +162,8 @@ static void case4(struct zco_context_t *context)
 	ZVector *vec;
 	int i, sum = 0;
 
-	printf("======================\n");
-	printf("Vector case #4:\n");
+	trace("======================\n");
+	trace("Vector case #4:\n");
 
 	vec = z_vector_new(context, NULL);
         z_vector_set_item_size(vec, sizeof(int));
@@ -178,7 +178,7 @@ static void case4(struct zco_context_t *context)
 	}
 
 	assert(sum == 55);
-	printf("total: %d\n\n", sum);
+	trace("total: %d\n\n", sum);
 
 	z_object_unref(Z_OBJECT(vec));
 }
@@ -195,8 +195,8 @@ static void case5(struct zco_context_t *context)
 	ZVectorIter *it;
 	int i;
 
-	printf("======================\n");
-	printf("Vector case #5:\n");
+	trace("======================\n");
+	trace("Vector case #5:\n");
 
 	vec = z_vector_new(context, NULL);
         z_vector_set_item_size(vec, sizeof(int));
@@ -210,18 +210,18 @@ static void case5(struct zco_context_t *context)
 		z_vector_iter_increment(it);
 	}
 
-	printf("vec contains:");
+	trace("vec contains:");
 	z_vector_iter_set_absolute_index(it, 0);
 
 	for (i = 0; i < z_vector_get_size(vec); ++i) {
 		int x = *((int *) z_vector_get_item(vec, it));
 		z_vector_iter_increment(it);
 
-		printf(" %d", x);
+		trace(" %d", x);
 		assert(x == i);
 	}
 
-	printf("\n\n");
+	trace("\n\n");
 
 	z_object_unref(Z_OBJECT(it));
 	z_object_unref(Z_OBJECT(vec));
@@ -233,8 +233,8 @@ static void case6(struct zco_context_t *context)
 	ZVector *vec;
 	int x;
 
-	printf("======================\n");
-	printf("Vector case #6:\n");
+	trace("======================\n");
+	trace("Vector case #6:\n");
 
 	vec = z_vector_new(context, NULL);
         z_vector_set_item_size(vec, sizeof(int));
@@ -249,7 +249,7 @@ static void case6(struct zco_context_t *context)
 	z_vector_set_front(vec, &x);
 
 	x = *((int *)z_vector_get_front(vec));
-	printf("vec front is now %d\n\n", x);
+	trace("vec front is now %d\n\n", x);
 	assert(x == 61);
 
 	z_object_unref(Z_OBJECT(vec));
@@ -262,8 +262,8 @@ static void case7(struct zco_context_t *context)
 	ZVectorIter *it;
 	int i, x;
 
-	printf("======================\n");
-	printf("Vector case #7:\n");
+	trace("======================\n");
+	trace("Vector case #7:\n");
 
 	vec = z_vector_new(context, NULL);
         z_vector_set_item_size(vec, sizeof(int));
@@ -281,12 +281,12 @@ static void case7(struct zco_context_t *context)
 
 		int x = *((int *)z_vector_get_item(vec, it));
 		z_vector_iter_increment(it);
-		printf(" %d", x);
+		trace(" %d", x);
 
 		assert(x == (10 - i));
 	}
 
-	printf("\n\n");
+	trace("\n\n");
 
 	z_object_unref(Z_OBJECT(it));
 	z_object_unref(Z_OBJECT(vec));
@@ -298,8 +298,8 @@ static void case8(struct zco_context_t *context)
 	ZVector *vec;
 	int x, sum = 0;
 
-	printf("======================\n");
-	printf("Vector case #8:\n");
+	trace("======================\n");
+	trace("Vector case #8:\n");
 
 	vec = z_vector_new(context, NULL);
         z_vector_set_item_size(vec, sizeof(int));
@@ -319,7 +319,7 @@ static void case8(struct zco_context_t *context)
 	}
 
 	z_object_unref(Z_OBJECT(vec));
-	printf("The elements of vec summed %d\n\n", sum);
+	trace("The elements of vec summed %d\n\n", sum);
 
 	assert(sum == 600);
 }
@@ -342,8 +342,8 @@ static void case9(struct zco_context_t *context)
 	ZVectorIter *it, *begin, *end;
 	int x, i;
 
-	printf("======================\n");
-	printf("Vector case #9:\n");
+	trace("======================\n");
+	trace("Vector case #9:\n");
 
 	vec1 = z_vector_new(context, NULL);
         z_vector_set_item_size(vec1, sizeof(int));
@@ -376,7 +376,7 @@ static void case9(struct zco_context_t *context)
 	z_object_unref(Z_OBJECT(begin));
 	z_object_unref(Z_OBJECT(end));
 
-	printf("vec1 contains:");
+	trace("vec1 contains:");
 
 	it = z_vector_get_begin(vec1);
 	end = z_vector_get_end(vec1);
@@ -384,14 +384,14 @@ static void case9(struct zco_context_t *context)
 	for (i = 0; !z_vector_iter_is_equal(it, end); z_vector_iter_increment(it), ++i) {
 		int x = *((int *)z_vector_get_item(vec1, it));
 
-		printf(" %d", x);
+		trace(" %d", x);
 
 		assert((i >= 0 && i <= 1 && x == 300)
 			|| (i >= 2 && i <= 3 && x == 400) || (i == 4 && x == 200)
 			|| (i >= 5 && i <= 7 && x == 100));
 	}
 
-	printf("\n\n");
+	trace("\n\n");
 
 	z_object_unref(Z_OBJECT(it));
 	z_object_unref(Z_OBJECT(end));
@@ -406,8 +406,8 @@ static void case10(struct zco_context_t *context)
 	ZVector *vec;
 	ZVectorIter *it, *start, *end;
 
-	printf("======================\n");
-	printf("Vector case #10:\n");
+	trace("======================\n");
+	trace("Vector case #10:\n");
 
 	vec = z_vector_new(context, NULL);
         z_vector_set_item_size(vec, sizeof(int));
@@ -434,14 +434,14 @@ static void case10(struct zco_context_t *context)
 	z_object_unref(Z_OBJECT(start));
 	z_object_unref(Z_OBJECT(end));
 
-	printf("vec contains:");
+	trace("vec contains:");
         it = z_vector_get_begin(vec);
 
 	for (i = 0; i < z_vector_get_size(vec); ++i) {
 		int x = *((int *)z_vector_get_item(vec, it));
 		z_vector_iter_increment(it);
 
-		printf(" %d", x);
+		trace(" %d", x);
 
 		assert((i < 2 && i + 4 == x) || (i < 6 && i + 5 == x));
 	}
@@ -449,7 +449,7 @@ static void case10(struct zco_context_t *context)
 	z_object_unref(Z_OBJECT(it));
 	z_object_unref(Z_OBJECT(vec));
 
-	printf("\n\n");
+	trace("\n\n");
 }
 
 static void case11(struct zco_context_t *context)
@@ -459,8 +459,8 @@ static void case11(struct zco_context_t *context)
 	ZVector *vec;
 	ZVectorIter *it;
 
-	printf("======================\n");
-	printf("Vector case #11:\n");
+	trace("======================\n");
+	trace("Vector case #11:\n");
 
 	vec = z_vector_new(context, NULL);
         z_vector_set_item_size(vec, sizeof(int));
@@ -474,14 +474,14 @@ static void case11(struct zco_context_t *context)
 	x = 300;
 	z_vector_push_back(vec, &x);
 
-	printf("vec contains:");
+	trace("vec contains:");
         it = z_vector_get_begin(vec);
 
 	for (i = 0; i < z_vector_get_size(vec); ++i) {
 		int x = *((int *)z_vector_get_item(vec, it));
 		z_vector_iter_increment(it);
 
-		printf(" %d", x);
+		trace(" %d", x);
 		assert((i + 1) * 100 == x);
 	}
 
@@ -494,21 +494,21 @@ static void case11(struct zco_context_t *context)
 	x = 2202;
 	z_vector_push_back(vec, &x);
 
-	printf("\nmyvector contains:");
+	trace("\nmyvector contains:");
         it = z_vector_get_begin(vec);
 
 	for (i = 0; i < z_vector_get_size(vec); ++i) {
 		int x = *((int *)z_vector_get_item(vec, it));
 		z_vector_iter_increment(it);
 
-		printf(" %d", x);
+		trace(" %d", x);
 		assert((i + 1) * 1101 == x);
 	}
 
 	z_object_unref(Z_OBJECT(it));
 	z_object_unref(Z_OBJECT(vec));
 
-	printf("\n\n");
+	trace("\n\n");
 }
 
 void z_vector_test(struct zco_context_t *context, int id)

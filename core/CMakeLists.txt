@@ -10,8 +10,6 @@ include_directories(
       /usr/lib/libffi-3.0.13/include         # libffi
       )
 
-add_definitions(-pipe -g -fstack-protector-all -O0 -std=gnu99)
-
 bison_target(ZCO_PARSER zco.y ${CMAKE_CURRENT_BINARY_DIR}/zco.tab.c)
 flex_target(ZCO_SCANNER zco.l ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.c)
 add_flex_bison_dependency(ZCO_SCANNER ZCO_PARSER)

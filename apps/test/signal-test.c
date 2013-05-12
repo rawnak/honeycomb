@@ -26,7 +26,7 @@
 
 static int clicked(ZTestObject *self, void *userdata)
 {
-	printf("clicked signal emitted\n");
+	trace("clicked signal emitted\n");
 }
 
 static void case1(struct zco_context_t *context)

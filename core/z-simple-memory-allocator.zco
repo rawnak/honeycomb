@@ -63,22 +63,46 @@ class ZSimpleMemoryAllocator : ZMemoryAllocator
                 return self;
         }
 
-        override(ZObject)
-        void dispose(ZObject *object)
+        private int get_padded_size(int size)
         {
-                Self *self = (Self *) object;
-		PARENT_HANDLER(object);loc
+                return (size + 7) & ~7;
         }
 
-        private void ensure_bin(Self *self, int size)
+        private int get_bin_index(Self *self, int padded_size)
         {
-                
+                int bin_index = padded_size >> 3 - 1;
+
+                if (selfp->nbins <= bin_index) {
+                        selfp->bins = realloc(selfp->bins, sizeof(void*) * (bin_index+1));
+                        memset(selfp->bins + (sizeof(void*) * selfp->nbins), 0, sizeof(void*) * ((bin_index+1) - selfp->nbins));
+                        selfp->nbins = bin_index+1;
+                }
+
+                return bin_index;
         }
 
 	override(ZMemoryAllocator)
 	void * allocate(ZMemoryAllocator *allocator, int size)
         {
-                return malloc(size);
+                Self *self = (Self *) allocator;
+                int padded_size = get_padded_size(size);
+
+                int bin_index = get_bin_index(self, padded_size);
+                void **bins = (void **) selfp->bins;
+
+                if (selfp->nbins <= bin_index || bins[bin_index] == 0) {
+                        void *p = malloc(padded_size);
+                        return (unsigned char *) p;
+                }
+
+                /* dereference 'bin' to get the head node of the free list */
+                void *p = bins[bin_index];
+
+                /* dereference the head node to get the next node. assign
+                   this pointer value to the 'bin' */
+                bins[bin_index] = *((void **) p);
+
+                return (unsigned char *) p;
         }
 
         override(ZMemoryAllocator)
@@ -96,13 +120,52 @@ class ZSimpleMemoryAllocator : ZMemoryAllocator
         override(ZMemoryAllocator)
         void * resize(ZMemoryAllocator *allocator, void *block, int new_size)
         {
-                return realloc(block, new_size);
+                return NULL;
+        }
+
+        private int get_block_size(void *block)
+        {
+                return *((unsigned long *) block);
         }
 
 	override(ZMemoryAllocator)
-	void deallocate(ZMemoryAllocator *allocator, void *block)
+	void deallocate_by_size(ZMemoryAllocator *allocator, void *block, int size)
         {
-                free(block);
+                Self *self = (Self *) allocator;
+
+                int bin_index = get_bin_index(self, get_padded_size(size));
+                void **bins = (void **) selfp->bins;
+
+                /* store pointer to old head in the memory block being freed */
+                *((void **) block) = bins[bin_index];
+
+                /* make the new block the head node */
+                bins[bin_index] = block;
+        }
+
+	override(ZMemoryAllocator)
+	int garbage_collect(ZMemoryAllocator *allocator)
+        {
+                Self *self = (Self *) allocator;
+                void **bins = (void **) selfp->bins;
+                int i;
+
+                for (i=0; i<selfp->nbins; ++i) {
+                        void *p;
+                        
+                        while ((p = bins[i])) {
+                                bins[i] = *((void **) p);
+                                free(p);
+                        }
+                }
+
+                if (selfp->bins)
+                        free(selfp->bins);
+
+                selfp->bins = NULL;
+                selfp->nbins = 0;
+
+                return PARENT_HANDLER(allocator);
         }
 }
 

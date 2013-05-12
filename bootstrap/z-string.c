@@ -129,6 +129,7 @@ static void  z_string_append_int(Self *self,int val);
 static void  z_string_append_hex(Self *self,unsigned int val,int uppercase);
 static void  z_string_append_ptr(Self *self,void *val,int uppercase);
 static void z_string_class_destroy(ZObjectGlobal *gbl);
+static void z_string___delete(ZObject *self);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
@@ -198,6 +199,11 @@ ZStringGlobal * z_string_get_type(struct zco_context_t *ctx)
 			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
 			global->__parent_class_destroy = p_class->__class_destroy;
 			p_class->__class_destroy = z_string_class_destroy;
+		}
+		{
+			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
+			global->__parent___delete = p_class->____delete;
+			p_class->____delete = z_string___delete;
 		}
 		__z_string_class_init(ctx, (ZStringClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx, NULL);
@@ -1913,6 +1919,17 @@ static void z_string_class_destroy(ZObjectGlobal *gbl)
 {
 	ZStringGlobal *_global = (ZStringGlobal *) gbl;
 
+}
+
+#undef PARENT_HANDLER
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent___delete
+static void z_string___delete(ZObject *self)
+{
+ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
+if (allocator)
+	z_memory_allocator_deallocate_by_size(allocator, self, sizeof(Self));
+else
+	free(self);
 }
 
 #undef PARENT_HANDLER

@@ -76,6 +76,7 @@ static void z_closure_init(Self *self);
 static void  z_closure_reset(ZObject *object);
 static void  z_closure_dispose(ZObject *object);
 static void z_closure_class_destroy(ZObjectGlobal *gbl);
+static void z_closure___delete(ZObject *self);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
@@ -145,6 +146,11 @@ ZClosureGlobal * z_closure_get_type(struct zco_context_t *ctx)
 			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
 			global->__parent_class_destroy = p_class->__class_destroy;
 			p_class->__class_destroy = z_closure_class_destroy;
+		}
+		{
+			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
+			global->__parent___delete = p_class->____delete;
+			p_class->____delete = z_closure___delete;
 		}
 		__z_closure_class_init(ctx, (ZClosureClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx, NULL);
@@ -274,6 +280,17 @@ static void z_closure_class_destroy(ZObjectGlobal *gbl)
 {
 	ZClosureGlobal *_global = (ZClosureGlobal *) gbl;
 
+}
+
+#undef PARENT_HANDLER
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent___delete
+static void z_closure___delete(ZObject *self)
+{
+ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
+if (allocator)
+	z_memory_allocator_deallocate_by_size(allocator, self, sizeof(Self));
+else
+	free(self);
 }
 
 #undef PARENT_HANDLER

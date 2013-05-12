@@ -19,6 +19,19 @@
  */
 
 
+/* The simple allocator stores a list of bins containing a list of free blocks.
+   The blocks are chained with a single linked list, where the 'next' pointer
+   is stored within the free space. This means that the smallest block size
+   is that of a pointer:
+     bin 0:  8-byte blocks
+     bin 1:  16-byte blocks
+     bin 2:  24-byte blocks
+     bin 3:  32-byte blocks
+     ...
+
+   The block sizes are always 64-bit aligned
+
+ */
 
 #include <z-object-tracker.h>
 #include <z-map.h>
@@ -33,7 +46,9 @@
 #define INIT_EXISTS
 #define init z_simple_memory_allocator_init
 #define new z_simple_memory_allocator_new
-#define ensure_bin z_simple_memory_allocator_ensure_bin
+#define get_padded_size z_simple_memory_allocator_get_padded_size
+#define get_bin_index z_simple_memory_allocator_get_bin_index
+#define get_block_size z_simple_memory_allocator_get_block_size
 
 int z_simple_memory_allocator_type_id = -1;
 
@@ -64,14 +79,17 @@ static int __map_compare(ZMap *map, const void *a, const void *b)
 	return strcmp(a, b);
 }
 static void z_simple_memory_allocator_init(Self *self);
-static void  z_simple_memory_allocator_dispose(ZObject *object);
-static void  z_simple_memory_allocator_ensure_bin(Self *self,int size);
+static int  z_simple_memory_allocator_get_padded_size(int size);
+static int  z_simple_memory_allocator_get_bin_index(Self *self,int padded_size);
 static void *  z_simple_memory_allocator_allocate(ZMemoryAllocator *allocator,int size);
 static void *  z_simple_memory_allocator_allocate_aligned(ZMemoryAllocator *allocator,int size,int alignment);
 static int  z_simple_memory_allocator_get_usable_size(ZMemoryAllocator *allocator,void *block);
 static void *  z_simple_memory_allocator_resize(ZMemoryAllocator *allocator,void *block,int new_size);
-static void  z_simple_memory_allocator_deallocate(ZMemoryAllocator *allocator,void *block);
+static int  z_simple_memory_allocator_get_block_size(void *block);
+static void  z_simple_memory_allocator_deallocate_by_size(ZMemoryAllocator *allocator,void *block,int size);
+static int  z_simple_memory_allocator_garbage_collect(ZMemoryAllocator *allocator);
 static void z_simple_memory_allocator_class_destroy(ZObjectGlobal *gbl);
+static void z_simple_memory_allocator___delete(ZObject *self);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
@@ -128,11 +146,6 @@ ZSimpleMemoryAllocatorGlobal * z_simple_memory_allocator_get_type(struct zco_con
 		*global_ptr = (ZCommonGlobal *) global;
 		
 		{
-			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
-			global->__parent_dispose = p_class->__dispose;
-			p_class->__dispose = z_simple_memory_allocator_dispose;
-		}
-		{
 			ZMemoryAllocatorClass *p_class = (ZMemoryAllocatorClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_memory_allocator_type_id]);
 			global->__parent_allocate = p_class->__allocate;
 			p_class->__allocate = z_simple_memory_allocator_allocate;
@@ -154,13 +167,23 @@ ZSimpleMemoryAllocatorGlobal * z_simple_memory_allocator_get_type(struct zco_con
 		}
 		{
 			ZMemoryAllocatorClass *p_class = (ZMemoryAllocatorClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_memory_allocator_type_id]);
-			global->__parent_deallocate = p_class->__deallocate;
-			p_class->__deallocate = z_simple_memory_allocator_deallocate;
+			global->__parent_deallocate_by_size = p_class->__deallocate_by_size;
+			p_class->__deallocate_by_size = z_simple_memory_allocator_deallocate_by_size;
+		}
+		{
+			ZMemoryAllocatorClass *p_class = (ZMemoryAllocatorClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_memory_allocator_type_id]);
+			global->__parent_garbage_collect = p_class->__garbage_collect;
+			p_class->__garbage_collect = z_simple_memory_allocator_garbage_collect;
 		}
 		{
 			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
 			global->__parent_class_destroy = p_class->__class_destroy;
 			p_class->__class_destroy = z_simple_memory_allocator_class_destroy;
+		}
+		{
+			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
+			global->__parent___delete = p_class->____delete;
+			p_class->____delete = z_simple_memory_allocator___delete;
 		}
 		__z_simple_memory_allocator_class_init(ctx, (ZSimpleMemoryAllocatorClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx, NULL);
@@ -203,21 +226,44 @@ Self * z_simple_memory_allocator_new(struct zco_context_t *ctx,ZMemoryAllocator 
  Self *self = GET_NEW(ctx, allocator);
  return self;
  }
-#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_dispose
-static void  z_simple_memory_allocator_dispose(ZObject *object)
+static int  z_simple_memory_allocator_get_padded_size(int size)
 {
- Self *self = (Self *) object;
- PARENT_HANDLER(object);
+ return (size + 7) & ~7;
  }
-#undef PARENT_HANDLER
-static void  z_simple_memory_allocator_ensure_bin(Self *self,int size)
+static int  z_simple_memory_allocator_get_bin_index(Self *self,int padded_size)
 {
- 
+ int bin_index = padded_size >> 3 - 1;
+
+ if (selfp->nbins <= bin_index) {
+ selfp->bins = realloc(selfp->bins, sizeof(void*) * (bin_index+1));
+ memset(selfp->bins + (sizeof(void*) * selfp->nbins), 0, sizeof(void*) * ((bin_index+1) - selfp->nbins));
+ selfp->nbins = bin_index+1;
+ }
+
+ return bin_index;
  }
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_allocate
 static void *  z_simple_memory_allocator_allocate(ZMemoryAllocator *allocator,int size)
 {
- return malloc(size);
+ Self *self = (Self *) allocator;
+ int padded_size = get_padded_size(size);
+
+ int bin_index = get_bin_index(self, padded_size);
+ void **bins = (void **) selfp->bins;
+
+ if (selfp->nbins <= bin_index || bins[bin_index] == 0) {
+ void *p = malloc(padded_size);
+ return (unsigned char *) p;
+ }
+
+ /* dereference 'bin' to get the head node of the free list */
+ void *p = bins[bin_index];
+
+ /* dereference the head node to get the next node. assign
+                   this pointer value to the 'bin' */
+ bins[bin_index] = *((void **) p);
+
+ return (unsigned char *) p;
  }
 #undef PARENT_HANDLER
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_allocate_aligned
@@ -235,13 +281,51 @@ static int  z_simple_memory_allocator_get_usable_size(ZMemoryAllocator *allocato
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_resize
 static void *  z_simple_memory_allocator_resize(ZMemoryAllocator *allocator,void *block,int new_size)
 {
- return realloc(block, new_size);
+ return NULL;
  }
 #undef PARENT_HANDLER
-#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_deallocate
-static void  z_simple_memory_allocator_deallocate(ZMemoryAllocator *allocator,void *block)
+static int  z_simple_memory_allocator_get_block_size(void *block)
 {
- free(block);
+ return *((unsigned long *) block);
+ }
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_deallocate_by_size
+static void  z_simple_memory_allocator_deallocate_by_size(ZMemoryAllocator *allocator,void *block,int size)
+{
+ Self *self = (Self *) allocator;
+
+ int bin_index = get_bin_index(self, get_padded_size(size));
+ void **bins = (void **) selfp->bins;
+
+ /* store pointer to old head in the memory block being freed */
+ *((void **) block) = bins[bin_index];
+
+ /* make the new block the head node */
+ bins[bin_index] = block;
+ }
+#undef PARENT_HANDLER
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_garbage_collect
+static int  z_simple_memory_allocator_garbage_collect(ZMemoryAllocator *allocator)
+{
+ Self *self = (Self *) allocator;
+ void **bins = (void **) selfp->bins;
+ int i;
+
+ for (i=0; i<selfp->nbins; ++i) {
+ void *p;
+ 
+ while ((p = bins[i])) {
+ bins[i] = *((void **) p);
+ free(p);
+ }
+ }
+
+ if (selfp->bins)
+ free(selfp->bins);
+
+ selfp->bins = NULL;
+ selfp->nbins = 0;
+
+ return PARENT_HANDLER(allocator);
  }
 #undef PARENT_HANDLER
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
@@ -249,6 +333,17 @@ static void z_simple_memory_allocator_class_destroy(ZObjectGlobal *gbl)
 {
 	ZSimpleMemoryAllocatorGlobal *_global = (ZSimpleMemoryAllocatorGlobal *) gbl;
 
+}
+
+#undef PARENT_HANDLER
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent___delete
+static void z_simple_memory_allocator___delete(ZObject *self)
+{
+	ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
+	if (allocator)
+		z_memory_allocator_deallocate_by_size(allocator, self, sizeof(Self));
+	else
+		free(self);
 }
 
 #undef PARENT_HANDLER

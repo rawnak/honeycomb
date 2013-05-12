@@ -40,6 +40,8 @@
 #define get_usable_size z_memory_allocator_get_usable_size
 #define resize z_memory_allocator_resize
 #define deallocate z_memory_allocator_deallocate
+#define deallocate_by_size z_memory_allocator_deallocate_by_size
+#define garbage_collect z_memory_allocator_garbage_collect
 
 int z_memory_allocator_type_id = -1;
 
@@ -77,7 +79,10 @@ static void *  z_memory_allocator_virtual_allocate_aligned(Self *self,int size,i
 static int  z_memory_allocator_virtual_get_usable_size(Self *self,void *block);
 static void *  z_memory_allocator_virtual_resize(Self *self,void *block,int new_size);
 static void  z_memory_allocator_virtual_deallocate(Self *self,void *block);
+static void  z_memory_allocator_virtual_deallocate_by_size(Self *self,void *block,int size);
+static int  z_memory_allocator_virtual_garbage_collect(Self *self);
 static void z_memory_allocator_class_destroy(ZObjectGlobal *gbl);
+static void z_memory_allocator___delete(ZObject *self);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
@@ -148,10 +153,17 @@ ZMemoryAllocatorGlobal * z_memory_allocator_get_type(struct zco_context_t *ctx)
 		CLASS_FROM_GLOBAL(global)->__get_usable_size = z_memory_allocator_virtual_get_usable_size;
 		CLASS_FROM_GLOBAL(global)->__resize = z_memory_allocator_virtual_resize;
 		CLASS_FROM_GLOBAL(global)->__deallocate = z_memory_allocator_virtual_deallocate;
+		CLASS_FROM_GLOBAL(global)->__deallocate_by_size = z_memory_allocator_virtual_deallocate_by_size;
+		CLASS_FROM_GLOBAL(global)->__garbage_collect = z_memory_allocator_virtual_garbage_collect;
 		{
 			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
 			global->__parent_class_destroy = p_class->__class_destroy;
 			p_class->__class_destroy = z_memory_allocator_class_destroy;
+		}
+		{
+			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
+			global->__parent___delete = p_class->____delete;
+			p_class->____delete = z_memory_allocator___delete;
 		}
 		__z_memory_allocator_class_init(ctx, (ZMemoryAllocatorClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx, NULL);
@@ -162,6 +174,8 @@ ZMemoryAllocatorGlobal * z_memory_allocator_get_type(struct zco_context_t *ctx)
 		z_map_insert((ZMap *) global->common.method_map, strdup("get_usable_size"), (ZObjectSignalHandler) get_usable_size);
 		z_map_insert((ZMap *) global->common.method_map, strdup("resize"), (ZObjectSignalHandler) resize);
 		z_map_insert((ZMap *) global->common.method_map, strdup("deallocate"), (ZObjectSignalHandler) deallocate);
+		z_map_insert((ZMap *) global->common.method_map, strdup("deallocate_by_size"), (ZObjectSignalHandler) deallocate_by_size);
+		z_map_insert((ZMap *) global->common.method_map, strdup("garbage_collect"), (ZObjectSignalHandler) garbage_collect);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZMemoryAllocatorGlobal *) global);
 		#endif
@@ -228,6 +242,9 @@ static void  z_memory_allocator_dispose(ZObject *object)
                    any allocator ensures that the allocators are present during
                    the destruction of the objects. */
  assert(selfp->object_tracker == NULL);
+
+ /* Notify allocators to start cleaning up */
+ garbage_collect(self);
 
  PARENT_HANDLER(object);
  }
@@ -300,11 +317,49 @@ static void  z_memory_allocator_virtual_deallocate(Self *self,void *block)
 {
  return; /* not handled */
  }
+void  z_memory_allocator_deallocate_by_size(Self *self,void *block,int size)
+{
+	ZObject *obj = (ZObject *) self;
+	ZObjectClass *class_base = (ZObjectClass *) obj->class_base;
+	ZCommonGlobal *common_global = class_base->real_global;
+	unsigned long offset = common_global->svtable_off_list[z_memory_allocator_type_id];
+	((ZMemoryAllocatorClass *) ((char *) class_base + offset))->__deallocate_by_size(self,block,size);
+}
+static void  z_memory_allocator_virtual_deallocate_by_size(Self *self,void *block,int size)
+{
+ deallocate(self, block);
+ }
+int  z_memory_allocator_garbage_collect(Self *self)
+{
+	ZObject *obj = (ZObject *) self;
+	ZObjectClass *class_base = (ZObjectClass *) obj->class_base;
+	ZCommonGlobal *common_global = class_base->real_global;
+	unsigned long offset = common_global->svtable_off_list[z_memory_allocator_type_id];
+	((ZMemoryAllocatorClass *) ((char *) class_base + offset))->__garbage_collect(self);
+}
+static int  z_memory_allocator_virtual_garbage_collect(Self *self)
+{
+ if (selfp->object_tracker)
+ return z_object_tracker_garbage_collect(selfp->object_tracker);
+
+ return 0;
+ }
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
 static void z_memory_allocator_class_destroy(ZObjectGlobal *gbl)
 {
 	ZMemoryAllocatorGlobal *_global = (ZMemoryAllocatorGlobal *) gbl;
 
+}
+
+#undef PARENT_HANDLER
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent___delete
+static void z_memory_allocator___delete(ZObject *self)
+{
+ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
+if (allocator)
+	z_memory_allocator_deallocate_by_size(allocator, self, sizeof(Self));
+else
+	free(self);
 }
 
 #undef PARENT_HANDLER

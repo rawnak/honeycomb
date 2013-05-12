@@ -10,8 +10,6 @@ include_directories(
       ${CMAKE_CURRENT_BINARY_DIR}      # generated widget header files
       )
 
-add_definitions(-pipe -g -fstack-protector-all -O0 -std=gnu99)
-
 macro(parse_zco OBJECT_NAME)
 	add_custom_command(
 	      OUTPUT ${OBJECT_NAME}.h ${OBJECT_NAME}.c

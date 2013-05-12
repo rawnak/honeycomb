@@ -71,6 +71,7 @@ static int  z_buddy_memory_allocator_get_usable_size(ZMemoryAllocator *allocator
 static void *  z_buddy_memory_allocator_resize(ZMemoryAllocator *allocator,void *block,int new_size);
 static void  z_buddy_memory_allocator_deallocate(ZMemoryAllocator *allocator,void *block);
 static void z_buddy_memory_allocator_class_destroy(ZObjectGlobal *gbl);
+static void z_buddy_memory_allocator___delete(ZObject *self);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
@@ -161,6 +162,11 @@ ZBuddyMemoryAllocatorGlobal * z_buddy_memory_allocator_get_type(struct zco_conte
 			global->__parent_class_destroy = p_class->__class_destroy;
 			p_class->__class_destroy = z_buddy_memory_allocator_class_destroy;
 		}
+		{
+			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
+			global->__parent___delete = p_class->____delete;
+			p_class->____delete = z_buddy_memory_allocator___delete;
+		}
 		__z_buddy_memory_allocator_class_init(ctx, (ZBuddyMemoryAllocatorClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx, NULL);
 		z_map_set_compare(global->common.method_map, __map_compare);
@@ -242,6 +248,17 @@ static void z_buddy_memory_allocator_class_destroy(ZObjectGlobal *gbl)
 {
 	ZBuddyMemoryAllocatorGlobal *_global = (ZBuddyMemoryAllocatorGlobal *) gbl;
 
+}
+
+#undef PARENT_HANDLER
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent___delete
+static void z_buddy_memory_allocator___delete(ZObject *self)
+{
+ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
+if (allocator)
+	z_memory_allocator_deallocate_by_size(allocator, self, sizeof(Self));
+else
+	free(self);
 }
 
 #undef PARENT_HANDLER

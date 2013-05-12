@@ -145,6 +145,7 @@ static char *  z_zco_source_generator_get_base_filename(const char *full_filenam
 static char * z_zco_source_generator_macro_safe(const char *s);
 static void  z_zco_source_generator_external_definition(Self *self,int is_object);
 static void z_zco_source_generator_class_destroy(ZObjectGlobal *gbl);
+static void z_zco_source_generator___delete(ZObject *self);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
@@ -209,6 +210,11 @@ ZZcoSourceGeneratorGlobal * z_zco_source_generator_get_type(struct zco_context_t
 			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
 			global->__parent_class_destroy = p_class->__class_destroy;
 			p_class->__class_destroy = z_zco_source_generator_class_destroy;
+		}
+		{
+			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
+			global->__parent___delete = p_class->____delete;
+			p_class->____delete = z_zco_source_generator___delete;
 		}
 		__z_zco_source_generator_class_init(ctx, (ZZcoSourceGeneratorClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx, NULL);
@@ -1505,6 +1511,7 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
  ZString *arglist = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  ZString *code = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
 
+ /* define class_destroy function */
  z_string_set_cstring(symbol, "class_destroy", Z_STRING_ENCODING_UTF8);
  z_string_set_cstring(arglist, "(ZObjectGlobal *gbl)", Z_STRING_ENCODING_UTF8);
  z_string_append_format(code,
@@ -1518,6 +1525,27 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
 
  //selfp->access_mode == ACCESS_GLOBAL;
  ZString *virtual_base = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ z_string_set_cstring(virtual_base, "ZObject", Z_STRING_ENCODING_UTF8);
+ enable_override_mode(self, virtual_base);
+ z_object_unref(Z_OBJECT(virtual_base));
+
+ override_member_function_decl(self, selfp->str_void, symbol, arglist, code);
+
+
+ /* define __delete function */
+ z_string_set_cstring(symbol, "__delete", Z_STRING_ENCODING_UTF8);
+ z_string_set_cstring(arglist, "(ZObject *self)", Z_STRING_ENCODING_UTF8);
+ z_string_clear(code);
+ z_string_append_format(code,
+ "\x7b\n"
+ "\tZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;\n"
+ "\tif (allocator)\n"
+ "\t\tz_memory_allocator_deallocate_by_size(allocator, self, sizeof(Self));\n"
+ "\telse\n"
+ "\t\tfree(self);\n"
+ "\x7d\n");
+
+ virtual_base = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  z_string_set_cstring(virtual_base, "ZObject", Z_STRING_ENCODING_UTF8);
  enable_override_mode(self, virtual_base);
  z_object_unref(Z_OBJECT(virtual_base));
@@ -2161,6 +2189,17 @@ static void z_zco_source_generator_class_destroy(ZObjectGlobal *gbl)
 {
 	ZZcoSourceGeneratorGlobal *_global = (ZZcoSourceGeneratorGlobal *) gbl;
 
+}
+
+#undef PARENT_HANDLER
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent___delete
+static void z_zco_source_generator___delete(ZObject *self)
+{
+ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
+if (allocator)
+	z_memory_allocator_deallocate_by_size(allocator, self, sizeof(Self));
+else
+	free(self);
 }
 
 #undef PARENT_HANDLER

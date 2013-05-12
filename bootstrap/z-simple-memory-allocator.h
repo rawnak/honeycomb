@@ -18,8 +18,8 @@
  * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _Z_SLAB_MEMORY_ALLOCATOR_H_
-#define _Z_SLAB_MEMORY_ALLOCATOR_H_
+#ifndef _Z_SIMPLE_MEMORY_ALLOCATOR_H_
+#define _Z_SIMPLE_MEMORY_ALLOCATOR_H_
 
 #include <z-memory-allocator.h>
 #include <z-object.h>
@@ -27,7 +27,7 @@
 
 #include <zco-type.h>
 #define Self ZSimpleMemoryAllocator
-#define Z_SLAB_MEMORY_ALLOCATOR(s) ((ZSimpleMemoryAllocator *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_simple_memory_allocator_type_id]))
+#define Z_SIMPLE_MEMORY_ALLOCATOR(s) ((ZSimpleMemoryAllocator *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_simple_memory_allocator_type_id]))
 
 
 struct ZSimpleMemoryAllocatorPrivate;
@@ -53,13 +53,14 @@ struct ZSimpleMemoryAllocatorProtected {
 struct ZSimpleMemoryAllocatorGlobal {
 	struct ZCommonGlobal common;
 	struct ZSimpleMemoryAllocatorClass *_class;
-	void  (*__parent_dispose)(ZObject *object);
 	void *  (*__parent_allocate)(ZMemoryAllocator *allocator,int size);
 	void *  (*__parent_allocate_aligned)(ZMemoryAllocator *allocator,int size,int alignment);
 	int  (*__parent_get_usable_size)(ZMemoryAllocator *allocator,void *block);
 	void *  (*__parent_resize)(ZMemoryAllocator *allocator,void *block,int new_size);
-	void  (*__parent_deallocate)(ZMemoryAllocator *allocator,void *block);
+	void  (*__parent_deallocate_by_size)(ZMemoryAllocator *allocator,void *block,int size);
+	int  (*__parent_garbage_collect)(ZMemoryAllocator *allocator);
 	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
+	void (*__parent___delete)(ZObject *self);
 };
 
 struct ZSimpleMemoryAllocatorClass {

@@ -106,6 +106,7 @@ static void  z_vector_insert_segment_after(Self *self,ZVectorSegment *new_segmen
 static void  z_vector_insert_segment_before(Self *self,ZVectorSegment *new_segment,ZVectorSegment *before);
 static void  z_vector_remove_segment(Self *self,ZVectorSegment *segment);
 static void z_vector_class_destroy(ZObjectGlobal *gbl);
+static void z_vector___delete(ZObject *self);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
@@ -175,6 +176,11 @@ ZVectorGlobal * z_vector_get_type(struct zco_context_t *ctx)
 			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
 			global->__parent_class_destroy = p_class->__class_destroy;
 			p_class->__class_destroy = z_vector_class_destroy;
+		}
+		{
+			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
+			global->__parent___delete = p_class->____delete;
+			p_class->____delete = z_vector___delete;
 		}
 		__z_vector_class_init(ctx, (ZVectorClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx, NULL);
@@ -1036,6 +1042,17 @@ static void z_vector_class_destroy(ZObjectGlobal *gbl)
 {
 	ZVectorGlobal *_global = (ZVectorGlobal *) gbl;
 
+}
+
+#undef PARENT_HANDLER
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent___delete
+static void z_vector___delete(ZObject *self)
+{
+ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
+if (allocator)
+	z_memory_allocator_deallocate_by_size(allocator, self, sizeof(Self));
+else
+	free(self);
 }
 
 #undef PARENT_HANDLER

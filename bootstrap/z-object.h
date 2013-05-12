@@ -66,6 +66,7 @@ struct ZObjectClass {
 	ZCommonGlobal * real_global;
 	void  (*__class_destroy)(ZObjectGlobal *gbl);
 	void  (*__reset)(Self *self);
+	void  (*____delete)(Self *self);
 	void  (*__dispose)(Self *self);
 };
 
@@ -81,6 +82,7 @@ void __z_object_init(struct zco_context_t *ctx, ZObject *self);
 void __z_object_class_init(struct zco_context_t *ctx, ZObjectClass *_class);
 void  z_object_class_destroy(ZObjectGlobal *gbl);
 void  z_object_reset(Self *self);
+void  z_object___delete(Self *self);
 void  z_object_dispose(Self *self);
 void  z_object_ref(Self *self);
 void  z_object_unref(Self *self);

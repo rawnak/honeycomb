@@ -8,8 +8,6 @@ include_directories(
       ${CMAKE_CURRENT_SOURCE_DIR}            # pre-generated header files for bootstrapping
       )
 
-add_definitions(-pipe -g -fstack-protector-all -O0 -std=gnu99)
-
 bison_target(ZCO_PARSER ${CMAKE_SOURCE_DIR}/core/zco.y ${CMAKE_CURRENT_BINARY_DIR}/zco.tab.c)
 flex_target(ZCO_SCANNER ${CMAKE_SOURCE_DIR}/core/zco.l ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.c)
 add_flex_bison_dependency(ZCO_SCANNER ZCO_PARSER)

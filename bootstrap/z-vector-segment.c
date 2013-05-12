@@ -26,6 +26,7 @@
 #include <assert.h>
 #include <malloc.h>
 
+
 #include <z-object-tracker.h>
 #include <z-map.h>
 #include <string.h>
@@ -89,8 +90,9 @@ static void z_vector_segment_init(Self *self);
 static void  z_vector_segment_reset(ZObject *object);
 static void  z_vector_segment_dispose(ZObject *object);
 static void  z_vector_segment_deallocate(Self *self);
-static int  z_vector_segment_set_capacity(Self *self,int value,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_construct,ZVectorItemCallback item_destruct);
+static int  z_vector_segment_set_capacity(Self *self,int min_value,int max_value,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_construct,ZVectorItemCallback item_destruct);
 static void z_vector_segment_class_destroy(ZObjectGlobal *gbl);
+static void z_vector_segment___delete(ZObject *self);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
@@ -160,6 +162,11 @@ ZVectorSegmentGlobal * z_vector_segment_get_type(struct zco_context_t *ctx)
 			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
 			global->__parent_class_destroy = p_class->__class_destroy;
 			p_class->__class_destroy = z_vector_segment_class_destroy;
+		}
+		{
+			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
+			global->__parent___delete = p_class->____delete;
+			p_class->____delete = z_vector_segment___delete;
 		}
 		__z_vector_segment_class_init(ctx, (ZVectorSegmentClass *) CLASS_FROM_GLOBAL(global));
 		global->common.method_map = z_map_new(ctx, NULL);
@@ -293,7 +300,7 @@ int  z_vector_segment_set_size(Self *self,int value,int item_size,int storage_mo
  if (selfp->count < value) {
  /* grow the vector */
  if (selfp->capacity < value) {
- rc = set_capacity(self, value * 2, item_size, storage_mode, userdata,
+ rc = set_capacity(self, value, value * 2, item_size, storage_mode, userdata,
  item_construct, item_destruct);
  
  if (rc)
@@ -357,55 +364,68 @@ static void  z_vector_segment_deallocate(Self *self)
 
  selfp->data = NULL;
  }
-static int  z_vector_segment_set_capacity(Self *self,int value,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_construct,ZVectorItemCallback item_destruct)
+static int  z_vector_segment_set_capacity(Self *self,int min_value,int max_value,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_construct,ZVectorItemCallback item_destruct)
 {
- if (value < selfp->count) {
- set_size(self, value, item_size, storage_mode, userdata, item_construct, item_destruct);
- selfp->count = value;
+ if (max_value < selfp->count) {
+ set_size(self, max_value, item_size, storage_mode, userdata, item_construct, item_destruct);
+ selfp->count = max_value;
  }
 
- if (value) {
+ if (max_value) {
  int min_segment_capacity_by_size = zco_context_get_min_segment_capacity_by_size(CTX_FROM_OBJECT(self));
  int min_segment_capacity_by_count = zco_context_get_min_segment_capacity_by_count(CTX_FROM_OBJECT(self));
 
  /* restrict minimum segment size by count */
- if (value < min_segment_capacity_by_count)
- value = min_segment_capacity_by_count;
+ if (min_value < min_segment_capacity_by_count)
+ min_value = min_segment_capacity_by_count;
+
+ if (max_value < min_segment_capacity_by_count)
+ max_value = min_segment_capacity_by_count;
 
  /* restrict minimum segment size by size in bytes */
- if (value * item_size < min_segment_capacity_by_size)
- value = (min_segment_capacity_by_size + item_size - 1) / item_size;
+ if (min_value * item_size < min_segment_capacity_by_size)
+ min_value = (min_segment_capacity_by_size + item_size - 1) / item_size;
+
+ if (max_value * item_size < min_segment_capacity_by_size)
+ max_value = (min_segment_capacity_by_size + item_size - 1) / item_size;
 
  ZMemoryAllocator *alloc = z_object_get_allocator_ptr(Z_OBJECT(self));
- int new_size = value * item_size;
+ int new_capacity = 0;
 
  if (alloc) {
  if (selfp->data) {
- if (z_memory_allocator_get_usable_size(alloc, selfp->data) >= new_size) {
- void *new_p = z_memory_allocator_resize(alloc, selfp->data, new_size);
+ int available_capacity = z_memory_allocator_get_usable_size(alloc, selfp->data) / item_size;
+
+ if (available_capacity >= min_value) {
+ new_capacity = (available_capacity < max_value)? available_capacity : max_value;
+ void *new_p = z_memory_allocator_resize(alloc, selfp->data, new_capacity * item_size);
  assert(new_p == selfp->data);
  } else {
  /* couldn't resize the block */
  return -1;
  }
  } else {
- selfp->data = z_memory_allocator_allocate(alloc, new_size);
+ new_capacity = max_value;
+ selfp->data = z_memory_allocator_allocate(alloc, new_capacity * item_size);
  }
  } else {
  if (selfp->data) {
- if (malloc_usable_size(selfp->data) >= new_size) {
- void *new_p = realloc(selfp->data, new_size);
+ int available_capacity = malloc_usable_size(selfp->data);
+ if (available_capacity >= min_value) {
+ new_capacity = (available_capacity < max_value)? available_capacity : max_value;
+ void *new_p = realloc(selfp->data, new_capacity * item_size);
  assert(new_p == selfp->data);
  } else {
  /* couldn't resize the block */
  return -1;
  }
  } else {
- selfp->data = malloc(new_size);
+ new_capacity = max_value;
+ selfp->data = malloc(new_capacity * item_size);
  }
  }
 
- selfp->capacity = value;
+ selfp->capacity = new_capacity;
 
  } else if (selfp->data) {
  selfp->capacity = 0;
@@ -713,6 +733,17 @@ static void z_vector_segment_class_destroy(ZObjectGlobal *gbl)
 {
 	ZVectorSegmentGlobal *_global = (ZVectorSegmentGlobal *) gbl;
 
+}
+
+#undef PARENT_HANDLER
+#define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent___delete
+static void z_vector_segment___delete(ZObject *self)
+{
+ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
+if (allocator)
+	z_memory_allocator_deallocate_by_size(allocator, self, sizeof(Self));
+else
+	free(self);
 }
 
 #undef PARENT_HANDLER

@@ -12,8 +12,6 @@ include_directories(
       /usr/lib/libffi-3.0.13/include   # libffi
       )
 
-add_definitions(-pipe -g -fstack-protector-all -O0 -std=gnu99)
-
 macro(parse_zco OBJECT_NAME)
 	add_custom_command(
 	      OUTPUT ${OBJECT_NAME}.h ${OBJECT_NAME}.c

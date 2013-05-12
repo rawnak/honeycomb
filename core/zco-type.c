@@ -107,7 +107,6 @@ void zco_context_destroy(struct zco_context_t *ctx)
         z_memory_allocator_set_object_tracker(ctx->flex_allocator, NULL);
         z_memory_allocator_set_object_tracker(ctx->fixed_allocator, NULL);
 
-
         /* Destroy objects for class static */
 	for (i=ctx->type_count - 1; i >= 0; --i) {
 		struct ZCommonGlobal *global = ctx->types[i];
@@ -274,27 +273,15 @@ void zco_context_full_garbage_collect(struct zco_context_t *ctx)
            Since running GC in one object tracker may push items into the pool
            of another object tracker, we cannot assume one tracker's pool is
            clear until all the trackers' pool have been cleared */
-        ZObjectTracker *flex_tracker = z_memory_allocator_get_object_tracker(ctx->flex_allocator);
-        ZObjectTracker *fixed_tracker = z_memory_allocator_get_object_tracker(ctx->fixed_allocator);
 
         int objects_released;
 
         do {
                 objects_released = 0;
 
-                if (flex_tracker)
-                        objects_released += z_object_tracker_garbage_collect(flex_tracker);
-
-                if (fixed_tracker)
-                        objects_released += z_object_tracker_garbage_collect(fixed_tracker);
+                objects_released += z_memory_allocator_garbage_collect(ctx->flex_allocator);
+                objects_released += z_memory_allocator_garbage_collect(ctx->fixed_allocator);
 
         } while (objects_released);
-
-        if (flex_tracker)
-                z_object_unref(Z_OBJECT(flex_tracker));
-
-        if (fixed_tracker)
-                z_object_unref(Z_OBJECT(fixed_tracker));
-
 }
 

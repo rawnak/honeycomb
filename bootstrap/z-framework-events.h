@@ -51,6 +51,7 @@ struct ZFrameworkEventsGlobal {
 	struct ZCommonGlobal common;
 	struct ZFrameworkEventsClass *_class;
 	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
+	void (*__parent___delete)(ZObject *self);
 };
 
 struct ZFrameworkEventsClass {
