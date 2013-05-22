@@ -28,6 +28,9 @@ struct ZVector;
 typedef struct ZVector ZVector;
 typedef void(*ZVectorItemCallback)(void *item, void *userdata);
 
+struct ZSegmentData;
+typedef struct ZSegmentData ZSegmentData;
+
 #include <zco-type.h>
 #define Self ZVectorSegment
 #define Z_VECTOR_SEGMENT(s) ((ZVectorSegment *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_vector_segment_type_id]))
@@ -49,7 +52,7 @@ struct ZVectorSegmentPrivate {
 	int start;
 	int count;
 	int capacity;
-	void *data;
+	ZSegmentData *data;
 	Self *prev;
 	Self *next;
 };
@@ -86,16 +89,16 @@ void z_vector_segment_set_prev(Self *self, Self * value);
 Self * z_vector_segment_get_next(Self *self);
 void z_vector_segment_set_next(Self *self, Self * value);
 int  z_vector_segment_get_size(Self *self);
-int  z_vector_segment_set_size(Self *self,int value,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_construct,ZVectorItemCallback item_destruct);
+int  z_vector_segment_set_size(Self *self,int value,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_construct,ZVectorItemCallback item_copy_construct,ZVectorItemCallback item_destruct);
 int  z_vector_segment_get_capacity(Self *self);
 int  z_vector_segment_is_in_bound(Self *self,ZVectorIter *iter);
 void *  z_vector_segment_get_item(Self *self,ZVectorIter *iter,int item_size,int storage_mode);
-int  z_vector_segment_set_item(Self *self,ZVectorIter *iter,void *item,int item_size,int storage_mode);
+int  z_vector_segment_set_item(Self *self,ZVectorIter *iter,void *item,void *userdata,ZVectorItemCallback item_copy_construct,int item_size,int storage_mode);
 int  z_vector_segment_insert(Self *self,ZVectorIter *iter,int n,void *item,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_copy_construct);
 ZVectorIter *  z_vector_segment_get_begin(Self *self);
 ZVectorIter *  z_vector_segment_get_end(Self *self);
 int  z_vector_segment_insert_range(Self *self,ZVectorIter *iter,ZVectorSegment *src,ZVectorIter *src_iter_start,ZVectorIter *src_iter_end,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_copy_construct);
-int  z_vector_segment_erase(Self *self,ZVectorIter *start,ZVectorIter *end,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_destruct);
+int  z_vector_segment_erase(Self *self,ZVectorIter *start,ZVectorIter *end,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_copy_construct,ZVectorItemCallback item_destruct);
 
 #undef Self
 

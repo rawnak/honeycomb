@@ -251,11 +251,11 @@ static void z_map_iter_class_destroy(ZObjectGlobal *gbl)
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent___delete
 static void z_map_iter___delete(ZObject *self)
 {
-ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
-if (allocator)
-	z_memory_allocator_deallocate_by_size(allocator, self, sizeof(Self));
-else
-	free(self);
+	ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
+	if (allocator)
+		z_memory_allocator_deallocate_by_size(allocator, self, sizeof(Self));
+	else
+		free(self);
 }
 
 #undef PARENT_HANDLER

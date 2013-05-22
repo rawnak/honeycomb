@@ -27,6 +27,9 @@
 #define INT_TO_PTR(x) ((void *) ((unsigned long) (x)))
 #define PTR_TO_INT(x) ((int64_t) ((long) (x)))
 
+extern int z_vector_iter_type_id;
+extern int z_map_iter_type_id;
+
 
 #include <z-object-tracker.h>
 #include <z-map.h>
@@ -225,6 +228,7 @@ static void z_default_object_tracker_init(Self *self)
  z_map_set_compare(selfp->pools, map_compare);
  z_map_set_value_destruct(selfp->pools, (ZMapItemCallback) z_object_unref);
  selfp->suspended = 0;
+ selfp->is_destroying = 0;
  }
 Self * z_default_object_tracker_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator)
 {
@@ -315,18 +319,51 @@ static int  z_default_object_tracker_destroy(ZObjectTracker *tracker,ZObject *ta
 {
  Self *self = (Self *) tracker;
 
+ /* We can't use GLOBAL_FROM_OBJECT() here because we are interested in the Global struct of
+                   the derived class, not ZObject. CLASS_FROM_OBJECT() returns the Class struct for the
+                   derived class and GLOBAL_FROM_CLASS() returns the Global struct of the derived class.
+                   GLOBAL_FROM_OBJECT() treats the input as a ZObject so it always returns the Global struct
+                   of the ZObject part */
+ int id = GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT(target))->id;
+
+ if (id == z_vector_iter_type_id ||
+ id == z_map_iter_type_id) {
+ /* The process of placing an object into the pool requires a few objects to be created.
+                           These object types are lightweight but it still means that they are created, even
+                           if the original object that is to be added to the pool is of the same type.
+
+                           The purpose of the object tracker is to keep a pool of objects so that they can
+                           be reused without the overhead of destruction and construction. If a vector
+                           iterator is 'destroy'ed, the process of adding it to the pool requires another
+                           vector iterator to be created, and then fully destroyed. Since the process
+                           already performs a full destruction of the temporary iterator, we might as well
+                           fully destroy the original iterator and skip the process all together.
+
+                           Since only temporary vector iterators and map iterators are created during this
+                           process, we only need to blacklist these two types. As for other types of object,
+                           they will continue to require temporary vector/map iterators to be created. The
+                           expectation is that those object types would be more heavy-weight so the benefit
+                           of not destroying/recreating them is greater than the penalty of creating/destroying
+                           temporary vector/map iterators. */
+ z_object_dispose(target);
+ return 0;
+
+ } 
+ 
+ /* This assertion is a safe-guard against a performance hit. The is_destroying flag is set
+                   when an object is being inserted into the pool and then cleared once it's complete. If we
+                   get a recursive call to this function (destroy) while inserting the original object into
+                   the pool and it is not one of the blacklisted types above, we are unexpectedly destroying
+                   an object during the process, in which case it would be better to dispose the original
+                   object without attempting to insert it into the pool. */
+ assert(!selfp->is_destroying);
+
  if (selfp->suspended) {
  z_object_dispose(target);
+
  } else {
  selfp->suspended = 1;
-
-
- /* We can't use GLOBAL_FROM_OBJECT() here because we are interested in the Global struct of
-                           the derived class, not ZObject. CLASS_FROM_OBJECT() returns the Class struct for the
-                           derived class and GLOBAL_FROM_CLASS() returns the Global struct of the derived class.
-                           GLOBAL_FROM_OBJECT() treats the input as a ZObject so it always returns the Global struct
-                           of the ZObject part */
- int id = GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT(target))->id;
+ selfp->is_destroying = 1;
 
  ZMapIter *pos;
  ZVector *pool;
@@ -350,6 +387,7 @@ static int  z_default_object_tracker_destroy(ZObjectTracker *tracker,ZObject *ta
  z_vector_push_back(pool, target);
 
  selfp->suspended = 0;
+ selfp->is_destroying = 0;
  }
 
  return 0;
@@ -450,11 +488,11 @@ static void z_default_object_tracker_class_destroy(ZObjectGlobal *gbl)
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent___delete
 static void z_default_object_tracker___delete(ZObject *self)
 {
-ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
-if (allocator)
-	z_memory_allocator_deallocate_by_size(allocator, self, sizeof(Self));
-else
-	free(self);
+	ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
+	if (allocator)
+		z_memory_allocator_deallocate_by_size(allocator, self, sizeof(Self));
+	else
+		free(self);
 }
 
 #undef PARENT_HANDLER

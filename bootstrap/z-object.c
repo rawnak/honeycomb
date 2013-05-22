@@ -249,11 +249,9 @@ void  z_object___delete(Self *self)
 }
 static void  z_object_virtual___delete(Self *self)
 {
- ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
- if (allocator)
- z_memory_allocator_deallocate(allocator, self);
- else
- free(self);
+ /* This method must be overridden by derived classes. The
+                   derived classes must NOT call PARENT_HANDLER */
+ abort();
  }
 void  z_object_dispose(Self *self)
 {

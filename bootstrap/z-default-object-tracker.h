@@ -46,6 +46,7 @@ typedef struct ZDefaultObjectTracker ZDefaultObjectTracker;
 struct ZDefaultObjectTrackerPrivate {
 	ZMap *pools;
 	int suspended;
+	int is_destroying;
 };
 
 struct ZDefaultObjectTrackerProtected {

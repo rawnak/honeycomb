@@ -421,6 +421,9 @@ void  z_vector_iter_decrement(Self *self)
  }
 int  z_vector_iter_is_equal(Self *self,Self *other)
 {
+ if (self == other)
+ return 1;
+
  validate(self);
  validate(other);
  return selfp->segment == other->_priv.segment && selfp->index == get_index(other);
@@ -480,11 +483,11 @@ static void z_vector_iter_class_destroy(ZObjectGlobal *gbl)
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent___delete
 static void z_vector_iter___delete(ZObject *self)
 {
-ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
-if (allocator)
-	z_memory_allocator_deallocate_by_size(allocator, self, sizeof(Self));
-else
-	free(self);
+	ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
+	if (allocator)
+		z_memory_allocator_deallocate_by_size(allocator, self, sizeof(Self));
+	else
+		free(self);
 }
 
 #undef PARENT_HANDLER

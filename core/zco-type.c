@@ -19,6 +19,8 @@
  */
 
 #include <zco-type.h>
+#include <zco-config.h>
+
 #include <z-object.h>
 #include <z-framework-events.h>
 #include <z-default-object-tracker.h>
@@ -29,6 +31,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+
 
 static int next_id = -1;
 static int last_allocator_id = -1;
@@ -52,8 +55,13 @@ void zco_context_init(struct zco_context_t *ctx)
         zco_context_set_min_segment_capacity_by_count(ctx, 2);
 
         /* Create the allocators */
+#ifdef USE_CUSTOM_ALLOCATORS
         ZSimpleMemoryAllocator *fixed_allocator = z_simple_memory_allocator_new(ctx, NULL);
         ZBuddyMemoryAllocator *flex_allocator = z_buddy_memory_allocator_new(ctx, NULL);
+#else
+        ZSysMemoryAllocator *fixed_allocator = z_sys_memory_allocator_new(ctx, NULL);
+        ZSysMemoryAllocator *flex_allocator = z_sys_memory_allocator_new(ctx, NULL);
+#endif
 
         ctx->fixed_allocator = (ZMemoryAllocator *) fixed_allocator;
         ctx->flex_allocator = (ZMemoryAllocator *) flex_allocator;
@@ -67,9 +75,11 @@ void zco_context_init(struct zco_context_t *ctx)
         ZDefaultObjectTracker *fixed_tracker = z_default_object_tracker_new(ctx, NULL);
         ZDefaultObjectTracker *flex_tracker = z_default_object_tracker_new(ctx, NULL);
 
+#ifdef USE_GARBAGE_COLLECTION
         /* Assign the object tracker to the allocator */
         z_memory_allocator_set_object_tracker((ZMemoryAllocator *) fixed_allocator, (ZObjectTracker *) fixed_tracker);
         z_memory_allocator_set_object_tracker((ZMemoryAllocator *) flex_allocator, (ZObjectTracker *) flex_tracker);
+#endif
 
         z_object_unref(Z_OBJECT(fixed_tracker));
         z_object_unref(Z_OBJECT(flex_tracker));

@@ -274,6 +274,9 @@ class ZVectorIter : ZObject
 
 	public int is_equal(Self *self, Self *other)
 	{
+                if (self == other)
+                        return 1;
+
                 validate(self);
                 validate(other);
 		return selfp->segment == other->_priv.segment && selfp->index == get_index(other);

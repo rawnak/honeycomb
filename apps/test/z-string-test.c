@@ -308,20 +308,6 @@ static void case6(struct zco_context_t *context)
 	char test_string2[] = "This is noise. This is my second string. This is noise. ";
 	char test_string12[] = "This is my first string. This is my second string. This is also my first string. ";
 
-	//char test_string1[] = "This is noise. This| is my first string|. This is also my f|irst string. This is noise. ";
-	//char test_string2[] = "This is noise. This| is my second strin|g. This is noise. ";
-	//char test_string12[] = "This is my first string. This is my second string. This is also my first string. ";
-
-        // This|                        } C
-        //  is my first string|         } C
-        // . |
-        // This|                        } B
-        //  is my second strin|         } B
-        // g. |                         } A
-        // This is also my f|           } A
-        // irst string.                 good
-        // 
-
 	ZString *str1, *str2, *str3;
 	ZStringIter *it, *first, *last, *end;
 	int i;
@@ -335,19 +321,6 @@ static void case6(struct zco_context_t *context)
 
 	z_string_set_cstring(str1, test_string1, Z_STRING_ENCODING_UTF8);
 	z_string_set_cstring(str2, test_string2, Z_STRING_ENCODING_UTF8);
-/*
-        (gdb) print (char *) str3->_priv.data->_priv.head->_priv.data
-        $8 = 0x612d80 "This is my first string"
-
-        (gdb) print (char *) str3->_priv.data->_priv.head->next->_priv.data
-        $9 = 0x612e10 " iThiss my second strin"
-
-        (gdb) print (char *) str3->_priv.data->_priv.head->next->next->_priv.data
-        $10 = 0x612cf0 ". g. This is also my f"
-
-        (gdb) print (char *) str3->_priv.data->_priv.head->next->next->next->_priv.data
-        $11 = 0x612c10 "irst string. "
-*/
         
 	it = z_string_get_begin(str3);
 	first = z_string_get_begin(str1);
@@ -381,7 +354,7 @@ static void case6(struct zco_context_t *context)
 
 	for (i = 0; !z_string_iter_is_equal(it, end); z_string_iter_increment(it), ++i) {
 		uint32_t ch = z_string_get_char(str3, it);
-//                ftrace(stderr, "i=%d, test_string12=%d(%c), ch=%d(%c)\n",
+//                trace("i=%d, test_string12=%d(%c), ch=%d(%c)\n",
 //                                i, test_string12[i], test_string12[i], ch, ch);
 		assert(test_string12[i] == (int8_t) ch);
 	}
@@ -498,9 +471,8 @@ static void case8(struct zco_context_t *context)
 
 	for (i = 0; !z_string_iter_is_equal(it, end); z_string_iter_increment(it), ++i) {
 		uint32_t ch = z_string_get_char(str1, it);
-//                ftrace(stderr, "i=%d, test_string12[i]=%d(%c), ch=%d(%c)\n",
+//                trace("i=%d, test_string12[i]=%d(%c), ch=%d(%c)\n",
 //                                i, test_string12[i], test_string12[i], ch, ch);
-//                fflush(stderr);
 
 		assert(test_string12[i] == (int8_t) ch);
 	}
@@ -579,7 +551,7 @@ static void case9(struct zco_context_t *context)
 	for (i = 0; !z_string_iter_is_equal(it1, end); z_string_iter_increment(it1), ++i) {
 		uint32_t ch = z_string_get_char(str3, it1);
 
-//                ftrace(stderr, "i=%d, test_string12=%d(%c), ch=%d(%c)\n",
+//                trace("i=%d, test_string12=%d(%c), ch=%d(%c)\n",
 //                                i, test_string12[i], test_string12[i], ch, ch);
 
 

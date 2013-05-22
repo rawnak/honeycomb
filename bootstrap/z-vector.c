@@ -357,13 +357,13 @@ void z_vector_set_size(Self *self, int  value)
 
  if (!selfp->tail || z_vector_segment_set_size(selfp->tail, tail_size + value - selfp->count,
  selfp->item_size, selfp->storage_mode, selfp->userdata,
- selfp->item_construct, selfp->item_destruct) != 0) {
+ selfp->item_construct, selfp->item_copy_construct, selfp->item_destruct) != 0) {
 
  /* Failed to resize the tail. We need a new segment */
  ZVectorSegment *new_tail = create_segment(self);
  z_vector_segment_set_size(new_tail, value - selfp->count,
  selfp->item_size, selfp->storage_mode, selfp->userdata,
- selfp->item_construct, selfp->item_destruct);
+ selfp->item_construct, selfp->item_copy_construct, selfp->item_destruct);
 
  if (selfp->tail)
  z_vector_segment_set_next(selfp->tail, new_tail);
@@ -390,6 +390,9 @@ void z_vector_set_size(Self *self, int  value)
  
  int difference = selfp->count - value;
 
+ //fprintf(stderr, "*** initial difference = %d\n", difference);
+ //fflush(stderr);
+
  while (difference) {
  int tail_size = z_vector_segment_get_size(selfp->tail);
  if (tail_size <= difference) {
@@ -399,10 +402,13 @@ void z_vector_set_size(Self *self, int  value)
  } else {
  z_vector_segment_set_size(selfp->tail, tail_size - difference,
  selfp->item_size, selfp->storage_mode, selfp->userdata,
- selfp->item_construct, selfp->item_destruct);
+ selfp->item_construct, selfp->item_copy_construct, selfp->item_destruct);
 
  difference = 0;
  }
+
+ //fprintf(stderr, "*** difference = %d\n", difference);
+ //fflush(stderr);
  }
 
  selfp->count = value;
@@ -423,7 +429,8 @@ void *  z_vector_get_item(Self *self,ZVectorIter *iter)
 int  z_vector_set_item(Self *self,ZVectorIter *iter,void *item)
 {
  ZVectorSegment *segment = z_vector_iter_get_segment(iter);
- int rc = z_vector_segment_set_item(segment, iter, item, selfp->item_size, selfp->storage_mode);
+ int rc = z_vector_segment_set_item(segment, iter, item, selfp->userdata,
+ selfp->item_copy_construct, selfp->item_size, selfp->storage_mode);
  z_object_unref(Z_OBJECT(segment));
 
  return rc;
@@ -490,18 +497,33 @@ static void  z_vector_split_segment(Self *self,ZVectorSegment *segment,ZVectorIt
  /* split the segment so that the 'iter' will be pointing to the first element
                    in the second segment */
 
- /* create the new 2nd segment. */
+ /* create the new 2nd segment.
+                   our intention is to move the later parts of the 1st segment into
+                   the 2nd segment. we don't want to call the item copy
+                   constructor because ware are not really copying the elements. */
  ZVectorSegment *new_segment = create_segment(self);
  ZVectorIter *new_iter = z_vector_segment_get_begin(new_segment);
  int rc = z_vector_segment_insert_range(new_segment, new_iter, segment, iter,
  NULL, selfp->item_size, selfp->storage_mode, selfp->userdata,
- selfp->item_copy_construct);
+ NULL);
  assert(rc >= 0);
  z_object_unref(Z_OBJECT(new_iter));
 
- /* shrink the current segment. it will be the 1st segment after the split. */
- z_vector_segment_set_size(segment, z_vector_iter_get_index(iter), 
- selfp->item_size, selfp->storage_mode, NULL, NULL, NULL);
+ /* shrink the current segment. it will be the 1st segment after the split.
+                   since we are not adding new elements to the segment, we don't expect the constructor
+                   to be called, so we don't pass the item_construct.
+
+                   since we "moved" the elements from the first segment into the second segment,
+                   we shouldn't call the destructor on the original item. the user of the vector
+                   should not be notified that an item was copied and deleted because of the move
+                   operation.
+
+                   we are passing the item_copy_constructor because reducing the size of the segment
+                   may trigger a copy-on-write, for which we would need to run the copy constructor
+                   on each element.
+                 */
+ z_vector_segment_set_size(segment, z_vector_iter_get_index(iter), selfp->item_size,
+ selfp->storage_mode, selfp->userdata, NULL, selfp->item_copy_construct, NULL);
 
  /* insert the 2nd segment after the 1st */
  insert_segment_after(self, new_segment, segment);
@@ -663,7 +685,7 @@ int  z_vector_insert_range(Self *self,ZVectorIter *iter,ZVector *src,ZVectorIter
 
  /* build the new segment */
  ZVectorIter *new_iter = z_vector_segment_get_begin(new_segment);
- rc = z_vector_segment_insert_range(new_segment, new_iter, source_segment, NULL,
+ rc = z_vector_segment_insert_range(new_segment, NULL, source_segment, NULL,
  NULL, selfp->item_size, selfp->storage_mode, selfp->userdata,
  selfp->item_copy_construct);
  assert(rc > 0);
@@ -865,7 +887,7 @@ static void  z_vector_remove_segment(Self *self,ZVectorSegment *segment)
  /* Empty the segment so the destructor is called for each item removed */
  z_vector_segment_set_size(segment, 0,
  selfp->item_size, selfp->storage_mode, selfp->userdata,
- selfp->item_construct, selfp->item_destruct);
+ selfp->item_construct, selfp->item_copy_construct, selfp->item_destruct);
 
  ZVectorSegment *segment_prev = z_vector_segment_get_prev(segment);
  ZVectorSegment *segment_next = z_vector_segment_get_next(segment);
@@ -969,7 +991,7 @@ int  z_vector_erase(Self *self,ZVectorIter *start,ZVectorIter *end)
  //z_object_unref(Z_OBJECT(segment)); 
  } else {
  count += z_vector_segment_erase(segment, t1, t2, selfp->item_size, selfp->storage_mode,
- selfp->userdata, selfp->item_destruct);
+ selfp->userdata, selfp->item_copy_construct, selfp->item_destruct);
  }
 
  if (segment == end_segment)
@@ -1048,11 +1070,11 @@ static void z_vector_class_destroy(ZObjectGlobal *gbl)
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent___delete
 static void z_vector___delete(ZObject *self)
 {
-ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
-if (allocator)
-	z_memory_allocator_deallocate_by_size(allocator, self, sizeof(Self));
-else
-	free(self);
+	ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
+	if (allocator)
+		z_memory_allocator_deallocate_by_size(allocator, self, sizeof(Self));
+	else
+		free(self);
 }
 
 #undef PARENT_HANDLER
