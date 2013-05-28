@@ -1,0 +1,211 @@
+/* ZCO - Cross-platform Application Framework
+ * Copyright (C) 2014  Rawnak Jahan Syeda
+ *
+ * z-bind.zco: Function bind
+ * This file is part of ZCO.
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZCO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+%h{
+#include <zco-config.h>
+#include <z-vector.h>
+#include <z-closure.h>
+
+struct ZBind;
+typedef void(*ZBindHandler)(struct ZBind *self, ...);
+
+struct ZBindData
+{
+        struct ZBindData *next;
+        ZBindHandler handler;
+        int args_size;
+        uint8_t args[TASK_ARG_SIZE];
+};
+
+typedef struct ZBindData ZBindData;
+
+%}
+
+%{
+#include <z-value.h>
+#include <stdint.h>
+#include <assert.h>
+
+
+%}
+
+class ZBind : ZObject
+{
+        private ZBindData data;
+        private ZBindData *data_ptr;
+
+        init(Self *self)
+        {
+                selfp->data.next = NULL;
+                selfp->data.handler = NULL;
+                selfp->data.args_size = 0;
+                memset(selfp->data.args, 0, sizeof(selfp->data.args));
+        }
+
+        override(ZObject) void reset(ZObject *object)
+        {
+                Self *self = (Self *) object;
+
+                selfp->data.next = NULL;
+                selfp->data.handler = NULL;
+                selfp->data.args_size = 0;
+                memset(selfp->data.args, 0, sizeof(selfp->data.args));
+        }
+
+        public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
+        {
+                Self *self = GET_NEW(ctx, allocator);
+                return self;
+        }
+
+        private void append_argument(Self *self, void *value, int arg_size)
+        {
+                uint8_t *args = selfp->data.args;
+                int args_size = selfp->data.args_size;
+
+                *(args + args_size) = arg_size;
+                memcpy(args + args_size + 1, value, arg_size);
+
+                selfp->data.args_size = args_size + arg_size + 1;
+        }
+
+        public void append_int(Self *self, int value)
+        {
+                append_argument(self, &value, sizeof(int));
+        }
+
+        public void append_ptr(Self *self, void *value)
+        {
+                append_argument(self, &value, sizeof(void*));
+        }
+
+        public ZBindHandler handler
+        {
+                set
+                {
+                        selfp->data.handler = value;
+                }
+        }
+
+        private ZVector * create_arglist(Self *self, ZBindData *data, struct zco_context_t *ctx)
+        {
+                ZVector *arglist = z_vector_new(ctx, ctx->flex_allocator);
+                z_vector_set_item_size(arglist, 0);
+                z_vector_set_item_destruct(arglist, (ZVectorItemCallback) z_object_unref);
+
+                uint8_t *args = data->args;
+                int args_size = data->args_size;
+                int i;
+
+                for (i=0; i<args_size; ++i) {
+                        ZValue *zval = z_value_new(ctx, ctx->flex_allocator);
+                        int arg_size = args[i];
+
+                        assert(arg_size == 1 || arg_size == 2 || arg_size == 4 || arg_size == 8);
+
+                        switch (arg_size)
+                        {
+                        case 1:
+                                {
+                                        uint8_t value = *(args + i + 1);
+                                        ++i;
+                                        z_value_set_as_uint8(zval, value);
+                                }
+                                break;
+                        case 2:
+                                {
+                                        uint16_t value = *((uint16_t *) (args + i + 1));
+                                        i+=2;
+                                        z_value_set_as_uint16(zval, value);
+                                }
+                                break;
+                        case 4:
+                                {
+                                        uint32_t value = *((uint32_t *) (args + i + 1));
+                                        i+=4;
+                                        z_value_set_as_uint32(zval, value);
+                                }
+                                break;
+                        case 8:
+                                {
+                                        uint64_t value = *((uint64_t *) (args + i + 1));
+                                        i+=8;
+                                        z_value_set_as_uint64(zval, value);
+                                }
+                                break;
+
+                        default:
+                                abort();
+                        }
+
+                        z_vector_push_back(arglist, zval);
+                }
+
+                return arglist;
+        }
+
+        private ZClosure * create_closure(Self *self, ZBindData *data, struct zco_context_t *ctx)
+        {
+                ZClosure *closure = z_closure_new(ctx, ctx->flex_allocator);
+                z_closure_set_marshal(closure, ctx->marshal);
+                z_closure_set_target(closure, Z_OBJECT(self));
+                z_closure_set_handler(closure, (ZObjectSignalHandler) data->handler);
+
+                return closure;
+        }
+
+        public void get_data(Self *self, ZBindData *data)
+        {
+                memcpy(data, &selfp->data, sizeof(ZBindData));
+        }
+
+        public void set_data(Self *self, ZBindData *data)
+        {
+                memcpy(&selfp->data, data, sizeof(ZBindData));
+        }
+
+        public void set_data_ptr(Self *self, ZBindData *data_ptr)
+        {
+                selfp->data_ptr = data_ptr;
+        }
+
+        public int invoke(Self *self)
+        {
+                struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
+                ZClosure *closure;
+                ZVector *arglist;
+
+                if (selfp->data_ptr) {
+                        closure = create_closure(self, selfp->data_ptr, ctx);
+                        arglist = create_arglist(self, selfp->data_ptr, ctx);
+                } else {
+                        closure = create_closure(self, &selfp->data, ctx);
+                        arglist = create_arglist(self, &selfp->data, ctx);
+                }
+
+                int rc =  z_closure_invoke(closure, arglist);
+
+                z_object_unref(Z_OBJECT(arglist));
+                z_object_unref(Z_OBJECT(closure));
+
+                return rc;
+        }
+}
+

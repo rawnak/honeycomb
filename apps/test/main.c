@@ -20,6 +20,10 @@
 
 
 #include <zco-test.h>
+#include <z-bind.h>
+#include <z-c-closure-marshal.h>
+#include <z-event-loop.h>
+#include <z-string.h>
 
 #include <stdio.h>
 #include <unistd.h>
@@ -56,6 +60,28 @@ void trace(const char *fmt, ...)
         va_start(ap, fmt);
         vprintf(fmt, ap);
         va_end(ap);
+}
+
+void task_callback(ZBind *bind, int test_set_number, int test_case_number, int capacity)
+{
+        struct zco_context_t *context = CTX_FROM_OBJECT(bind);
+
+        zco_context_set_min_segment_capacity_by_size(context, capacity);
+        int i;
+
+        for (i = 1; i < TestSetEnd; ++i) {
+                if (test_set_number == 0 || test_set_number == i)
+                        TestDriverSet[i](context, test_case_number);
+        }
+
+        zco_context_full_garbage_collect(context);
+
+        ZString *msg = z_string_new(context, ALLOCATOR_FROM_OBJECT(bind));
+        z_string_append_format(msg, "Completed test with capacity %d\n", capacity);
+        char *str = z_string_get_cstring(msg, Z_STRING_ENCODING_UTF8);
+        fputs(str, stdout);
+        free(str);
+        z_object_unref(Z_OBJECT(msg));
 }
 
 int main(int argc, char **argv)
@@ -149,38 +175,79 @@ int main(int argc, char **argv)
         int capacity;
 	int i;
 
-        struct zco_context_t context;
-        zco_context_init(&context);
-
         if (try_segments) {
+                struct zco_context_t main_ctx;
+                struct zco_context_t *contexts;
+                int n_threads = 8;
+                int count = 0;
+                int i;
+
+                /* Initialize the main context */
+                zco_context_init(&main_ctx);
+                ZCClosureMarshal *marshal = z_c_closure_marshal_new(&main_ctx, NULL);
+                zco_context_set_marshal(&main_ctx, marshal);
+                z_object_unref(Z_OBJECT(marshal));
+
+                /* Initialize worker contexts */
+                contexts = malloc(sizeof(struct zco_context_t) * n_threads);
+                for (i=0; i<n_threads; ++i) {
+                        ZCClosureMarshal *marshal;
+
+                        zco_context_init(contexts+i);
+                        marshal = z_c_closure_marshal_new(contexts+i, NULL);
+                        zco_context_set_marshal(contexts+i, marshal);
+                        z_object_unref(Z_OBJECT(marshal));
+
+                        zco_context_run(contexts+i);
+                }
+
                 is_printing = 0;
                 for (capacity = 500; capacity >= 1; --capacity) {
+                        ZBind *task = z_bind_new(&main_ctx, NULL);
 
                         if (is_printing) {
                                 printf("Testing with minimum vector capacity of %d bytes\n"
                                        "================================================", capacity);
+                                task_callback(task, test_set_number, test_case_number, capacity);
+
                         } else { 
-                                printf("Testing with minimum vector capacity of %d bytes\n", capacity);
+                                z_bind_set_handler(task, (ZBindHandler) task_callback);
+                                z_bind_append_int(task, test_set_number);
+                                z_bind_append_int(task, test_case_number);
+                                z_bind_append_int(task, capacity);
+
+                                zco_context_post_task(contexts + (count % n_threads), task, 0);
+
+                                z_object_unref(Z_OBJECT(task));
+                                ++count;
                         }
-
-                        zco_context_set_min_segment_capacity_by_size(&context, capacity);
-
-                        for (i = 1; i < TestSetEnd; ++i) {
-                                if (test_set_number == 0 || test_set_number == i)
-                                        TestDriverSet[i](&context, test_case_number);
-                        }
-
-                        zco_context_full_garbage_collect(&context);
                 }
+
+                /* Notify all worker contexts that we are ready to terminate */ 
+                for (i=0; i<n_threads; ++i) 
+                        zco_context_prepare_destroy(contexts+i);
+
+                /* Destroy the worker contexts */
+                for (i=0; i<n_threads; ++i) 
+                        zco_context_destroy(contexts+i);
+
+                free(contexts);
+
+                /* Destroy the main context */
+                zco_context_destroy(&main_ctx);
+
         } else {
+                struct zco_context_t context;
+                zco_context_init(&context);
+
                 is_printing = 1;
                 for (i = 1; i < TestSetEnd; ++i) {
                         if (test_set_number == 0 || test_set_number == i)
                                 TestDriverSet[i](&context, test_case_number);
                 }
-        }
 
-        zco_context_destroy(&context);
+                zco_context_destroy(&context);
+        }
 }
 
 

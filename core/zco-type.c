@@ -27,11 +27,13 @@
 #include <z-sys-memory-allocator.h>
 #include <z-simple-memory-allocator.h>
 #include <z-buddy-memory-allocator.h>
+#include <z-thread-simple-memory-allocator.h>
 #include <z-vector-segment.h>
+#include <z-event-loop.h>
+#include <z-bind.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-
 
 static int next_id = -1;
 static int last_allocator_id = -1;
@@ -43,7 +45,7 @@ void zco_context_init(struct zco_context_t *ctx)
 	ctx->marshal = NULL;
         ctx->fixed_allocator = NULL;
         ctx->flex_allocator = NULL;
-        ctx->object_tracker = NULL;
+        ctx->event_loop = NULL;
 
         /* Set the default minimum segment capacity to be 3 times the overhead
            incurred by each segment. This means that there can be at most 40%
@@ -58,13 +60,16 @@ void zco_context_init(struct zco_context_t *ctx)
 #ifdef USE_CUSTOM_ALLOCATORS
         ZSimpleMemoryAllocator *fixed_allocator = z_simple_memory_allocator_new(ctx, NULL);
         ZBuddyMemoryAllocator *flex_allocator = z_buddy_memory_allocator_new(ctx, NULL);
+        ZThreadSimpleMemoryAllocator *ts_fixed_allocator = z_thread_simple_memory_allocator_new(ctx, NULL);
 #else
         ZSysMemoryAllocator *fixed_allocator = z_sys_memory_allocator_new(ctx, NULL);
         ZSysMemoryAllocator *flex_allocator = z_sys_memory_allocator_new(ctx, NULL);
+        ZSysMemoryAllocator *ts_fixed_allocator = z_sys_memory_allocator_new(ctx, NULL);
 #endif
 
         ctx->fixed_allocator = (ZMemoryAllocator *) fixed_allocator;
         ctx->flex_allocator = (ZMemoryAllocator *) flex_allocator;
+        ctx->ts_fixed_allocator = (ZMemoryAllocator *) ts_fixed_allocator;
 
         /* Keep note of the last type id for which the object buffer was not
            allocated using the allocators. */
@@ -74,23 +79,44 @@ void zco_context_init(struct zco_context_t *ctx)
         /* Create an object tracker for each allocator */
         ZDefaultObjectTracker *fixed_tracker = z_default_object_tracker_new(ctx, NULL);
         ZDefaultObjectTracker *flex_tracker = z_default_object_tracker_new(ctx, NULL);
+        ZDefaultObjectTracker *ts_fixed_tracker = z_default_object_tracker_new(ctx, NULL);
 
 #ifdef USE_GARBAGE_COLLECTION
         /* Assign the object tracker to the allocator */
         z_memory_allocator_set_object_tracker((ZMemoryAllocator *) fixed_allocator, (ZObjectTracker *) fixed_tracker);
         z_memory_allocator_set_object_tracker((ZMemoryAllocator *) flex_allocator, (ZObjectTracker *) flex_tracker);
+        z_memory_allocator_set_object_tracker((ZMemoryAllocator *) ts_fixed_allocator, (ZObjectTracker *) ts_fixed_tracker);
 #endif
 
         z_object_unref(Z_OBJECT(fixed_tracker));
         z_object_unref(Z_OBJECT(flex_tracker));
+        z_object_unref(Z_OBJECT(ts_fixed_tracker));
 
         /* Create an object to manage framework events */
 	ctx->framework_events = z_framework_events_new(ctx, NULL);
 }
 
+void zco_context_prepare_destroy(struct zco_context_t *ctx)
+{
+        /* This function sends a QUIT signal to the thread so that it doesn't accept
+           new tasks and terminates once its entire queue is finished. It's better to
+           send this signal to multiple event loops and then wait for the thread
+           destruction. This way, we parallelize the shutdown process of all event
+           loops */
+
+        if (ctx->event_loop)
+                z_event_loop_quit(ctx->event_loop);
+}
+
 void zco_context_destroy(struct zco_context_t *ctx)
 {
 	int i;
+
+        /* Release the event loop. */
+        if (ctx->event_loop) {
+                z_object_unref((ZObject *) ctx->event_loop);
+                ctx->event_loop = NULL;
+        }
 
         /* Release framework events */
 	z_object_unref((ZObject *) ctx->framework_events);
@@ -114,6 +140,7 @@ void zco_context_destroy(struct zco_context_t *ctx)
         zco_context_full_garbage_collect(ctx);
 
         /* Release the object trackers */
+        z_memory_allocator_set_object_tracker(ctx->ts_fixed_allocator, NULL);
         z_memory_allocator_set_object_tracker(ctx->flex_allocator, NULL);
         z_memory_allocator_set_object_tracker(ctx->fixed_allocator, NULL);
 
@@ -131,12 +158,15 @@ void zco_context_destroy(struct zco_context_t *ctx)
 	}
 
         /* Release memory allocators */
+        ZMemoryAllocator *ts_fixed_allocator = ctx->ts_fixed_allocator;
         ZMemoryAllocator *flex_allocator = ctx->flex_allocator;
         ZMemoryAllocator *fixed_allocator = ctx->fixed_allocator;
 
+        ctx->ts_fixed_allocator = NULL;
         ctx->flex_allocator = NULL;
         ctx->fixed_allocator = NULL;
 
+        z_object_unref(Z_OBJECT(ts_fixed_allocator));
         z_object_unref(Z_OBJECT(flex_allocator));
         z_object_unref(Z_OBJECT(fixed_allocator));
 
@@ -170,8 +200,16 @@ void zco_context_destroy(struct zco_context_t *ctx)
 	ctx->type_count = 0;
 }
 
+static void zco_context_ensure_thread_is_current(struct zco_context_t *ctx)
+{
+        if (ctx->event_loop)
+                assert(z_event_loop_get_is_current(ctx->event_loop));
+}
+
 void zco_context_set_marshal(struct zco_context_t *ctx, void *marshal)
 {
+        zco_context_ensure_thread_is_current(ctx);
+
 	if (ctx->marshal)
 		z_object_unref((ZObject *) ctx->marshal);
 
@@ -181,6 +219,8 @@ void zco_context_set_marshal(struct zco_context_t *ctx, void *marshal)
 
 ZCommonGlobal **zco_get_ctx_type(struct zco_context_t *ctx, int type_id)
 {
+        zco_context_ensure_thread_is_current(ctx);
+
 	if (ctx->type_count <= type_id) {
 		int new_size = type_id + 1;
 
@@ -254,31 +294,38 @@ void zco_add_to_vtable(int **list, int *size, int type_id)
 
 void * zco_context_get_framework_events(struct zco_context_t *ctx)
 {
+        zco_context_ensure_thread_is_current(ctx);
 	return ctx->framework_events;
 }
 
 int zco_context_get_min_segment_capacity_by_size(struct zco_context_t *ctx)
 {
+        zco_context_ensure_thread_is_current(ctx);
         return ctx->min_segment_cap_by_size;
 }
 
 void zco_context_set_min_segment_capacity_by_size(struct zco_context_t *ctx, int value)
 {
+        zco_context_ensure_thread_is_current(ctx);
         ctx->min_segment_cap_by_size = value;
 }
 
 int zco_context_get_min_segment_capacity_by_count(struct zco_context_t *ctx)
 {
+        zco_context_ensure_thread_is_current(ctx);
         return ctx->min_segment_cap_by_count;
 }
 
 void zco_context_set_min_segment_capacity_by_count(struct zco_context_t *ctx, int value)
 {
+        zco_context_ensure_thread_is_current(ctx);
         ctx->min_segment_cap_by_count = value;
 }
 
 void zco_context_full_garbage_collect(struct zco_context_t *ctx)
 {
+        zco_context_ensure_thread_is_current(ctx);
+
         /* Full garbage collection on all allocators.
            Since running GC in one object tracker may push items into the pool
            of another object tracker, we cannot assume one tracker's pool is
@@ -289,9 +336,25 @@ void zco_context_full_garbage_collect(struct zco_context_t *ctx)
         do {
                 objects_released = 0;
 
+                objects_released += z_memory_allocator_garbage_collect(ctx->ts_fixed_allocator);
                 objects_released += z_memory_allocator_garbage_collect(ctx->flex_allocator);
                 objects_released += z_memory_allocator_garbage_collect(ctx->fixed_allocator);
 
         } while (objects_released);
+}
+
+void zco_context_post_task(struct zco_context_t *ctx, ZBind *bind, uint64_t ns)
+{
+        z_event_loop_post_task(ctx->event_loop, bind, ns);
+}
+
+void zco_context_run(struct zco_context_t *ctx)
+{
+        if (!ctx->event_loop) {
+                /* Create an object to manage the event loop */
+                ctx->event_loop = z_event_loop_new(ctx, NULL);
+        }
+
+        z_event_loop_run(ctx->event_loop);
 }
 

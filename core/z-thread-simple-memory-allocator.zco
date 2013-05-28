@@ -1,0 +1,197 @@
+/* ZCO - Cross-platform Application Framework
+ * Copyright (C) 2014  Rawnak Jahan Syeda
+ *
+ * z-thread-simple-memory-allocator.zco: Thread safe memory allocator for fixed-size blocks
+ * This file is part of ZCO.
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZCO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/* Simple allocator
+
+   The slab allocator is designed to return a fixed-size block of memory as
+   fast as possible.
+
+ */
+
+%h{
+#include <z-memory-allocator.h>
+#include <z-object.h>
+#include <malloc.h>
+%}
+
+%{
+/* The simple allocator stores a list of bins containing a list of free blocks.
+   The blocks are chained with a single linked list, where the 'next' pointer
+   is stored within the free space. This means that the smallest block size
+   is that of a pointer:
+     bin 0:  8-byte blocks
+     bin 1:  16-byte blocks
+     bin 2:  24-byte blocks
+     bin 3:  32-byte blocks
+     ...
+
+   The block sizes are always 64-bit aligned
+
+ */
+%}
+
+class ZThreadSimpleMemoryAllocator : ZMemoryAllocator
+{
+        private pthread_mutex_t lock;
+        private void *bins;
+        private int nbins;
+
+	init(Self *self)
+	{
+                pthread_mutex_init(&selfp->lock, NULL);
+
+                selfp->bins = NULL;
+                selfp->nbins = 0;
+	}
+
+        override(ZObject) void dispose(ZObject *object)
+        {
+                Self *self = (Self *) object;
+                pthread_mutex_destroy(&selfp->lock);
+                PARENT_HANDLER(object);
+        }
+
+	public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
+	{
+		Self *self = GET_NEW(ctx, allocator);
+                return self;
+        }
+
+        private int get_padded_size(int size)
+        {
+                return (size + 7) & ~7;
+        }
+
+        private int get_bin_index(Self *self, int padded_size)
+        {
+                int bin_index = padded_size >> 3 - 1;
+
+                if (selfp->nbins <= bin_index) {
+                        selfp->bins = realloc(selfp->bins, sizeof(void*) * (bin_index+1));
+                        memset(selfp->bins + (sizeof(void*) * selfp->nbins), 0, sizeof(void*) * ((bin_index+1) - selfp->nbins));
+                        selfp->nbins = bin_index+1;
+                }
+
+                return bin_index;
+        }
+
+	override(ZMemoryAllocator)
+	void * allocate(ZMemoryAllocator *allocator, int size)
+        {
+                Self *self = (Self *) allocator;
+                int padded_size = get_padded_size(size);
+
+                pthread_mutex_lock(&selfp->lock);
+
+                int bin_index = get_bin_index(self, padded_size);
+                void **bins = (void **) selfp->bins;
+                void *p;
+
+                if (selfp->nbins <= bin_index || bins[bin_index] == 0) {
+                        p = malloc(padded_size);
+                        goto done;
+                }
+
+                /* dereference 'bin' to get the head node of the free list */
+                p = bins[bin_index];
+
+                /* dereference the head node to get the next node. assign
+                   this pointer value to the 'bin' */
+                bins[bin_index] = *((void **) p);
+
+done:
+                pthread_mutex_unlock(&selfp->lock);
+                return (unsigned char *) p;
+        }
+
+        override(ZMemoryAllocator)
+        void * allocate_aligned(ZMemoryAllocator *allocator, int size, int alignment)
+        {
+                return NULL;
+        }
+
+	override(ZMemoryAllocator)
+	int get_usable_size(ZMemoryAllocator *allocator, void *block)
+        {
+                return malloc_usable_size(block);
+        }
+
+        override(ZMemoryAllocator)
+        void * resize(ZMemoryAllocator *allocator, void *block, int new_size)
+        {
+                return NULL;
+        }
+
+        private int get_block_size(void *block)
+        {
+                return *((unsigned long *) block);
+        }
+
+	override(ZMemoryAllocator)
+	void deallocate_by_size(ZMemoryAllocator *allocator, void *block, int size)
+        {
+                Self *self = (Self *) allocator;
+
+                pthread_mutex_lock(&selfp->lock);
+
+                int bin_index = get_bin_index(self, get_padded_size(size));
+                void **bins = (void **) selfp->bins;
+
+                /* store pointer to old head in the memory block being freed */
+                *((void **) block) = bins[bin_index];
+
+                /* make the new block the head node */
+                bins[bin_index] = block;
+
+                pthread_mutex_unlock(&selfp->lock);
+        }
+
+	override(ZMemoryAllocator)
+	int garbage_collect(ZMemoryAllocator *allocator)
+        {
+                Self *self = (Self *) allocator;
+
+                pthread_mutex_lock(&selfp->lock);
+
+                void **bins = (void **) selfp->bins;
+                int i;
+
+                for (i=0; i<selfp->nbins; ++i) {
+                        void *p;
+
+                        while ((p = bins[i])) {
+                                bins[i] = *((void **) p);
+                                free(p);
+                        }
+                }
+
+                if (selfp->bins)
+                        free(selfp->bins);
+
+                selfp->bins = NULL;
+                selfp->nbins = 0;
+
+                int rc = PARENT_HANDLER(allocator);
+                pthread_mutex_unlock(&selfp->lock);
+
+                return rc;
+        }
+}
+

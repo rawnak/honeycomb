@@ -22,6 +22,9 @@
 #ifndef _ZCO_H_
 #define _ZCO_H_
 
+#include <pthread.h>
+#include <stdint.h>
+
 #define GLOBAL_FROM_OBJECT(o)    ((o)->_global)
 #define CLASS_FROM_OBJECT(o)     ((ZObjectClass *) (o)->class_base)
 #define CLASS_FROM_GLOBAL(g)     ((g)->_class)
@@ -80,21 +83,25 @@ struct ZCommonGlobal {
 	int id;
 	void *method_map;
 };
-typedef struct ZCommonGlobal ZCommonGlobal;
 
 struct ZMemoryAllocator;
 struct ZClosureMarshal;
 struct ZFrameworkEvents;
+struct ZEventLoop;
+struct ZBind;
 struct ZObject;
+
+typedef struct ZCommonGlobal ZCommonGlobal;
+typedef struct ZEventLoop ZEventLoop;
 
 struct zco_context_t {
         struct ZCommonGlobal **types;
         int type_count;
         int min_segment_cap_by_size;                    /* Minimum vector segment capacity */
         int min_segment_cap_by_count;                   /* Minimum vector segment capacity */
-        struct ZClosureMarshal *marshal;                /* ZClosureMarshal object */
-        struct ZFrameworkEvents *framework_events;      /* ZFrameworkEvents object */
-        void *object_tracker;
+        struct ZClosureMarshal *marshal;
+        struct ZFrameworkEvents *framework_events;
+        struct ZEventLoop *event_loop;
 
         /* The fixed_allocator is used when we need to allocate fixed sized
            block. */
@@ -104,9 +111,13 @@ struct zco_context_t {
            of a certain size that may (or may not) be increased in size
            depending on how it is allocated */
         struct ZMemoryAllocator *flex_allocator;
+
+        /* The ts_fixed_allocator is a thread-safe version of the fixed_allocator */
+        struct ZMemoryAllocator *ts_fixed_allocator;
 };
 
 void    zco_context_init(struct zco_context_t *ctx);
+void    zco_context_prepare_destroy(struct zco_context_t *ctx);
 void    zco_context_destroy(struct zco_context_t *ctx);
 void    zco_context_set_marshal(struct zco_context_t *ctx, void *marshal);
 void *  zco_context_get_framework_events(struct zco_context_t *ctx);
@@ -116,6 +127,14 @@ void    zco_context_set_min_segment_capacity_by_size(struct zco_context_t *ctx, 
 int     zco_context_get_min_segment_capacity_by_count(struct zco_context_t *ctx);
 void    zco_context_set_min_segment_capacity_by_count(struct zco_context_t *ctx, int value);
 void    zco_context_full_garbage_collect(struct zco_context_t *ctx);
+
+/* Wrappers for event loop functions.
+   This ensures that the user of the event loop class does not accidently ref/unref the message
+   loop. The event loop lives on another thread so any attempt to modify the thread-unsafe
+   ref-count can lead to problems */
+void    zco_context_post_task(struct zco_context_t *ctx, struct ZBind *bind, uint64_t ns);
+void    zco_context_run(struct zco_context_t *ctx);
+
 
 
 ZCommonGlobal ** zco_get_ctx_type(struct zco_context_t *ctx, int type_id);

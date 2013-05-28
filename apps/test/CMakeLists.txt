@@ -36,6 +36,6 @@ add_executable(
    z-map-test.c
    )
 
-target_link_libraries(zco-test zclib-core m ffi)
+target_link_libraries(zco-test zclib-core m ffi pthread)
 
 

@@ -40,9 +40,12 @@ add_executable(
       z-sys-memory-allocator.c
       z-simple-memory-allocator.c
       z-buddy-memory-allocator.c
+      z-thread-simple-memory-allocator.c
+      z-bind.c
+      z-event-loop.c
 )
 
-target_link_libraries(bootstrap m)
+target_link_libraries(bootstrap m pthread)
 set_target_properties(bootstrap
       PROPERTIES OUTPUT_NAME zco)
 

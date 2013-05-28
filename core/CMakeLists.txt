@@ -47,7 +47,7 @@ add_executable(
       z-zco-source-generator.c
 )
 
-target_link_libraries(zco m zclib-core ffi)
+target_link_libraries(zco m zclib-core ffi pthread)
 
 # zclib
 parse_zco(z-object)
@@ -71,6 +71,9 @@ parse_zco(z-memory-allocator)
 parse_zco(z-sys-memory-allocator)
 parse_zco(z-simple-memory-allocator)
 parse_zco(z-buddy-memory-allocator)
+parse_zco(z-thread-simple-memory-allocator)
+parse_zco(z-bind)
+parse_zco(z-event-loop)
 
 add_library(
       zclib-core SHARED
@@ -96,5 +99,8 @@ add_library(
       z-sys-memory-allocator.c
       z-simple-memory-allocator.c
       z-buddy-memory-allocator.c
+      z-thread-simple-memory-allocator.c
+      z-bind.c
+      z-event-loop.c
       )
 

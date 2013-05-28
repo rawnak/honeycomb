@@ -231,8 +231,14 @@ static void  z_vector_iter_dispose(ZObject *object)
 static void  z_vector_iter_validate(Self *self)
 {
  ZVectorSegment *segment = selfp->segment;
- int segment_size = z_vector_segment_get_size(segment);
 
+ if (!segment) {
+ selfp->index = 0;
+ selfp->absolute_index = 0;
+ return;
+ }
+
+ int segment_size = z_vector_segment_get_size(segment);
  if (segment_size != selfp->index)
  return;
 
@@ -241,7 +247,6 @@ static void  z_vector_iter_validate(Self *self)
  ZVectorSegment *next = z_vector_segment_get_next(segment);
  if (!next)
  return;
-
 
  ZVectorIter *begin = z_vector_segment_get_begin(next);
  assign(self, begin);
