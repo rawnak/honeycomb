@@ -37,7 +37,7 @@ int yylex(void);
 %}
 
 %token HEADER_BLK_START SOURCE_BLK_START FILE_BLK_END CLASS INTERFACE STRUCT UNION CONST SIGNED UNSIGNED COLON GLOBAL PUBLIC PRIVATE GET SET 
-%token OVERRIDE VIRTUAL WORD CODE OBRACE EBRACE OPAREN EPAREN SEMICOLON VAR_ARGS SPACE ASTERISK COMMENT COMMA HASH BANG
+%token OVERRIDE VIRTUAL WORD CODE OBRACE EBRACE OPAREN EPAREN SEMICOLON VAR_ARGS SPACE ASTERISK COMMENT COMMA HASH BANG VOLATILE
 
 
 %start translation_unit
@@ -179,13 +179,13 @@ ccodes
 		z_object_unref(Z_OBJECT($2));
 	}
 
-	| CONST
+	| var_keyword
 	{
 		$$=z_zco_source_generator_new_string(source_generator,NULL);
 		z_string_append_format($$, "%S", $1);
 		z_object_unref(Z_OBJECT($1));
 	}
-	| ccodes CONST
+	| ccodes var_keyword
 	{
 		z_string_append_format((ZString *) $1, "%S", $2);
 		z_object_unref(Z_OBJECT($2));
@@ -635,6 +635,13 @@ struct_union
 	| UNION
 	;
 
+var_keyword
+        : CONST
+        | var_keyword CONST
+        | VOLATILE
+        | var_keyword VOLATILE
+        ;
+
 argument
 	: WORD pointers WORD
 	{
@@ -648,7 +655,7 @@ argument
 		z_object_unref(Z_OBJECT($3));
 	}
 
-	| CONST ignorables WORD pointers WORD
+	| var_keyword ignorables WORD pointers WORD
 	{
 		ZString *res = z_zco_source_generator_new_string(source_generator,NULL);
 		$$=res;
@@ -674,7 +681,7 @@ argument
 		z_object_unref(Z_OBJECT($5));
 	}
 
-	| CONST ignorables struct_union ignorables WORD pointers WORD
+	| var_keyword ignorables struct_union ignorables WORD pointers WORD
 	{
 		ZString *res = z_zco_source_generator_new_string(source_generator,NULL);
 		$$=res;
@@ -702,7 +709,7 @@ argument
 		z_object_unref(Z_OBJECT($5));
 	}
 
-	| CONST ignorables sign ignorables WORD pointers WORD
+	| var_keyword ignorables sign ignorables WORD pointers WORD
 	{
 		ZString *res = z_zco_source_generator_new_string(source_generator,NULL);
 		$$=res;
@@ -849,7 +856,7 @@ type_name
 		z_object_unref(Z_OBJECT(res));
 	}
 
-	| CONST ignorables WORD pointers
+	| var_keyword ignorables WORD pointers
 	{
 		ZString *res = z_zco_source_generator_new_string(source_generator,NULL);
 		z_string_append_format(res, "%S %S%S", $1,$3,$4);
@@ -875,7 +882,7 @@ type_name
 		z_object_unref(Z_OBJECT(res));
 	}
 
-	| CONST ignorables struct_union ignorables WORD pointers
+	| var_keyword ignorables struct_union ignorables WORD pointers
 	{
 		ZString *res = z_zco_source_generator_new_string(source_generator,NULL);
 		z_string_append_format(res, "%S %S %S%S", $1,$3,$5,$6);
@@ -903,7 +910,7 @@ type_name
 		z_object_unref(Z_OBJECT(res));
 	}
 
-	| CONST ignorables sign ignorables WORD pointers
+	| var_keyword ignorables sign ignorables WORD pointers
 	{
 		ZString *res = z_zco_source_generator_new_string(source_generator,NULL);
 		z_string_append_format(res, "%S %S %S%S",$1,$3,$5,$6);

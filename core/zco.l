@@ -62,6 +62,7 @@ static ZString *to_zstring(char *s)
 "signed"                { yylval=to_zstring("signed");              return SIGNED;     }
 "class"                 { yylval=to_zstring("class");               return CLASS;      }
 "interface"             { yylval=to_zstring("interface");           return INTERFACE;  }
+"volatile"              { yylval=to_zstring("volatile");            return VOLATILE;   }
 ":"                     { yylval=to_zstring(":");                   return COLON;      }
 "{"                     { yylval=to_zstring("{");                   return OBRACE;     }
 "}"                     { yylval=to_zstring("}");                   return EBRACE;     }
