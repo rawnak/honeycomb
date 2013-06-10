@@ -19,7 +19,7 @@
  */
 
 %h{
-#include <z-vector.h>
+#include <z-map.h>
 #include <z-closure.h>
 #include <z-bind.h>
 #include <signal.h>
@@ -50,22 +50,32 @@
    quit() will push a QUIT task to the event loop. This task will set a flag so the event loop
    no longer waits for a new task. The event loop will still process any remaining tasks that
    are in the queue but it will not accept new tasks.
-
  */
+
+#define INT_TO_PTR(x) ((void *) ((unsigned long) (x)))
+#define PTR_TO_INT(x) ((int64_t) ((long) (x)))
 %}
 
 class ZEventLoop : ZObject
 {
         private ZBind *quit_task;
+
         private pthread_t thread;
+        private pthread_cond_t schedule_cond;
+        private pthread_mutex_t queue_lock;
 
-        private ZBindData *read_queue;
-        private ZBindData *write_queue;
+        /* This thread-unsafe queue is only accessed by the guest thread. It maps
+           [the execution time for the task] => [task]. */
+        private ZMap *run_queue;
 
-        private pthread_cond_t  schedule_cond;
+        /* This thread-unsafe queue is only read by the guest thread. It contains a
+           list of tasks that was previously written to on the incoming queue. These
+           tasks are moved the run queue by the guest thread */
+        private ZBindData *pending_queue;
 
-        private pthread_mutex_t read_queue_lock;
-        private pthread_mutex_t write_queue_lock;
+        /* This thread-safe queue is written to by the host thread. The guest thread
+           will periodically change the pointer to point to a "new" queue */
+        private ZBindData *incoming_queue;
 
         /* This flag is written by do_quit(), and it's read by thread_main(),
            post_task(), and quit().
@@ -100,6 +110,29 @@ class ZEventLoop : ZObject
            moment.  */
         private volatile sig_atomic_t is_running;
 
+        private int map_compare(ZMap *map, const void *a, const void *b)
+        {
+#if __WORDSIZE >= 64
+                return PTR_TO_INT(a) - PTR_TO_INT(b);
+#else
+                return *((uint64_t *) a) - *((uint64_t *) b);
+#endif
+        }
+
+        private void runqueue_key_destroy(void *item, Self *self)
+        {
+                ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
+                z_memory_allocator_deallocate_by_size(allocator, item, sizeof(uint64_t));
+        }
+
+        private void runqueue_value_destroy(ZBind *task, Self *self)
+        {
+                ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
+                ZBindData *data = z_bind_get_data_ptr(task);
+                z_memory_allocator_deallocate_by_size(allocator, data, sizeof(ZBindData));
+                z_object_unref(Z_OBJECT(task));
+        }
+
         init(Self *self)
         {
                 selfp->is_done = 0;
@@ -111,47 +144,47 @@ class ZEventLoop : ZObject
                 /* Create a bind closure for the quit task */
                 selfp->quit_task = z_bind_new(ctx, allocator);
                 z_bind_set_handler(selfp->quit_task, (ZBindHandler) zco_context_do_quit);
+                z_bind_set_timeout(selfp->quit_task, 0);
                 z_bind_append_ptr(selfp->quit_task, self);
 
                 /* Initialize task queues */
-                selfp->read_queue = NULL;
-                selfp->write_queue = NULL;
+                selfp->run_queue = z_map_new(ctx, allocator);
+                z_map_set_compare(selfp->run_queue, map_compare);
+                z_map_set_userdata(selfp->run_queue, self);
+
+#if __WORDSIZE < 64
+                z_map_set_key_destruct(selfp->run_queue, (ZMapItemCallback) runqueue_key_destroy);
+#endif
+                z_map_set_value_destruct(selfp->run_queue, (ZMapItemCallback) runqueue_value_destroy);
+
+                selfp->pending_queue = NULL;
+                selfp->incoming_queue = NULL;
 
                 /* Initialize locks */
-                pthread_mutex_init(&selfp->read_queue_lock, NULL);
-                pthread_mutex_init(&selfp->write_queue_lock, NULL);
+                pthread_mutex_init(&selfp->queue_lock, NULL);
 
                 /* Initialize condition variables */
                 pthread_cond_init(&selfp->schedule_cond, NULL);
         }
 
-        private void delete_queue(Self *self, ZBindData *queue)
+        private void delete_queue(Self *self, ZBindData **queue)
         {
                 ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->ts_fixed_allocator;
+                ZBindData *p = *queue;
 
-                while (queue) {
-                        ZBindData *next = queue->next;
-                        z_memory_allocator_deallocate_by_size(allocator, queue, sizeof(ZBindData));
-                        queue = next;
+                while (p) {
+                        ZBindData *next = p->next;
+                        z_memory_allocator_deallocate_by_size(allocator, p, sizeof(ZBindData));
+                        p = next;
                 }
+
+                *queue = NULL;
         }
 
         override(ZObject) void reset(ZObject *object)
         {
-                Self *self = (Self *) object;
-                quit(self);
-
-                /* Wait for thread to complete */
-                pthread_join(selfp->thread, NULL);
-                selfp->is_done = 0;
-
-                delete_queue(self, selfp->write_queue);
-                delete_queue(self, selfp->read_queue);
-
-                selfp->write_queue = NULL;
-                selfp->read_queue = NULL;
-
-                PARENT_HANDLER(object);
+                /* We never anticipate reusing a ZEventLoop object */
+                abort();
         }
 
 	override(ZObject) void dispose(ZObject *object)
@@ -165,14 +198,10 @@ class ZEventLoop : ZObject
                 pthread_join(selfp->thread, NULL);
                 selfp->is_done = 0;
 
-                delete_queue(self, selfp->write_queue);
-                delete_queue(self, selfp->read_queue);
+                delete_queue(self, &selfp->incoming_queue);
+                delete_queue(self, &selfp->pending_queue);
 
-                selfp->write_queue = NULL;
-                selfp->read_queue = NULL;
-
-                pthread_mutex_destroy(&selfp->write_queue_lock);
-                pthread_mutex_destroy(&selfp->read_queue_lock);
+                pthread_mutex_destroy(&selfp->queue_lock);
 
 		PARENT_HANDLER(object);
 	}
@@ -191,79 +220,145 @@ class ZEventLoop : ZObject
                 }
         }
 
-        private void swap_queues(Self *self)
+        private void reload_pending_queue(Self *self)
         {
-                /* Swap the read_queue and write_queue */
-                pthread_mutex_lock(&selfp->read_queue_lock);
-                pthread_mutex_lock(&selfp->write_queue_lock);
+                /* Ensure pending queue is empty */
+                assert(!selfp->pending_queue);
 
-                ZBindData *temp = selfp->read_queue;
-                selfp->read_queue = selfp->write_queue;
-                selfp->write_queue = temp;
-
-                pthread_mutex_unlock(&selfp->write_queue_lock);
-                pthread_mutex_unlock(&selfp->read_queue_lock);
+                /* Swap the pending queue and incoming queue */
+                ZBindData *temp = selfp->pending_queue;
+                selfp->pending_queue = selfp->incoming_queue;
+                selfp->incoming_queue = temp;
         }
 
         private void thread_main(Self *self)
         {
+                int is_running = 1;
                 struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
                 ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
                 ZMemoryAllocator *data_allocator = ctx->ts_fixed_allocator;
 
-                while (1) {
-                        /* Execute all tasks in the read_queue. The read_queue is not touched
-                           by the post_task operation so we needn't hold onto a lock to access it */
-                        ZBindData *queue = selfp->read_queue;
-                        selfp->read_queue = NULL;
-
+                while (is_running) {
+                        /* Move tasks from the pending queue into the run queue */
+                        ZBindData *queue = selfp->pending_queue; 
                         while (queue) {
-                                ZBindData *next = queue->next;
-
-                                /* Create a new bind object under the worker context and set it to point
-                                   to the data that was copied in post_task(). */
                                 ZBind *task = z_bind_new(ctx, allocator);
                                 z_bind_set_data_ptr(task, queue);
 
-                                /* Execute the task */
-                                z_bind_invoke(task);
+#if __WORDSIZE >= 64
+                                /* For 64-bit systems, we store the time inforation inside the pointer value. This allows
+                                   us to eliminate an allocation */
 
-                                /* Release the closure data and the task object */
-                                z_memory_allocator_deallocate_by_size(data_allocator, queue, sizeof(ZBindData));
-                                z_object_unref(Z_OBJECT(task));
+                                while (z_map_insert(selfp->run_queue, INT_TO_PTR(queue->timeout), task) == -1) {
+                                        /* In the rare case when two tasks where scheduled to run at the same time,
+                                           we delay one of the tasks by 1ns to ensure all keys in the map are unique */
+                                        ++queue->timeout;
+                                }
+#else
+                                /* For 32-bit systems (or less), we allocate an 8-byte buffer to store the time information
+                                   and stor ethe address to this buffer in the pointer value. */
 
-                                queue = next;
+                                uint64_t *task_time = z_memory_allocator_allocate(ctx->fixed_allocator, sizeof(uint64_t));
+                                *task_time = queue->timeout;
+
+                                while (z_map_insert(selfp->run_queue, task_time, task) == -1) {
+                                        /* In the rare case when two tasks where scheduled to run at the same time,
+                                           we delay one of the tasks by 1ns to ensure all keys in the map are unique */
+                                        ++(*task_time);
+                                }
+#endif
+
+                                queue = queue->next;
                         }
 
-                        /* All tasks in the read_queue has been executed. Lets swap the read_queue
-                           and write_queue so we can execute newly added tasks that exists in the
-                           write_queue. */
-                        swap_queues(self);
+                        /* Compute the range of tasks that should be executed now */
+                        uint64_t current_time = get_current_time();
+                        ZMapIter *it, *end;
+                        it = z_map_get_begin(selfp->run_queue);
 
-                        /* If the new read_queue is not empty, repeat the loop and run all tasks
-                           in the queue */
-                        if (selfp->read_queue)
-                                continue;
+#if __WORDSIZE >= 64
+                        end = z_map_upper_bound(selfp->run_queue, INT_TO_PTR(current_time));
+#else
+                        end = z_map_upper_bound(selfp->run_queue, &current_time);
+#endif
 
-                        /* If the new read_queue is empty and the is_done flag is set, we exit
-                           the loop */
-                        if (selfp->is_done)
-                                break;
+                        /* Iterate through the run queue and execute the tasks that
+                           are scheduled to run now */
+                        while (!z_map_iter_is_equal(it, end)) {
+                                ZBind *task = z_map_get_value(selfp->run_queue, it);
+                                z_bind_invoke(task);
+                                z_map_iter_increment(it);
+                        }
 
-                        /* Wait for a schedule work signal */
-                        pthread_mutex_lock(&selfp->write_queue_lock);
+                        /* Remove the tasks from the queue that have been executed */
+                        z_map_erase(selfp->run_queue, NULL, end);
 
-                        if (!selfp->write_queue)
-                                pthread_cond_wait(&selfp->schedule_cond, &selfp->write_queue_lock);
+                        z_object_unref(Z_OBJECT(it));
+                        z_object_unref(Z_OBJECT(end));
 
-                        pthread_mutex_unlock(&selfp->write_queue_lock);
+                        /* All tasks in the pending queue has been moved over to the run queue. Lets
+                           swap the pending queue and incoming queue so we can execute newly added tasks
+                           that exists in the incoming queue.
+                         
+                           We should do this as late as possible so that the incoming queue has a better
+                           chaance of having some tasks */
+                        selfp->pending_queue = NULL;
 
-                        /* New tasks have been added to the write_queue. Lets swap the read_queue
-                           and write_queue so we can execute the tasks in the read_queue */
-                        swap_queues(self);
+                        /* Hold the queue lock */
+                        pthread_mutex_lock(&selfp->queue_lock);
+
+                        /* Pick up the new queue. If new tasks are available, we won't wait
+                           for a signal and just repeat the loop */
+                        reload_pending_queue(self);
+
+                        if (selfp->pending_queue) {
+                                goto release_lock;
+                        }
+
+                        uint64_t next_task_time;
+
+                        if (z_map_get_is_empty(selfp->run_queue)) {
+                                /* If no tasks are scheduled to run, we don't know how long we should
+                                   wait for a signal. We denote a non-timed wait with next_task_time=0 */
+                                next_task_time = 0;
+
+                                /* If the is_done flag is also set, we release the locks and exit the loop */
+                                if (selfp->is_done) {
+                                        is_running = 0;
+                                        goto release_lock;
+                                }
+
+                        } else {
+                                /* Check the time of the next scheduled task in the run queue */
+                                it = z_map_get_begin(selfp->run_queue);
+#if __WORDSIZE >= 64
+                                next_task_time = PTR_TO_INT(z_map_get_key(selfp->run_queue, it));
+#else
+                                next_task_time = *((uint64_t *) z_map_get_key(selfp->run_queue, it));
+#endif
+                                z_object_unref(Z_OBJECT(it));
+                        }
+
+                        if (next_task_time) {
+                                struct timespec timeout;
+                                timeout.tv_sec = next_task_time / 1000000000ul;
+                                timeout.tv_nsec = next_task_time % 1000000000ul;
+
+                                pthread_cond_timedwait(&selfp->schedule_cond, &selfp->queue_lock, &timeout);
+                        } else {
+                                pthread_cond_wait(&selfp->schedule_cond, &selfp->queue_lock);
+                        }
+
+                        reload_pending_queue(self);
+
+release_lock:
+                        /* Release the queue lock */
+                        pthread_mutex_unlock(&selfp->queue_lock);
                 }
 
                 selfp->is_running = 0;
+                z_object_unref(Z_OBJECT(selfp->run_queue));
+
                 pthread_exit(0);
         }
 
@@ -288,8 +383,14 @@ class ZEventLoop : ZObject
                 return 1;
         }
 
-        /* This method must be thread safe */
-        public void post_task(Self *self, ZBind *bind, uint64_t ns)
+        private uint64_t get_current_time()
+        {
+                struct timespec tp;
+                clock_gettime(CLOCK_REALTIME, &tp);
+                return ((uint64_t) tp.tv_sec) * 1000000000ul + tp.tv_nsec;
+        }
+
+        public void post_task(Self *self, ZBind *bind)
         {
                 if (!is_active(self))
                         return;
@@ -298,19 +399,30 @@ class ZEventLoop : ZObject
                 ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->ts_fixed_allocator;
                 ZBindData *data = z_memory_allocator_allocate(allocator, sizeof(ZBindData));
 
-                /* Hold the write_queue lock */
-                pthread_mutex_lock(&selfp->write_queue_lock);
+                /* Hold the incoming_queue lock */
+                pthread_mutex_lock(&selfp->queue_lock);
 
-                /* Get the closure data and insert it into the write queue */
-                z_bind_get_data(bind, data);
-                data->next = selfp->write_queue;
-                selfp->write_queue = data;
+                /* Normalize the timeout with a monotonic clock - Instead of
+                   it being the time between now and the time the task is
+                   scheduled to run, it will become the time between a
+                   monotonic time and the time the task is scheduled to run */
+                ZBindData *data_src = z_bind_get_data_ptr(bind);
+                memcpy(data, data_src, sizeof(ZBindData));
+                data->timeout += get_current_time();
+
+                /* Prepend it into the incoming queue. We don't care
+                   about the order of insertion into the incoming queue; The order of execution
+                   is preserved because each task knows what time it should be executed. As
+                   long as the tasks that are scheduled the earliest are executed first, the
+                   order will be maintained */
+                data->next = selfp->incoming_queue;
+                selfp->incoming_queue = data;
 
                 /* Send a signal that new work has been scheduled */
                 pthread_cond_signal(&selfp->schedule_cond);
 
-                /* Release the write_queue lock */
-                pthread_mutex_unlock(&selfp->write_queue_lock);
+                /* Release the incoming_queue lock */
+                pthread_mutex_unlock(&selfp->queue_lock);
         }
 
         private void zco_context_do_quit(ZBind *bind, Self *self)
@@ -318,14 +430,15 @@ class ZEventLoop : ZObject
                 selfp->is_done = 1;
         }
 
-        /* This method must be thread safe */
+        /* We post a task to set the flag instead of setting the flag right here so that we
+           wake up the event loop if it is sleeping */
         public void quit(Self *self)
         {
                 if (!is_active(self))
                         return;
 
                 /* Send a QUIT signal to the thread */
-                post_task(self, selfp->quit_task, 0);
+                post_task(self, selfp->quit_task);
         }
 
 }

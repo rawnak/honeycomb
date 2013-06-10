@@ -132,7 +132,7 @@ void    zco_context_full_garbage_collect(struct zco_context_t *ctx);
    This ensures that the user of the event loop class does not accidently ref/unref the message
    loop. The event loop lives on another thread so any attempt to modify the thread-unsafe
    ref-count can lead to problems */
-void    zco_context_post_task(struct zco_context_t *ctx, struct ZBind *bind, uint64_t ns);
+void    zco_context_post_task(struct zco_context_t *ctx, struct ZBind *bind);
 void    zco_context_run(struct zco_context_t *ctx);
 
 

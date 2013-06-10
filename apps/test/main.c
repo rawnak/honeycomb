@@ -212,11 +212,12 @@ int main(int argc, char **argv)
 
                         } else { 
                                 z_bind_set_handler(task, (ZBindHandler) task_callback);
+                                z_bind_set_timeout(task, 0);
                                 z_bind_append_int(task, test_set_number);
                                 z_bind_append_int(task, test_case_number);
                                 z_bind_append_int(task, capacity);
 
-                                zco_context_post_task(contexts + (count % n_threads), task, 0);
+                                zco_context_post_task(contexts + (count % n_threads), task);
 
                                 z_object_unref(Z_OBJECT(task));
                                 ++count;

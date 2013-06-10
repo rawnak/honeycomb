@@ -26,6 +26,7 @@
 #define USE_CUSTOM_ALLOCATORS
 #define USE_GARBAGE_COLLECTION
 #define USE_COPY_ON_WRITE
+
 #define TASK_ARG_SIZE 256
 
 #endif
