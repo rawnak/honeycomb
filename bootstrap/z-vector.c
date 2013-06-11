@@ -390,9 +390,6 @@ void z_vector_set_size(Self *self, int  value)
  
  int difference = selfp->count - value;
 
- //fprintf(stderr, "*** initial difference = %d\n", difference);
- //fflush(stderr);
-
  while (difference) {
  int tail_size = z_vector_segment_get_size(selfp->tail);
  if (tail_size <= difference) {
@@ -406,9 +403,6 @@ void z_vector_set_size(Self *self, int  value)
 
  difference = 0;
  }
-
- //fprintf(stderr, "*** difference = %d\n", difference);
- //fflush(stderr);
  }
 
  selfp->count = value;
@@ -938,6 +932,19 @@ int  z_vector_erase(Self *self,ZVectorIter *start,ZVectorIter *end)
  if (selfp->is_insert_only_mode)
  return -1;
 
+ if (get_is_empty(self))
+ return 0;
+
+ if (start)
+ z_object_ref(Z_OBJECT(start));
+ else
+ start = get_begin(self);
+
+ if (end)
+ z_object_ref(Z_OBJECT(end));
+ else
+ end = get_end(self);
+
  ZVectorSegment *start_segment = z_vector_iter_get_segment(start);
  ZVectorSegment *end_segment = z_vector_iter_get_segment(end);
  ZVectorSegment *segment = start_segment;
@@ -984,11 +991,6 @@ int  z_vector_erase(Self *self,ZVectorIter *start,ZVectorIter *end)
  if (t1 == NULL && t2 == NULL) {
  count += z_vector_segment_get_size(segment);
  remove_segment(self, segment);
-
- /* 2 unrefs since it lost two references. one from the previous node
-                                   and one from the next node */
- //z_object_unref(Z_OBJECT(segment)); 
- //z_object_unref(Z_OBJECT(segment)); 
  } else {
  count += z_vector_segment_erase(segment, t1, t2, selfp->item_size, selfp->storage_mode,
  selfp->userdata, selfp->item_copy_construct, selfp->item_destruct);
@@ -1008,6 +1010,9 @@ int  z_vector_erase(Self *self,ZVectorIter *start,ZVectorIter *end)
  z_object_unref(Z_OBJECT(segment)); 
  z_object_unref(Z_OBJECT(end_segment));
  z_object_unref(Z_OBJECT(start_segment)); 
+
+ z_object_unref(Z_OBJECT(end));
+ z_object_unref(Z_OBJECT(start));
 
  return 0;
  }

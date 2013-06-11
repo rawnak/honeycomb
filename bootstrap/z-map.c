@@ -661,7 +661,7 @@ ZMapIter * z_map_upper_bound(Self *self,void *key)
  int bound;
 
  if (get_is_empty(self))
- return NULL;
+ return get_end(self);
 
  it = get_begin(self);
  find_item(self, key, &bound, it);

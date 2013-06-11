@@ -21,7 +21,7 @@
 #ifndef _Z_EVENT_LOOP_H_
 #define _Z_EVENT_LOOP_H_
 
-#include <z-vector.h>
+#include <z-map.h>
 #include <z-closure.h>
 #include <z-bind.h>
 #include <signal.h>
@@ -47,11 +47,11 @@ typedef struct ZEventLoop ZEventLoop;
 struct ZEventLoopPrivate {
 	ZBind *quit_task;
 	pthread_t thread;
-	ZBindData *read_queue;
-	ZBindData *write_queue;
 	pthread_cond_t schedule_cond;
-	pthread_mutex_t read_queue_lock;
-	pthread_mutex_t write_queue_lock;
+	pthread_mutex_t queue_lock;
+	ZMap *run_queue;
+	ZBindData *pending_queue;
+	ZBindData *incoming_queue;
 	volatile sig_atomic_t is_done;
 	volatile sig_atomic_t is_running;
 };
@@ -85,7 +85,7 @@ void __z_event_loop_class_init(struct zco_context_t *ctx, ZEventLoopClass *_clas
 Self * z_event_loop_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator);
 int  z_event_loop_get_is_current(Self *self);
 void  z_event_loop_run(Self *self);
-void  z_event_loop_post_task(Self *self,ZBind *bind,uint64_t ns);
+void  z_event_loop_post_task(Self *self,ZBind *bind);
 void  z_event_loop_quit(Self *self);
 
 #undef Self

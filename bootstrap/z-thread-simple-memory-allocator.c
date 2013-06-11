@@ -340,7 +340,7 @@ static int  z_thread_simple_memory_allocator_garbage_collect(ZMemoryAllocator *a
 
  for (i=0; i<selfp->nbins; ++i) {
  void *p;
- 
+
  while ((p = bins[i])) {
  bins[i] = *((void **) p);
  free(p);
