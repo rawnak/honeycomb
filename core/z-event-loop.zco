@@ -271,15 +271,16 @@ class ZEventLoop : ZObject
                                 queue = queue->next;
                         }
 
+                        uint64_t monotonic_time = get_monotonic_time();
+
                         /* Compute the range of tasks that should be executed now */
-                        uint64_t current_time = get_current_time();
                         ZMapIter *it, *end;
                         it = z_map_get_begin(selfp->run_queue);
 
 #if __WORDSIZE >= 64
-                        end = z_map_upper_bound(selfp->run_queue, INT_TO_PTR(current_time));
+                        end = z_map_upper_bound(selfp->run_queue, INT_TO_PTR(monotonic_time));
 #else
-                        end = z_map_upper_bound(selfp->run_queue, &current_time);
+                        end = z_map_upper_bound(selfp->run_queue, &monotonic_time);
 #endif
 
                         /* Iterate through the run queue and execute the tasks that
@@ -340,6 +341,7 @@ class ZEventLoop : ZObject
                         }
 
                         if (next_task_time) {
+                                next_task_time = convert_monotonic_to_realtime(self, next_task_time);
                                 struct timespec timeout;
                                 timeout.tv_sec = next_task_time / 1000000000ul;
                                 timeout.tv_nsec = next_task_time % 1000000000ul;
@@ -383,10 +385,21 @@ release_lock:
                 return 1;
         }
 
-        private uint64_t get_current_time()
+        private uint64_t convert_monotonic_to_realtime(Self *self, uint64_t monotonic)
+        {
+                struct timespec realtime_tp;
+                clock_gettime(CLOCK_REALTIME, &realtime_tp);
+                uint64_t realtime_ns = ((uint64_t) realtime_tp.tv_sec) * 1000000000ul + realtime_tp.tv_nsec;
+
+                uint64_t monotonic_ns = get_monotonic_time(); 
+
+                return (uint64_t) ((int64_t) monotonic - (int64_t) monotonic_ns + (int64_t) realtime_ns);
+        }
+
+        private uint64_t get_monotonic_time()
         {
                 struct timespec tp;
-                clock_gettime(CLOCK_REALTIME, &tp);
+                clock_gettime(CLOCK_BOOTTIME, &tp);
                 return ((uint64_t) tp.tv_sec) * 1000000000ul + tp.tv_nsec;
         }
 
@@ -408,7 +421,7 @@ release_lock:
                    monotonic time and the time the task is scheduled to run */
                 ZBindData *data_src = z_bind_get_data_ptr(bind);
                 memcpy(data, data_src, sizeof(ZBindData));
-                data->timeout += get_current_time();
+                data->timeout += get_monotonic_time();
 
                 /* Prepend it into the incoming queue. We don't care
                    about the order of insertion into the incoming queue; The order of execution

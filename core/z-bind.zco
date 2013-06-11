@@ -54,6 +54,7 @@ class ZBind : ZObject
 
         init(Self *self)
         {
+                selfp->data_ptr = NULL;
                 selfp->data.next = NULL;
                 selfp->data.handler = NULL;
                 selfp->data.args_size = 0;
@@ -65,6 +66,7 @@ class ZBind : ZObject
         {
                 Self *self = (Self *) object;
 
+                selfp->data_ptr = NULL;
                 selfp->data.next = NULL;
                 selfp->data.handler = NULL;
                 selfp->data.args_size = 0;
