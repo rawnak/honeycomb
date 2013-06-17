@@ -1,0 +1,156 @@
+/* ZCO - Cross-platform Application Framework
+ * Copyright (C) 2014  Rawnak Jahan Syeda
+ *
+ * z-worker-group.zco: Thread pool
+ * This file is part of ZCO.
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZCO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+%h{
+#include <z-object.h>
+#include <z-bind.h>
+#include <z-c-closure-marshal.h>
+%}
+
+%{
+#include <stdio.h>
+
+/* In any C application, the process starts with only one thread (the main thread).
+   It will almost always be dedicated for UI and its event loop will be tied to the
+   UI framework that is being used.
+
+   To avoid UI unresponsiveness, the application code should run in a separate thread
+   (the application thread). This thread will run almost all of the application code
+   and will communicate with the UI thread only when it needs to update the display
+   or retrieve user input.
+
+   The application thread will maintain a worker group which is essentially a
+   thread pool. The application thread will schedule tasks on these worker threads.
+   This will allow the application thread to continue to run while parallelizing
+   tasks onto other threads. A common use of a worker is to perform IO operations.
+ */
+%}
+
+class ZWorkerGroup : ZObject
+{
+        private ZVector *workers;
+        private int count;
+
+	init(Self *self)
+	{
+                selfp->count = 0;
+
+                selfp->workers = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                z_vector_set_item_size(selfp->workers, sizeof(struct zco_context_t));
+
+                z_vector_set_item_construct(selfp->workers, (ZVectorItemCallback) add_worker);
+                z_vector_set_item_destruct(selfp->workers, (ZVectorItemCallback) remove_worker);
+        }
+
+        private void add_worker(struct zco_context_t *ctx, void *userdata)
+        {
+                zco_context_init(ctx);
+                ZCClosureMarshal *marshal = z_c_closure_marshal_new(ctx, ctx->flex_allocator);
+                zco_context_set_marshal(ctx, marshal);
+                z_object_unref(Z_OBJECT(marshal));
+                zco_context_run(ctx);
+        }
+
+        private void remove_worker(struct zco_context_t *ctx, void *userdata)
+        {
+                zco_context_destroy(ctx);
+        }
+
+        public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
+        {
+                Self *self = GET_NEW(ctx, allocator);
+                return self;
+        }
+
+        override(ZObject)
+        void reset(ZObject *object)
+        {
+                Self *self = (Self *) object;
+
+                set_worker_count(self, 0);
+                z_vector_clear(selfp->workers);
+
+                selfp->count = 0;
+
+                PARENT_HANDLER(object);
+       }
+
+        override(ZObject)
+        void dispose(ZObject *object)
+        {
+                Self *self = (Self *) object;
+
+                set_worker_count(self, 0);
+                z_object_unref(Z_OBJECT(selfp->workers));
+
+                PARENT_HANDLER(object);
+        }
+
+        public int worker_count
+        {
+                get
+                {
+                        return z_vector_get_size(selfp->workers);
+                }
+                set
+                {
+                        int worker_count = z_vector_get_size(selfp->workers);
+
+                        if (worker_count > value) {
+                                /* Notify the worker contexts that we are ready to terminate */
+                                ZVectorIter *it, *end;
+                                it = z_vector_get_begin(selfp->workers);
+                                z_vector_iter_advance(it, value);
+                                end = z_vector_get_end(selfp->workers);
+
+                                while (!z_vector_iter_is_equal(it, end))
+                                {
+                                        struct zco_context_t *ctx = z_vector_get_item(selfp->workers, it);
+                                        zco_context_prepare_destroy(ctx);
+                                        z_vector_iter_increment(it);
+                                }
+
+                                z_object_unref(Z_OBJECT(end));
+                                z_object_unref(Z_OBJECT(it));
+                        }
+
+                        z_vector_set_size(selfp->workers, value);
+                }
+        }
+
+        private struct zco_context_t *get_next_worker(Self *self)
+        {
+                int worker_count = get_worker_count(self);
+                ZVectorIter *it = z_vector_get_begin(selfp->workers);
+                z_vector_iter_advance(it, selfp->count % worker_count);
+                struct zco_context_t *ctx = z_vector_get_item(selfp->workers, it);
+                z_object_unref(Z_OBJECT(it));
+
+                return ctx;
+        }
+
+        public void post_task(Self *self, ZBind *task)
+        {
+                struct zco_context_t *ctx = get_next_worker(self);
+                zco_context_post_task(ctx, task);
+                ++selfp->count;
+        }
+}
+

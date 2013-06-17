@@ -343,9 +343,10 @@ void zco_context_full_garbage_collect(struct zco_context_t *ctx)
         } while (objects_released);
 }
 
-void zco_context_post_task(struct zco_context_t *ctx, ZBind *bind)
+void zco_context_post_task(struct zco_context_t *ctx, ZBind *task)
 {
-        z_event_loop_post_task(ctx->event_loop, bind);
+        assert(ctx->event_loop);
+        z_event_loop_post_task(ctx->event_loop, task);
 }
 
 void zco_context_run(struct zco_context_t *ctx)

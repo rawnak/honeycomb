@@ -1,15 +1,13 @@
 cmake_minimum_required(VERSION 2.8)
 set(CMAKE_VERBOSE_MAKEFILE OFF)
-project(test)
+project(extra)
 
 find_package(BISON)
 find_package(FLEX)
 include_directories(
       ${CMAKE_SOURCE_DIR}/core	       # core header files
       ${CMAKE_BINARY_DIR}/core	       # generated core header files
-      ${CMAKE_BINARY_DIR}/extra        # generated extra header files
-      ${CMAKE_CURRENT_SOURCE_DIR}      # application header files
-      ${CMAKE_CURRENT_BINARY_DIR}      # generated application header files
+      ${CMAKE_CURRENT_BINARY_DIR}      # generated widget header files
       /usr/lib/libffi-3.0.13/include   # libffi
       )
 
@@ -22,21 +20,10 @@ macro(parse_zco OBJECT_NAME)
 	      )
 endmacro(parse_zco OBJECT_NAME)
 
-parse_zco(z-test-object)
-parse_zco(z-test-derived-object)
+parse_zco(z-worker-group)
 
-# test driver
-add_executable(
-   zco-test
-   z-test-object.c
-   z-test-derived-object.c
-   signal-test.c
-   main.c
-   z-vector-test.c
-   z-string-test.c
-   z-map-test.c
+add_library(
+   zclib-extra SHARED
+   z-worker-group.c
    )
-
-target_link_libraries(zco-test zclib-core zclib-extra m ffi pthread)
-
 

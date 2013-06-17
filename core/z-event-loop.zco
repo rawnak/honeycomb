@@ -288,6 +288,12 @@ class ZEventLoop : ZObject
                         while (!z_map_iter_is_equal(it, end)) {
                                 ZBind *task = z_map_get_value(selfp->run_queue, it);
                                 z_bind_invoke(task);
+
+                                ZBind *next_task = z_bind_get_next_task(task);
+                                if (next_task) {
+                                        zco_context_post_task(CTX_FROM_OBJECT(next_task), next_task);
+                                }
+
                                 z_map_iter_increment(it);
                         }
 
@@ -403,7 +409,7 @@ release_lock:
                 return ((uint64_t) tp.tv_sec) * 1000000000ul + tp.tv_nsec;
         }
 
-        public void post_task(Self *self, ZBind *bind)
+        public void post_task(Self *self, ZBind *task)
         {
                 if (!is_active(self))
                         return;
@@ -419,7 +425,7 @@ release_lock:
                    it being the time between now and the time the task is
                    scheduled to run, it will become the time between a
                    monotonic time and the time the task is scheduled to run */
-                ZBindData *data_src = z_bind_get_data_ptr(bind);
+                ZBindData *data_src = z_bind_get_data_ptr(task);
                 memcpy(data, data_src, sizeof(ZBindData));
                 data->timeout += get_monotonic_time();
 
