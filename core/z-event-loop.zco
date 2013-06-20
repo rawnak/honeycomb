@@ -54,6 +54,7 @@
 
 #define INT_TO_PTR(x) ((void *) ((unsigned long) (x)))
 #define PTR_TO_INT(x) ((int64_t) ((long) (x)))
+
 %}
 
 class ZEventLoop : ZObject
@@ -125,12 +126,10 @@ class ZEventLoop : ZObject
                 z_memory_allocator_deallocate_by_size(allocator, item, sizeof(uint64_t));
         }
 
-        private void runqueue_value_destroy(ZBind *task, Self *self)
+        private void runqueue_value_destroy(ZBindData *bind_data, Self *self)
         {
                 ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
-                ZBindData *data = z_bind_get_data_ptr(task);
-                z_memory_allocator_deallocate_by_size(allocator, data, sizeof(ZBindData));
-                z_object_unref(Z_OBJECT(task));
+                z_memory_allocator_deallocate_by_size(allocator, bind_data, sizeof(ZBindData));
         }
 
         init(Self *self)
@@ -240,35 +239,32 @@ class ZEventLoop : ZObject
 
                 while (is_running) {
                         /* Move tasks from the pending queue into the run queue */
-                        ZBindData *queue = selfp->pending_queue; 
-                        while (queue) {
-                                ZBind *task = z_bind_new(ctx, allocator);
-                                z_bind_set_data_ptr(task, queue);
-
+                        ZBindData *bind_data = selfp->pending_queue; 
+                        while (bind_data) {
 #if __WORDSIZE >= 64
                                 /* For 64-bit systems, we store the time inforation inside the pointer value. This allows
                                    us to eliminate an allocation */
 
-                                while (z_map_insert(selfp->run_queue, INT_TO_PTR(queue->timeout), task) == -1) {
+                                while (z_map_insert(selfp->run_queue, INT_TO_PTR(bind_data->timeout), bind_data) == -1) {
                                         /* In the rare case when two tasks where scheduled to run at the same time,
                                            we delay one of the tasks by 1ns to ensure all keys in the map are unique */
-                                        ++queue->timeout;
+                                        ++bind_data->timeout;
                                 }
 #else
                                 /* For 32-bit systems (or less), we allocate an 8-byte buffer to store the time information
                                    and stor ethe address to this buffer in the pointer value. */
 
                                 uint64_t *task_time = z_memory_allocator_allocate(ctx->fixed_allocator, sizeof(uint64_t));
-                                *task_time = queue->timeout;
+                                *task_time = bind_data->timeout;
 
-                                while (z_map_insert(selfp->run_queue, task_time, task) == -1) {
+                                while (z_map_insert(selfp->run_queue, task_time, bind_data) == -1) {
                                         /* In the rare case when two tasks where scheduled to run at the same time,
                                            we delay one of the tasks by 1ns to ensure all keys in the map are unique */
                                         ++(*task_time);
                                 }
 #endif
 
-                                queue = queue->next;
+                                bind_data = bind_data->next;
                         }
 
                         uint64_t monotonic_time = get_monotonic_time();
@@ -286,13 +282,17 @@ class ZEventLoop : ZObject
                         /* Iterate through the run queue and execute the tasks that
                            are scheduled to run now */
                         while (!z_map_iter_is_equal(it, end)) {
-                                ZBind *task = z_map_get_value(selfp->run_queue, it);
+                                ZBind *task = z_bind_new(ctx, allocator);
+                                z_bind_set_data_ptr(task, z_map_get_value(selfp->run_queue, it));
+
                                 z_bind_invoke(task);
 
                                 ZBind *next_task = z_bind_get_next_task(task);
                                 if (next_task) {
                                         zco_context_post_task(CTX_FROM_OBJECT(next_task), next_task);
                                 }
+
+                                z_object_unref(Z_OBJECT(task));
 
                                 z_map_iter_increment(it);
                         }
