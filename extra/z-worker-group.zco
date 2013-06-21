@@ -146,10 +146,10 @@ class ZWorkerGroup : ZObject
                 return ctx;
         }
 
-        public void post_task(Self *self, ZBind *task)
+        public void post_task(Self *self, ZBind *bind, ZBind *response_bind)
         {
                 struct zco_context_t *ctx = get_next_worker(self);
-                zco_context_post_task(ctx, task, 0);
+                zco_context_post_task(ctx, bind, response_bind, 0);
                 ++selfp->count;
         }
 }

@@ -130,9 +130,7 @@ static void application_main(ZBind *bind, int test_set_number, int test_case_num
                                 z_bind_set_handler(completion_task, (ZBindHandler) task_complete);
                         }
 
-                        z_bind_set_next_task(task, completion_task);
-
-                        z_worker_group_post_task(worker_group, task);
+                        z_worker_group_post_task(worker_group, task, completion_task);
                 }
 
                 z_object_unref(Z_OBJECT(completion_task));
@@ -258,7 +256,7 @@ int main(int argc, char **argv)
                 z_bind_append_int(task, test_case_number);
                 z_bind_append_ptr(task, worker_group);
                 z_bind_append_ptr(task, &lock);
-                zco_context_post_task(&app_ctx, task, 0);
+                zco_context_post_task(&app_ctx, task, NULL, 0);
                 z_object_unref(Z_OBJECT(task));
 
                 /* Wait for all tests to be completed */

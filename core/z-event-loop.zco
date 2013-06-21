@@ -61,7 +61,9 @@ typedef struct ZTask ZTask;
 struct ZTask {
         ZBindData target;
         ZBindData response;
+        struct zco_context_t *origin_context;
         uint64_t timeout;
+        int has_response;
         struct ZTask *next;
 };
 
@@ -291,17 +293,18 @@ class ZEventLoop : ZObject
                         /* Iterate through the run queue and execute the tasks that
                            are scheduled to run now */
                         while (!z_map_iter_is_equal(it, end)) {
-                                ZBind *task = z_bind_new(ctx, allocator);
-                                z_bind_set_data_ptr(task, z_map_get_value(selfp->run_queue, it));
+                                ZTask *task = (ZTask *) z_map_get_value(selfp->run_queue, it);
+                                ZBind *target_bind = z_bind_new(ctx, allocator);
+                                z_bind_set_data_ptr(target_bind, &task->target);
+                                z_bind_invoke(target_bind);
+                                z_object_unref(Z_OBJECT(target_bind));
 
-                                z_bind_invoke(task);
-
-                                ZBind *next_task = z_bind_get_next_task(task);
-                                if (next_task) {
-                                        zco_context_post_task(CTX_FROM_OBJECT(next_task), next_task, 0);
+                                if (task->has_response) {
+                                        ZBind *response_bind = z_bind_new(ctx, allocator);
+                                        z_bind_set_data_ptr(response_bind, &task->response);
+                                        zco_context_post_task(task->origin_context, response_bind, NULL, 0);
+                                        z_object_unref(Z_OBJECT(response_bind));
                                 }
-
-                                z_object_unref(Z_OBJECT(task));
 
                                 z_map_iter_increment(it);
                         }
@@ -418,32 +421,42 @@ release_lock:
                 return ((uint64_t) tp.tv_sec) * 1000000000ul + tp.tv_nsec;
         }
 
-        public void post_task(Self *self, ZBind *task, uint64_t timeout)
+        public void post_task(Self *self, ZBind *bind, ZBind *response_bind, uint64_t timeout)
         {
                 if (!is_active(self))
                         return;
 
                 /* Use the thread-safe allocator to allocate memory for the raw closure */
                 ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->ts_fixed_allocator;
-                ZTask *data = z_memory_allocator_allocate(allocator, sizeof(ZTask));
+                ZTask *task = z_memory_allocator_allocate(allocator, sizeof(ZTask));
+
+                task->origin_context = CTX_FROM_OBJECT(bind);
 
                 /* Hold the incoming_queue lock */
                 pthread_mutex_lock(&selfp->queue_lock);
+
+                memcpy(&task->target, z_bind_get_data_ptr(bind), sizeof(ZBindData));
+
+                if (response_bind) {
+                        task->has_response = 1;
+                        memcpy(&task->response, z_bind_get_data_ptr(response_bind), sizeof(ZBindData));
+                } else {
+                        task->has_response = 0;
+                }
 
                 /* Normalize the timeout with a monotonic clock - Instead of
                    it being the time between now and the time the task is
                    scheduled to run, it will become the time between a
                    monotonic time and the time the task is scheduled to run */
-                memcpy(&data->target, z_bind_get_data_ptr(task), sizeof(ZTask));
-                data->timeout = timeout + get_monotonic_time();
+                task->timeout = timeout + get_monotonic_time();
 
                 /* Prepend it into the incoming queue. We don't care
                    about the order of insertion into the incoming queue; The order of execution
                    is preserved because each task knows what time it should be executed. As
                    long as the tasks that are scheduled the earliest are executed first, the
                    order will be maintained */
-                data->next = selfp->incoming_queue;
-                selfp->incoming_queue = data;
+                task->next = selfp->incoming_queue;
+                selfp->incoming_queue = task;
 
                 /* Send a signal that new work has been scheduled */
                 pthread_cond_signal(&selfp->schedule_cond);
@@ -465,7 +478,7 @@ release_lock:
                         return;
 
                 /* Send a QUIT signal to the thread */
-                post_task(self, selfp->quit_task, 0);
+                post_task(self, selfp->quit_task, NULL, 0);
         }
 
 }

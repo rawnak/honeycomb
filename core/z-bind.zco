@@ -32,8 +32,6 @@ struct ZBindData
         ZBindHandler handler;
         int args_size;
         uint8_t args[TASK_ARG_SIZE];
-
-        ZBind *next_task;
 };
 
 typedef struct ZBindData ZBindData;
@@ -57,7 +55,6 @@ class ZBind : ZObject
         {
                 selfp->data_ptr = &selfp->data;
                 selfp->data.next = NULL;
-                selfp->data.next_task = NULL;
                 selfp->data.handler = NULL;
                 selfp->data.args_size = 0;
                 memset(selfp->data.args, 0, sizeof(selfp->data.args));
@@ -69,7 +66,6 @@ class ZBind : ZObject
 
                 selfp->data_ptr = &selfp->data;
                 selfp->data.next = NULL;
-                selfp->data.next_task = NULL;
                 selfp->data.handler = NULL;
                 selfp->data.args_size = 0;
                 memset(selfp->data.args, 0, sizeof(selfp->data.args));
@@ -107,31 +103,6 @@ class ZBind : ZObject
                 set
                 {
                         selfp->data_ptr->handler = value;
-                }
-        }
-
-        public ZBind * next_task
-        {
-                get
-                {
-                        ZBind *next_task = selfp->data_ptr->next_task;
-
-                        if (next_task)
-                                z_object_ref(Z_OBJECT(next_task));
-
-                        return next_task;
-                }
-                set
-                {
-                        ZBind *next_task = selfp->data_ptr->next_task;
-
-                        if (next_task)
-                                z_object_unref(Z_OBJECT(next_task));
-
-                        selfp->data_ptr->next_task = value;
-
-                        if (value)
-                                z_object_ref(Z_OBJECT(value));
                 }
         }
 
