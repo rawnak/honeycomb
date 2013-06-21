@@ -115,12 +115,10 @@ static void application_main(ZBind *bind, int test_set_number, int test_case_num
 
                 } else { 
                         z_bind_set_handler(task, (ZBindHandler) task_callback);
-                        z_bind_set_timeout(task, 0);
                         z_bind_append_int(task, test_set_number);
                         z_bind_append_int(task, test_case_number);
                         z_bind_append_int(task, capacity);
 
-                        z_bind_set_timeout(completion_task, 0);
                         z_bind_append_int(completion_task, test_set_number);
                         z_bind_append_int(completion_task, test_case_number);
                         z_bind_append_int(completion_task, capacity);
@@ -256,12 +254,11 @@ int main(int argc, char **argv)
                 /* Post all the test tasks */
                 ZBind *task = z_bind_new(&main_ctx, main_ctx.flex_allocator);
                 z_bind_set_handler(task, (ZBindHandler) application_main);
-                z_bind_set_timeout(task, 0);
                 z_bind_append_int(task, test_set_number);
                 z_bind_append_int(task, test_case_number);
                 z_bind_append_ptr(task, worker_group);
                 z_bind_append_ptr(task, &lock);
-                zco_context_post_task(&app_ctx, task);
+                zco_context_post_task(&app_ctx, task, 0);
                 z_object_unref(Z_OBJECT(task));
 
                 /* Wait for all tests to be completed */

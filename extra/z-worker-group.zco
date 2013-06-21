@@ -149,7 +149,7 @@ class ZWorkerGroup : ZObject
         public void post_task(Self *self, ZBind *task)
         {
                 struct zco_context_t *ctx = get_next_worker(self);
-                zco_context_post_task(ctx, task);
+                zco_context_post_task(ctx, task, 0);
                 ++selfp->count;
         }
 }

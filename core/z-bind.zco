@@ -30,7 +30,6 @@ struct ZBindData
 {
         struct ZBindData *next;
         ZBindHandler handler;
-        uint64_t timeout;                /* in nanoseconds */
         int args_size;
         uint8_t args[TASK_ARG_SIZE];
 
@@ -61,7 +60,6 @@ class ZBind : ZObject
                 selfp->data.next_task = NULL;
                 selfp->data.handler = NULL;
                 selfp->data.args_size = 0;
-                selfp->data.timeout = 0;
                 memset(selfp->data.args, 0, sizeof(selfp->data.args));
         }
 
@@ -74,7 +72,6 @@ class ZBind : ZObject
                 selfp->data.next_task = NULL;
                 selfp->data.handler = NULL;
                 selfp->data.args_size = 0;
-                selfp->data.timeout = 0;
                 memset(selfp->data.args, 0, sizeof(selfp->data.args));
         }
 
@@ -135,14 +132,6 @@ class ZBind : ZObject
 
                         if (value)
                                 z_object_ref(Z_OBJECT(value));
-                }
-        }
-
-        public uint64_t timeout
-        {
-                set
-                {
-                        selfp->data_ptr->timeout = value;
                 }
         }
 
