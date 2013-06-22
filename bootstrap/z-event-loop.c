@@ -20,6 +20,7 @@
 
 
 #include <z-value.h>
+#include <z-bind.h>
 #include <stdint.h>
 #include <assert.h>
 #include <stdio.h>
@@ -46,6 +47,16 @@
 
 #define INT_TO_PTR(x) ((void *) ((unsigned long) (x)))
 #define PTR_TO_INT(x) ((int64_t) ((long) (x)))
+
+struct ZTask {
+ ZBindData target;
+ ZBindData response;
+ struct zco_context_t *origin_context;
+ uint64_t timeout;
+ int has_response;
+ struct ZTask *next;
+};
+
 
 #include <z-object-tracker.h>
 #include <z-map.h>
@@ -105,9 +116,9 @@ static int __map_compare(ZMap *map, const void *a, const void *b)
 }
 static int  z_event_loop_map_compare(ZMap *map,const void *a,const void *b);
 static void  z_event_loop_runqueue_key_destroy(void *item,Self *self);
-static void  z_event_loop_runqueue_value_destroy(ZBind *task,Self *self);
+static void  z_event_loop_runqueue_value_destroy(ZTask *bind_data,Self *self);
 static void z_event_loop_init(Self *self);
-static void  z_event_loop_delete_queue(Self *self,ZBindData **queue);
+static void  z_event_loop_delete_queue(Self *self,ZTask **queue);
 static void  z_event_loop_reset(ZObject *object);
 static void  z_event_loop_dispose(ZObject *object);
 static void  z_event_loop_reload_pending_queue(Self *self);
@@ -240,12 +251,10 @@ static void  z_event_loop_runqueue_key_destroy(void *item,Self *self)
  ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
  z_memory_allocator_deallocate_by_size(allocator, item, sizeof(uint64_t));
  }
-static void  z_event_loop_runqueue_value_destroy(ZBind *task,Self *self)
+static void  z_event_loop_runqueue_value_destroy(ZTask *bind_data,Self *self)
 {
  ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
- ZBindData *data = z_bind_get_data_ptr(task);
- z_memory_allocator_deallocate_by_size(allocator, data, sizeof(ZBindData));
- z_object_unref(Z_OBJECT(task));
+ z_memory_allocator_deallocate_by_size(allocator, bind_data, sizeof(ZTask));
  }
 static void z_event_loop_init(Self *self)
 {
@@ -258,7 +267,6 @@ static void z_event_loop_init(Self *self)
  /* Create a bind closure for the quit task */
  selfp->quit_task = z_bind_new(ctx, allocator);
  z_bind_set_handler(selfp->quit_task, (ZBindHandler) zco_context_do_quit);
- z_bind_set_timeout(selfp->quit_task, 0);
  z_bind_append_ptr(selfp->quit_task, self);
 
  /* Initialize task queues */
@@ -280,14 +288,14 @@ static void z_event_loop_init(Self *self)
  /* Initialize condition variables */
  pthread_cond_init(&selfp->schedule_cond, NULL);
  }
-static void  z_event_loop_delete_queue(Self *self,ZBindData **queue)
+static void  z_event_loop_delete_queue(Self *self,ZTask **queue)
 {
  ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->ts_fixed_allocator;
- ZBindData *p = *queue;
+ ZTask *p = *queue;
 
  while (p) {
- ZBindData *next = p->next;
- z_memory_allocator_deallocate_by_size(allocator, p, sizeof(ZBindData));
+ ZTask *next = p->next;
+ z_memory_allocator_deallocate_by_size(allocator, p, sizeof(ZTask));
  p = next;
  }
 
@@ -335,7 +343,7 @@ static void  z_event_loop_reload_pending_queue(Self *self)
  assert(!selfp->pending_queue);
 
  /* Swap the pending queue and incoming queue */
- ZBindData *temp = selfp->pending_queue;
+ ZTask *temp = selfp->pending_queue;
  selfp->pending_queue = selfp->incoming_queue;
  selfp->incoming_queue = temp;
  }
@@ -348,35 +356,32 @@ static void  z_event_loop_thread_main(Self *self)
 
  while (is_running) {
  /* Move tasks from the pending queue into the run queue */
- ZBindData *queue = selfp->pending_queue; 
- while (queue) {
- ZBind *task = z_bind_new(ctx, allocator);
- z_bind_set_data_ptr(task, queue);
-
+ ZTask *bind_data = selfp->pending_queue; 
+ while (bind_data) {
 #if __WORDSIZE >= 64
  /* For 64-bit systems, we store the time inforation inside the pointer value. This allows
                                    us to eliminate an allocation */
 
- while (z_map_insert(selfp->run_queue, INT_TO_PTR(queue->timeout), task) == -1) {
+ while (z_map_insert(selfp->run_queue, INT_TO_PTR(bind_data->timeout), bind_data) == -1) {
  /* In the rare case when two tasks where scheduled to run at the same time,
                                            we delay one of the tasks by 1ns to ensure all keys in the map are unique */
- ++queue->timeout;
+ ++bind_data->timeout;
  }
 #else
  /* For 32-bit systems (or less), we allocate an 8-byte buffer to store the time information
                                    and stor ethe address to this buffer in the pointer value. */
 
  uint64_t *task_time = z_memory_allocator_allocate(ctx->fixed_allocator, sizeof(uint64_t));
- *task_time = queue->timeout;
+ *task_time = bind_data->timeout;
 
- while (z_map_insert(selfp->run_queue, task_time, task) == -1) {
+ while (z_map_insert(selfp->run_queue, task_time, bind_data) == -1) {
  /* In the rare case when two tasks where scheduled to run at the same time,
                                            we delay one of the tasks by 1ns to ensure all keys in the map are unique */
  ++(*task_time);
  }
 #endif
 
- queue = queue->next;
+ bind_data = bind_data->next;
  }
 
  uint64_t monotonic_time = get_monotonic_time();
@@ -394,8 +399,19 @@ static void  z_event_loop_thread_main(Self *self)
  /* Iterate through the run queue and execute the tasks that
                            are scheduled to run now */
  while (!z_map_iter_is_equal(it, end)) {
- ZBind *task = z_map_get_value(selfp->run_queue, it);
- z_bind_invoke(task);
+ ZTask *task = (ZTask *) z_map_get_value(selfp->run_queue, it);
+ ZBind *target_bind = z_bind_new(ctx, allocator);
+ z_bind_set_data_ptr(target_bind, &task->target);
+ z_bind_invoke(target_bind);
+ z_object_unref(Z_OBJECT(target_bind));
+
+ if (task->has_response) {
+ ZBind *response_bind = z_bind_new(ctx, allocator);
+ z_bind_set_data_ptr(response_bind, &task->response);
+ zco_context_post_task(task->origin_context, response_bind, NULL, 0);
+ z_object_unref(Z_OBJECT(response_bind));
+ }
+
  z_map_iter_increment(it);
  }
 
@@ -506,33 +522,42 @@ static uint64_t  z_event_loop_get_monotonic_time()
  clock_gettime(CLOCK_BOOTTIME, &tp);
  return ((uint64_t) tp.tv_sec) * 1000000000ul + tp.tv_nsec;
  }
-void  z_event_loop_post_task(Self *self,ZBind *bind)
+void  z_event_loop_post_task(Self *self,ZBind *bind,ZBind *response_bind,uint64_t timeout)
 {
  if (!is_active(self))
  return;
 
  /* Use the thread-safe allocator to allocate memory for the raw closure */
  ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->ts_fixed_allocator;
- ZBindData *data = z_memory_allocator_allocate(allocator, sizeof(ZBindData));
+ ZTask *task = z_memory_allocator_allocate(allocator, sizeof(ZTask));
+
+ task->origin_context = CTX_FROM_OBJECT(bind);
 
  /* Hold the incoming_queue lock */
  pthread_mutex_lock(&selfp->queue_lock);
+
+ memcpy(&task->target, z_bind_get_data_ptr(bind), sizeof(ZBindData));
+
+ if (response_bind) {
+ task->has_response = 1;
+ memcpy(&task->response, z_bind_get_data_ptr(response_bind), sizeof(ZBindData));
+ } else {
+ task->has_response = 0;
+ }
 
  /* Normalize the timeout with a monotonic clock - Instead of
                    it being the time between now and the time the task is
                    scheduled to run, it will become the time between a
                    monotonic time and the time the task is scheduled to run */
- ZBindData *data_src = z_bind_get_data_ptr(bind);
- memcpy(data, data_src, sizeof(ZBindData));
- data->timeout += get_monotonic_time();
+ task->timeout = timeout + get_monotonic_time();
 
  /* Prepend it into the incoming queue. We don't care
                    about the order of insertion into the incoming queue; The order of execution
                    is preserved because each task knows what time it should be executed. As
                    long as the tasks that are scheduled the earliest are executed first, the
                    order will be maintained */
- data->next = selfp->incoming_queue;
- selfp->incoming_queue = data;
+ task->next = selfp->incoming_queue;
+ selfp->incoming_queue = task;
 
  /* Send a signal that new work has been scheduled */
  pthread_cond_signal(&selfp->schedule_cond);
@@ -550,7 +575,7 @@ void  z_event_loop_quit(Self *self)
  return;
 
  /* Send a QUIT signal to the thread */
- post_task(self, selfp->quit_task);
+ post_task(self, selfp->quit_task, NULL, 0);
  }
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
 static void z_event_loop_class_destroy(ZObjectGlobal *gbl)

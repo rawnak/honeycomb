@@ -26,6 +26,8 @@
 #include <z-bind.h>
 #include <signal.h>
 
+struct ZTask;
+typedef struct ZTask ZTask;
 
 #include <zco-type.h>
 #define Self ZEventLoop
@@ -50,8 +52,8 @@ struct ZEventLoopPrivate {
 	pthread_cond_t schedule_cond;
 	pthread_mutex_t queue_lock;
 	ZMap *run_queue;
-	ZBindData *pending_queue;
-	ZBindData *incoming_queue;
+	ZTask *pending_queue;
+	ZTask *incoming_queue;
 	volatile sig_atomic_t is_done;
 	volatile sig_atomic_t is_running;
 };
@@ -85,7 +87,7 @@ void __z_event_loop_class_init(struct zco_context_t *ctx, ZEventLoopClass *_clas
 Self * z_event_loop_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator);
 int  z_event_loop_get_is_current(Self *self);
 void  z_event_loop_run(Self *self);
-void  z_event_loop_post_task(Self *self,ZBind *bind);
+void  z_event_loop_post_task(Self *self,ZBind *bind,ZBind *response_bind,uint64_t timeout);
 void  z_event_loop_quit(Self *self);
 
 #undef Self

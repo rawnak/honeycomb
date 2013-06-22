@@ -42,7 +42,6 @@
 #define append_int z_bind_append_int
 #define append_ptr z_bind_append_ptr
 #define set_handler z_bind_set_handler
-#define set_timeout z_bind_set_timeout
 #define create_arglist z_bind_create_arglist
 #define create_closure z_bind_create_closure
 #define get_data_ptr z_bind_get_data_ptr
@@ -190,11 +189,10 @@ void __z_bind_init(struct zco_context_t *ctx, Self *self)
 }
 static void z_bind_init(Self *self)
 {
- selfp->data_ptr = NULL;
+ selfp->data_ptr = &selfp->data;
  selfp->data.next = NULL;
  selfp->data.handler = NULL;
  selfp->data.args_size = 0;
- selfp->data.timeout = 0;
  memset(selfp->data.args, 0, sizeof(selfp->data.args));
  }
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_reset
@@ -202,11 +200,10 @@ static void  z_bind_reset(ZObject *object)
 {
  Self *self = (Self *) object;
 
- selfp->data_ptr = NULL;
+ selfp->data_ptr = &selfp->data;
  selfp->data.next = NULL;
  selfp->data.handler = NULL;
  selfp->data.args_size = 0;
- selfp->data.timeout = 0;
  memset(selfp->data.args, 0, sizeof(selfp->data.args));
  }
 #undef PARENT_HANDLER
@@ -235,11 +232,7 @@ void  z_bind_append_ptr(Self *self,void *value)
  }
 void z_bind_set_handler(Self *self, ZBindHandler  value)
 {
- selfp->data.handler = value;
- }
-void z_bind_set_timeout(Self *self, uint64_t  value)
-{
- selfp->data.timeout = value;
+ selfp->data_ptr->handler = value;
  }
 static ZVector *  z_bind_create_arglist(Self *self,ZBindData *data,struct zco_context_t *ctx)
 {
@@ -308,10 +301,7 @@ static ZClosure *  z_bind_create_closure(Self *self,ZBindData *data,struct zco_c
  }
 ZBindData *  z_bind_get_data_ptr(Self *self)
 {
- if (selfp->data_ptr)
  return selfp->data_ptr;
-
- return &selfp->data;
  }
 void z_bind_set_data_ptr(Self *self, ZBindData *  value)
 {
@@ -323,13 +313,8 @@ int  z_bind_invoke(Self *self)
  ZClosure *closure;
  ZVector *arglist;
 
- if (selfp->data_ptr) {
  closure = create_closure(self, selfp->data_ptr, ctx);
  arglist = create_arglist(self, selfp->data_ptr, ctx);
- } else {
- closure = create_closure(self, &selfp->data, ctx);
- arglist = create_arglist(self, &selfp->data, ctx);
- }
 
  int rc = z_closure_invoke(closure, arglist);
 

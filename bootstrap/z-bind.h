@@ -32,7 +32,6 @@ struct ZBindData
 {
  struct ZBindData *next;
  ZBindHandler handler;
- uint64_t timeout; /* in nanoseconds */
  int args_size;
  uint8_t args[TASK_ARG_SIZE];
 };
@@ -91,7 +90,6 @@ Self * z_bind_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator);
 void  z_bind_append_int(Self *self,int value);
 void  z_bind_append_ptr(Self *self,void *value);
 void z_bind_set_handler(Self *self, ZBindHandler  value);
-void z_bind_set_timeout(Self *self, uint64_t  value);
 ZBindData *  z_bind_get_data_ptr(Self *self);
 void z_bind_set_data_ptr(Self *self, ZBindData *  value);
 int  z_bind_invoke(Self *self);
