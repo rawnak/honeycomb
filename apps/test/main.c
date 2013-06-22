@@ -244,7 +244,7 @@ int main(int argc, char **argv)
 
                 /* Create a worker group */
                 ZWorkerGroup *worker_group = z_worker_group_new(&main_ctx, main_ctx.flex_allocator);
-                z_worker_group_set_worker_count(worker_group, 4);
+                z_worker_group_set_worker_count(worker_group, 8);
 
                 pthread_mutex_t lock;
                 pthread_mutex_init(&lock, NULL);
@@ -263,12 +263,12 @@ int main(int argc, char **argv)
                 pthread_mutex_lock(&lock);
                 pthread_mutex_lock(&lock);
 
+                sleep(1);
+
                 z_object_unref(Z_OBJECT(worker_group));
 
                 /* Destroy the application context */
                 zco_context_destroy(&app_ctx);
-
-
 
         } else {
                 int i;

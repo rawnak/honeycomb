@@ -426,7 +426,7 @@ static void  z_event_loop_thread_main(Self *self)
                            that exists in the incoming queue.
                          
                            We should do this as late as possible so that the incoming queue has a better
-                           chaance of having some tasks */
+                           chance of having some tasks */
  selfp->pending_queue = NULL;
 
  /* Hold the queue lock */

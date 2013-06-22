@@ -30,7 +30,6 @@ typedef void(*ZBindHandler)(struct ZBind *self, ...);
 
 struct ZBindData
 {
- struct ZBindData *next;
  ZBindHandler handler;
  int args_size;
  uint8_t args[TASK_ARG_SIZE];

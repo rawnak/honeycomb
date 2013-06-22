@@ -190,7 +190,6 @@ void __z_bind_init(struct zco_context_t *ctx, Self *self)
 static void z_bind_init(Self *self)
 {
  selfp->data_ptr = &selfp->data;
- selfp->data.next = NULL;
  selfp->data.handler = NULL;
  selfp->data.args_size = 0;
  memset(selfp->data.args, 0, sizeof(selfp->data.args));
@@ -201,10 +200,11 @@ static void  z_bind_reset(ZObject *object)
  Self *self = (Self *) object;
 
  selfp->data_ptr = &selfp->data;
- selfp->data.next = NULL;
  selfp->data.handler = NULL;
  selfp->data.args_size = 0;
  memset(selfp->data.args, 0, sizeof(selfp->data.args));
+
+ PARENT_HANDLER(object);
  }
 #undef PARENT_HANDLER
 Self * z_bind_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator)
