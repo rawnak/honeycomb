@@ -212,6 +212,9 @@ class ZWorkerGroup : ZObject
                 /* Remove the responses that have been invoked */
                 z_map_erase(selfp->responses, NULL, it);
 
+                z_object_unref(Z_OBJECT(end));
+                z_object_unref(Z_OBJECT(it));
+
                 /* Release the reference that we added to self for this particular bind */
                 z_object_unref(Z_OBJECT(self));
         }

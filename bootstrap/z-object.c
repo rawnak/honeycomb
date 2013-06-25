@@ -409,6 +409,8 @@ void  z_object_register_signal(Self *self,char *name)
  z_vector_set_item_size(closure_list, 0);
  z_vector_set_item_destruct(closure_list, (ZVectorItemCallback) unref);
  z_map_insert(selfp->signal_map, strdup(name), closure_list);
+ } else {
+ z_object_unref(Z_OBJECT(it));
  }
  }
 int  z_object_emit_signal(Self *self,char *name,void *argv)
