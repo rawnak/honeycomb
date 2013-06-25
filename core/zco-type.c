@@ -18,6 +18,8 @@
  * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _GNU_SOURCE
+
 #include <zco-type.h>
 #include <zco-config.h>
 
@@ -34,6 +36,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <pthread.h>
 
 static int next_id = -1;
 static int last_allocator_id = -1;
@@ -202,8 +205,20 @@ void zco_context_destroy(struct zco_context_t *ctx)
 
 static void zco_context_ensure_thread_is_current(struct zco_context_t *ctx)
 {
-        if (ctx->event_loop)
-                assert(z_event_loop_get_is_current(ctx->event_loop));
+        if (ctx->event_loop && !z_event_loop_get_is_current(ctx->event_loop)) {
+                char *name1 = z_event_loop_get_name(ctx->event_loop);
+
+                char name2[100];
+                pthread_getname_np(pthread_self(), name2, sizeof(name2));
+
+                fprintf(stderr, "Thread access violation - Calling thread is '%s' but object belongs to thread '%s'\n",
+                                name2, name1);
+
+                free(name1);
+                fflush(stderr);
+
+                abort();
+        }
 }
 
 void zco_context_set_marshal(struct zco_context_t *ctx, void *marshal)
@@ -349,13 +364,14 @@ void zco_context_post_task(struct zco_context_t *ctx, ZBind *bind, ZBind *respon
         z_event_loop_post_task(ctx->event_loop, bind, response_bind, timeout);
 }
 
-void zco_context_run(struct zco_context_t *ctx)
+void zco_context_run(struct zco_context_t *ctx, char *name)
 {
         if (!ctx->event_loop) {
                 /* Create an object to manage the event loop */
                 ctx->event_loop = z_event_loop_new(ctx, NULL);
         }
 
+        z_event_loop_set_name(ctx->event_loop, name);
         z_event_loop_run(ctx->event_loop);
 }
 

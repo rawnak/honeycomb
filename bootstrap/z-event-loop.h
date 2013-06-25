@@ -47,6 +47,7 @@ typedef struct ZEventLoopClass ZEventLoopClass;
 typedef struct ZEventLoop ZEventLoop;
 
 struct ZEventLoopPrivate {
+	char *name;
 	ZBind *quit_task;
 	pthread_t thread;
 	pthread_cond_t schedule_cond;
@@ -87,6 +88,8 @@ void __z_event_loop_class_init(struct zco_context_t *ctx, ZEventLoopClass *_clas
 Self * z_event_loop_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator);
 int  z_event_loop_get_is_current(Self *self);
 void  z_event_loop_run(Self *self);
+char *  z_event_loop_get_name(Self *self);
+void z_event_loop_set_name(Self *self, char *  value);
 void  z_event_loop_post_task(Self *self,ZBind *bind,ZBind *response_bind,uint64_t timeout);
 void  z_event_loop_quit(Self *self);
 

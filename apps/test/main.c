@@ -130,7 +130,7 @@ static void application_main(ZBind *bind, int test_set_number, int test_case_num
                                 z_bind_set_handler(completion_task, (ZBindHandler) task_complete);
                         }
 
-                        z_worker_group_post_task(worker_group, task, completion_task);
+                        z_worker_group_post_task(worker_group, task, completion_task, 1);
                 }
 
                 z_object_unref(Z_OBJECT(completion_task));
@@ -240,7 +240,7 @@ int main(int argc, char **argv)
                 ZCClosureMarshal *app_marshal = z_c_closure_marshal_new(&app_ctx, app_ctx.flex_allocator);
                 zco_context_set_marshal(&app_ctx, app_marshal);
                 z_object_unref(Z_OBJECT(app_marshal));
-                zco_context_run(&app_ctx);
+                zco_context_run(&app_ctx, "Application");
 
                 /* Create a worker group */
                 ZWorkerGroup *worker_group = z_worker_group_new(&main_ctx, main_ctx.flex_allocator);
@@ -262,8 +262,6 @@ int main(int argc, char **argv)
                 /* Wait for all tests to be completed */
                 pthread_mutex_lock(&lock);
                 pthread_mutex_lock(&lock);
-
-                sleep(1);
 
                 z_object_unref(Z_OBJECT(worker_group));
 

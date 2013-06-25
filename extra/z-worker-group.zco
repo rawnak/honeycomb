@@ -22,9 +22,11 @@
 #include <z-object.h>
 #include <z-bind.h>
 #include <z-c-closure-marshal.h>
+#include <z-map.h>
 %}
 
 %{
+#include <z-string.h>
 #include <stdio.h>
 
 /* In any C application, the process starts with only one thread (the main thread).
@@ -41,36 +43,33 @@
    This will allow the application thread to continue to run while parallelizing
    tasks onto other threads. A common use of a worker is to perform IO operations.
  */
+
+#define INT_TO_PTR(x) ((void *) ((unsigned long) (x)))
+#define PTR_TO_INT(x) ((int64_t) ((long) (x)))
+
+
 %}
 
 class ZWorkerGroup : ZObject
 {
         private ZVector *workers;
-        private int count;
+        private ZMap *responses;
+        private unsigned long count;
 
 	init(Self *self)
 	{
                 selfp->count = 0;
 
+                /* Create the workers list */
                 selfp->workers = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
                 z_vector_set_item_size(selfp->workers, sizeof(struct zco_context_t));
-
                 z_vector_set_item_construct(selfp->workers, (ZVectorItemCallback) add_worker);
                 z_vector_set_item_destruct(selfp->workers, (ZVectorItemCallback) remove_worker);
-        }
 
-        private void add_worker(struct zco_context_t *ctx, void *userdata)
-        {
-                zco_context_init(ctx);
-                ZCClosureMarshal *marshal = z_c_closure_marshal_new(ctx, ctx->flex_allocator);
-                zco_context_set_marshal(ctx, marshal);
-                z_object_unref(Z_OBJECT(marshal));
-                zco_context_run(ctx);
-        }
-
-        private void remove_worker(struct zco_context_t *ctx, void *userdata)
-        {
-                zco_context_destroy(ctx);
+                /* Create the responses map */
+                selfp->responses = z_map_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                z_map_set_compare(selfp->responses, map_compare);
+                z_map_set_value_destruct(selfp->responses, (ZMapItemCallback) response_destroy);
         }
 
         public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
@@ -84,10 +83,13 @@ class ZWorkerGroup : ZObject
         {
                 Self *self = (Self *) object;
 
+                /* Clear the responses map */
+                z_map_clear(selfp->responses);
+                selfp->count = 0;
+
+                /* Clear the workers list */
                 set_worker_count(self, 0);
                 z_vector_clear(selfp->workers);
-
-                selfp->count = 0;
 
                 PARENT_HANDLER(object);
        }
@@ -97,11 +99,48 @@ class ZWorkerGroup : ZObject
         {
                 Self *self = (Self *) object;
 
+                /* Clear the responses map */
+                z_object_unref(Z_OBJECT(selfp->responses));
+
+                /* Clear the workers list */
                 set_worker_count(self, 0);
                 z_object_unref(Z_OBJECT(selfp->workers));
 
                 PARENT_HANDLER(object);
         }
+
+        private void add_worker(struct zco_context_t *ctx, void *userdata)
+        {
+                zco_context_init(ctx);
+                ZCClosureMarshal *marshal = z_c_closure_marshal_new(ctx, ctx->flex_allocator);
+                zco_context_set_marshal(ctx, marshal);
+                z_object_unref(Z_OBJECT(marshal));
+
+                ZString *app_name = z_string_new(ctx, ctx->flex_allocator);
+                z_string_append_format(app_name, "Worker %p", ctx);
+                char *temp = z_string_get_cstring(app_name, Z_STRING_ENCODING_UTF8);
+                z_object_unref(Z_OBJECT(app_name));
+
+                zco_context_run(ctx, temp);
+                free(temp);
+        }
+
+        private void remove_worker(struct zco_context_t *ctx, void *userdata)
+        {
+                zco_context_destroy(ctx);
+        }
+
+        private int map_compare(ZMap *self, const void *a, const void *b)
+        {
+                return PTR_TO_INT(a) - PTR_TO_INT(b);
+        }
+
+        private void response_destroy(ZBind *response_bind, void *userdata)
+        {
+                if (response_bind)
+                        z_object_unref(Z_OBJECT(response_bind));
+        }
+
 
         public int worker_count
         {
@@ -146,11 +185,78 @@ class ZWorkerGroup : ZObject
                 return ctx;
         }
 
-        public void post_task(Self *self, ZBind *bind, ZBind *response_bind)
+        private void proxy_function(ZBind *proxy_bind, Self *self, ZBind *response_bind, int count)
+        {
+                /* Replace the 'NULL' with the real response bind */
+                z_map_assign(selfp->responses, INT_TO_PTR(count), response_bind);
+
+                /* Iterate through the map, starting from the first element up
+                   until an element is found that has a NULL value. The list of
+                   elements in the map with a non-NULL value are invoked as long
+                   as there is no hole in between them. */
+                ZMapIter *it, *end;
+
+                it = z_map_get_begin(selfp->responses);
+                end = z_map_get_end(selfp->responses);
+
+                while (!z_map_iter_is_equal(it, end)) {
+                        response_bind = z_map_get_value(selfp->responses, it);
+
+                        if (!response_bind)
+                                break;
+
+                        z_bind_invoke(response_bind);
+                        z_map_iter_increment(it);
+                }
+
+                /* Remove the responses that have been invoked */
+                z_map_erase(selfp->responses, NULL, it);
+
+                /* Release the reference that we added to self for this particular bind */
+                z_object_unref(Z_OBJECT(self));
+        }
+
+        public void post_task(Self *self, ZBind *bind, ZBind *response_bind, int in_order)
         {
                 struct zco_context_t *ctx = get_next_worker(self);
-                zco_context_post_task(ctx, bind, response_bind, 0);
-                ++selfp->count;
+
+                if (in_order) {
+                        /* Create a proxy bind. This bind will be invoked as the response bind instead
+                           of the response bind that is specified by the caller. The handler for the proxy
+                           bind will ensure that the responses are invoked in order */
+                        ZBind *proxy_bind = z_bind_new(CTX_FROM_OBJECT(bind), ALLOCATOR_FROM_OBJECT(bind));
+                        z_bind_set_handler(proxy_bind, (ZBindHandler) proxy_function);
+                        z_bind_append_ptr(proxy_bind, self);
+                        z_bind_append_ptr(proxy_bind, response_bind);
+                        z_bind_append_int(proxy_bind, selfp->count);
+
+                        /* We need to hold a reference to self so it can stay alive until the proxy function
+                           is invoked. Having the proxy function run without 'self' will not work out well */
+                        z_object_ref(Z_OBJECT(self));
+
+                        /* We need to hold a reference to the response bind until it is invoked. It will
+                           be unref'd when the associated element is removed from the responses map */
+                        z_object_ref(Z_OBJECT(response_bind));
+
+                        /* Insert a blank slot into the response map. This will serve as a hole so the
+                           proxy bind's handler knows when to stop. This hole will be replaced by the
+                           real response if it is available and so if the loop runs after it has been
+                           replaced, it will not be considered as a hole */
+                        z_map_insert(selfp->responses, INT_TO_PTR(selfp->count), NULL);
+
+                        /* Post the task to the target worker */
+                        zco_context_post_task(ctx, bind, proxy_bind, 0);
+
+                        /* We no longer need a reference to the proxy bind */
+                        z_object_unref(Z_OBJECT(proxy_bind));
+
+                        /* Increment the counter. This counter is used to determine which task was scheduled
+                           after another */
+                        ++selfp->count;
+                } else {
+                        /* Post the task to the target worker */
+                        zco_context_post_task(ctx, bind, response_bind, 0);
+                }
         }
 }
 

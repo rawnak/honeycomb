@@ -19,6 +19,8 @@
  */
 
 
+#define _GNU_SOURCE
+
 #include <z-value.h>
 #include <z-bind.h>
 #include <stdint.h>
@@ -79,6 +81,8 @@ struct ZTask {
 #define reload_pending_queue z_event_loop_reload_pending_queue
 #define thread_main z_event_loop_thread_main
 #define run z_event_loop_run
+#define get_name z_event_loop_get_name
+#define set_name z_event_loop_set_name
 #define is_active z_event_loop_is_active
 #define convert_monotonic_to_realtime z_event_loop_convert_monotonic_to_realtime
 #define get_monotonic_time z_event_loop_get_monotonic_time
@@ -260,6 +264,7 @@ static void z_event_loop_init(Self *self)
 {
  selfp->is_done = 0;
  selfp->is_running = 0;
+ selfp->name = NULL;
 
  struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
  ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
@@ -495,6 +500,25 @@ void  z_event_loop_run(Self *self)
  selfp->is_running = 1;
  memset(&selfp->thread, 0, sizeof(pthread_t));
  pthread_create(&selfp->thread, NULL, (void * (*)(void*)) &thread_main, self);
+
+ if (selfp->name) {
+ pthread_setname_np(selfp->thread, selfp->name);
+ }
+ }
+char *  z_event_loop_get_name(Self *self)
+{
+ char *name = selfp->name;
+ if (name)
+ return strdup(name);
+ else
+ return NULL;
+ }
+void z_event_loop_set_name(Self *self, char *  value)
+{
+ if (selfp->name)
+ free(selfp->name);
+
+ selfp->name = value;
  }
 static int  z_event_loop_is_active(Self *self)
 {
