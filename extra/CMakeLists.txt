@@ -21,9 +21,11 @@ macro(parse_zco OBJECT_NAME)
 endmacro(parse_zco OBJECT_NAME)
 
 parse_zco(z-worker-group)
+parse_zco(z-guid)
 
 add_library(
    zclib-extra SHARED
    z-worker-group.c
+   z-guid.c
    )
 
