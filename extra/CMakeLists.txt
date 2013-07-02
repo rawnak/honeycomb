@@ -22,10 +22,14 @@ endmacro(parse_zco OBJECT_NAME)
 
 parse_zco(z-worker-group)
 parse_zco(z-guid)
+parse_zco(z-application)
+parse_zco(z-session-manager)
 
 add_library(
    zclib-extra SHARED
    z-worker-group.c
    z-guid.c
+   z-application.c
+   z-session-manager.c
    )
 

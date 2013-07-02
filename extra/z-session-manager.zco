@@ -1,0 +1,116 @@
+/* ZCO - Cross-platform Application Framework
+ * Copyright (C) 2014  Rawnak Jahan Syeda
+ *
+ * z-session-manager.zco: Session manager
+ * This file is part of ZCO.
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZCO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+%h{
+#include <z-map.h>
+%}
+
+%{
+#include <z-string.h>
+#include <z-guid.h>
+#include <z-application.h>
+%}
+
+class ZSessionManager : ZObject
+{
+        /* 'sessions' map [ZGuid] => [ZApplication] */
+        private ZMap *sessions;
+
+        init(Self *self)
+        {
+                selfp->sessions = z_map_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                z_map_set_key_destruct(selfp->sessions, (ZMapItemCallback) z_object_unref);
+                z_map_set_value_destruct(selfp->sessions, (ZMapItemCallback) z_object_unref);
+                z_map_set_compare(selfp->sessions, guid_compare);
+        }
+
+        public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
+        {
+                Self *self = GET_NEW(ctx, allocator);
+                return self;
+        }
+
+        override(ZObject) void reset(ZObject *object)
+        {
+                Self *self = (Self *) object;
+                z_map_clear(selfp->sessions);
+                PARENT_HANDLER(object);
+        }
+
+        override(ZObject) void dispose(ZObject *object)
+        {
+                Self *self = (Self *) object;
+                z_object_unref(Z_OBJECT(selfp->sessions));
+                PARENT_HANDLER(object);
+        }
+
+        private int guid_compare(ZMap *self, const void *_a, const void *_b)
+        {
+                return z_guid_compare((ZGuid *) _a, (ZGuid *) _b);
+        }
+
+        public ZObject * find(Self *self, ZGuid *guid)
+        {
+                /* Look up the application in the sessions map */
+                ZObject *app = NULL;
+                ZMapIter *it = z_map_find(selfp->sessions, guid);
+
+                if (it) {
+                        app = (ZObject *) z_map_get_value(selfp->sessions, it);
+                        z_object_unref(Z_OBJECT(it));
+                }
+
+                return app;
+        }
+
+        public void insert(Self *self, ZGuid *guid, ZObject *app)
+        {
+                /* Insert the application into the session map */
+                z_object_ref(Z_OBJECT(guid));
+                z_object_ref(Z_OBJECT(app));
+                z_map_insert(selfp->sessions, guid, app);
+        }
+
+        public void garbage_collect(Self *self)
+        {
+                if (z_map_get_is_empty(selfp->sessions))
+                        return;
+
+                /* Release expired sessions */
+                ZMapIter *it = z_map_get_begin(selfp->sessions);
+                ZMapIter *end = z_map_get_end(selfp->sessions);
+
+                while (!z_map_iter_is_equal(it, end)) {
+                        ZApplication *app = (ZApplication *) z_map_get_value(selfp->sessions, it);
+
+                        if (z_application_is_expired(app)) {
+                                z_map_erase1_inc(selfp->sessions, &it);
+                                z_map_iter_decrement(end);
+                        } else {
+                                z_map_iter_increment(it);
+                        }
+                }
+
+                z_object_unref(Z_OBJECT(it));
+                z_object_unref(Z_OBJECT(end));
+        }
+}
+
+
