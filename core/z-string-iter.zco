@@ -56,6 +56,11 @@ class ZStringIter : ZObject
 		return self;
 	}
 
+	public void assign(Self *self, ZStringIter *src)
+	{
+		set_index(self, get_index(src));
+	}
+
 	public int index
 	{
 		get

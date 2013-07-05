@@ -76,6 +76,16 @@ class ZBind : ZObject
                 return self;
         }
 
+        public void assign(Self *self, ZBind *other)
+        {
+                ZBindData *to = &selfp->data;
+                ZBindData *from = &other->_priv.data;
+
+                to->handler = from->handler;
+                to->args_size = from->args_size;
+                memcpy(to->args, from->args, from->args_size);
+        }
+
         private void append_argument(Self *self, void *value, int arg_size)
         {
                 uint8_t *args = selfp->data.args;
