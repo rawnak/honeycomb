@@ -1,0 +1,317 @@
+/* ZCO - Cross-platform Application Framework
+ * Copyright (C) 2014  Rawnak Jahan Syeda
+ *
+ * z-stream.zco: High-level abstraction of streams via file descriptors
+ * This file is part of ZCO.
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZCO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+%h{
+#include <z-object.h>
+#include <z-string.h>
+#include <sys/sendfile.h>
+
+%}
+
+%{
+#include <z-vector-segment.h>
+#include <unistd.h>
+#include <errno.h>
+%}
+
+class ZStream : ZObject
+{
+        private int in_fd;
+        private int out_fd;
+        private void *temp_buf;
+        private int temp_buf_size;
+
+	init(Self *self)
+	{
+                selfp->in_fd = -1;
+                selfp->out_fd = -1;
+                selfp->temp_buf = NULL;
+                selfp->temp_buf_size = 0;
+	}
+
+        override(ZObject) void reset(ZObject *object)
+        {
+                Self *self = (Self *) object;
+                terminate(self);
+                PARENT_HANDLER(object);
+        }
+
+	override(ZObject) void dispose(ZObject *object)
+	{
+		Self *self = (Self *) object;
+                terminate(self);
+
+                selfp->temp_buf_size = 0;
+
+                if (selfp->temp_buf)
+                        free(selfp->temp_buf);
+
+		PARENT_HANDLER(object);
+	}
+
+	public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
+	{
+		Self *self = GET_NEW(ctx, allocator);
+		return self;
+	}
+
+        public int input_fd
+        {
+                get
+                {
+                        return selfp->in_fd;
+                }
+                set
+                {
+                        if (selfp->in_fd != -1)
+                                close(selfp->in_fd);
+
+                        selfp->in_fd = value;
+                }
+        }
+
+        public int output_fd
+        {
+                get
+                {
+                        return selfp->out_fd;
+                }
+                set
+                {
+                        if (selfp->out_fd != -1)
+                                close(selfp->out_fd);
+
+                        selfp->out_fd = value;
+                }
+        }
+
+        private void * request_buffer(Self *self, int size)
+        {
+                if (selfp->temp_buf_size < size) {
+                        free(selfp->temp_buf);
+                        selfp->temp_buf = malloc(size);
+                        selfp->temp_buf_size = size;
+                }
+
+                return selfp->temp_buf;
+        }
+
+        public int write_text(Self *self, ZString *str)
+        {
+                assert(selfp->out_fd != -1);
+
+                char *s = z_string_get_cstring(str, Z_STRING_ENCODING_UTF8);
+                if (write(selfp->out_fd, s, z_string_get_size(str)) == -1) {
+                        int errcode = errno;
+
+                        if (errno == EPIPE)
+                                set_output_fd(self, -1);
+
+                        errno = errcode;
+                        free(s);
+                        return -1;
+                }
+
+                free(s);
+                return 0;
+        }
+
+        public int write_text_vformat(Self *self, const char *fmt, va_list ap)
+        {
+                ZString *str = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                z_string_append_vformat(str, fmt, ap);
+
+                int rc = write_text(self, str);
+                int errcode = errno;
+
+                z_object_unref(Z_OBJECT(str));
+
+                errno = errcode;
+                return rc;
+        }
+
+        public int write_text_format(Self *self, const char *fmt, ...)
+        {
+                va_list ap;
+
+                va_start(ap, fmt);
+                int rc = write_text_vformat(self, fmt, ap);
+                int errcode = errno;
+                va_end(ap);
+
+                errno = errcode;
+                return rc;
+        }
+
+        public int write_binary(Self *self, ZVector *data)
+        {
+                assert(selfp->out_fd != -1);
+
+                ZVectorIter *it = z_vector_get_begin(data);
+                int size = z_vector_get_size(data);
+                int item_size = z_vector_get_item_size(data);
+                int i;
+
+                void *buffer = request_buffer(self, size * item_size);
+                uint8_t *b8 = buffer;
+                uint16_t *b16 = buffer;
+                uint32_t *b32 = buffer;
+                uint64_t *b64 = buffer;
+
+                switch(item_size)
+                {
+                case 1:
+                        for (i=0; i<size; ++i) {
+                                b8[i] = *((uint8_t *) z_vector_get_item(data, it));
+                                z_vector_iter_increment(it);
+                        }
+                        break;
+                case 2:
+                        for (i=0; i<size; ++i) {
+                                b16[i] = *((uint16_t *) z_vector_get_item(data, it));
+                                z_vector_iter_increment(it);
+                        }
+                        break;
+                case 4:
+                        for (i=0; i<size; ++i) {
+                                b32[i] = *((uint32_t *) z_vector_get_item(data, it));
+                                z_vector_iter_increment(it);
+                        }
+                        break;
+                case 8:
+                        for (i=0; i<size; ++i) {
+                                b64[i] = *((uint64_t *) z_vector_get_item(data, it));
+                                z_vector_iter_increment(it);
+                        }
+                        break;
+                default:
+                        abort();
+                }
+
+                z_object_unref(Z_OBJECT(it));
+                if (write(selfp->out_fd, buffer, size * item_size) == -1) {
+                        int errcode = errno;
+
+                        if (errno == EPIPE)
+                                set_output_fd(self, -1);
+
+                        errno = errcode;
+                        return -1;
+                }
+
+                return 0;
+        }
+
+        public ZString * read_text(Self *self)
+        {
+                assert(selfp->in_fd != -1);
+
+                ZString *str = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                void *buffer = request_buffer(self, 4097);
+
+                int size = read(selfp->in_fd, buffer, 4096);
+                if (size == -1) {
+                        int errcode = errno;
+
+                        if (errno == EPIPE)
+                                set_input_fd(self, -1);
+
+                        errno = errcode;
+                        return NULL;
+                }
+
+                *((uint8_t *) buffer + 4096) = 0;
+                z_string_set_cstring(str, buffer, Z_STRING_ENCODING_UTF8);
+
+                return str;
+        }
+
+        public ZVector * read_binary(Self *self, int item_size)
+        {
+                assert(selfp->in_fd != -1);
+
+                ZVector *data = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                z_vector_set_item_size(data, item_size);
+
+                void *buffer = request_buffer(self, 4096);
+                int size = read(selfp->in_fd, buffer, 4096);
+
+                if (size == -1) {
+                        int errcode = errno;
+
+                        if (errno == EPIPE)
+                                set_input_fd(self, -1);
+
+                        errno = errcode;
+                        return NULL;
+                }
+
+                int length = size / item_size;
+                int i;
+                uint8_t *b8 = buffer;
+                uint16_t *b16 = buffer;
+                uint32_t *b32 = buffer;
+                uint64_t *b64 = buffer;
+
+                switch(item_size)
+                {
+                case 1:
+                        for (i=0; i<length; ++i) {
+                                z_vector_push_back(data, b8 + i);
+                        }
+                        break;
+                case 2:
+                        for (i=0; i<length; ++i) {
+                                z_vector_push_back(data, b16 + i);
+                        }
+                        break;
+                case 4:
+                        for (i=0; i<length; ++i) {
+                                z_vector_push_back(data, b32 + i);
+                        }
+                        break;
+                case 8:
+                        for (i=0; i<length; ++i) {
+                                z_vector_push_back(data, b64 + i);
+                        }
+                        break;
+                default:
+                        abort();
+                }
+
+                return data;
+        }
+
+        public ssize_t send_file(Self *self, int input_fd, off_t *offset, ssize_t size)
+        {
+                int output_fd = get_output_fd(self);
+                assert(output_fd != -1);
+
+                size = sendfile(output_fd, input_fd, offset, size);
+                return size;
+        }
+
+        public void terminate(Self *self)
+        {
+                set_input_fd(self, -1);
+                set_output_fd(self, -1);
+        }
+}
+

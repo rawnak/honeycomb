@@ -84,6 +84,7 @@ ZVectorGlobal * z_vector_get_type(struct zco_context_t *ctx);
 void __z_vector_init(struct zco_context_t *ctx, ZVector *self);
 void __z_vector_class_init(struct zco_context_t *ctx, ZVectorClass *_class);
 Self * z_vector_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator);
+int  z_vector_get_item_size(Self *self);
 void z_vector_set_item_size(Self *self, int  value);
 void z_vector_set_is_insert_only_mode(Self *self, int  value);
 void z_vector_set_item_construct(Self *self, ZVectorItemCallback  value);

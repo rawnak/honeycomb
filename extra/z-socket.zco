@@ -1,0 +1,334 @@
+/* ZCO - Cross-platform Application Framework
+ * Copyright (C) 2014  Rawnak Jahan Syeda
+ *
+ * z-socket.zco: Wrapper on socket APIs
+ * This file is part of ZCO.
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZCO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+%h{
+#include <z-stream.h>
+#include <z-object.h>
+#include <z-string.h>
+#include <netinet/in.h>
+
+union sock_address {
+        struct sockaddr         common;
+        struct sockaddr_in      ipv4;
+        struct sockaddr_in6     ipv6;
+};
+
+struct ZSocketSerialized {
+        union sock_address info;
+        int fd;
+};
+
+typedef struct ZSocketSerialized ZSocketSerialized;
+
+
+%}
+%{
+#include <z-socket.h>
+#include <z-vector-segment.h>
+#include <sys/sendfile.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <errno.h>
+
+struct socket_serialized {
+        union sock_address info;
+        int fd;
+};
+
+%}
+
+class ZSocket : ZObject
+{
+        /* sockaddr_in6 is chosen here because it is the larger than sockaddr_in.
+           We don't know which address family we will use so we want to reserve
+           enough space for either IPv4 or IPv6 */
+        private union sock_address info;
+        private int fd;
+
+	init(Self *self)
+	{
+                memset(&selfp->info, 0, sizeof(union sock_address));
+                selfp->fd = -1;
+	}
+
+        override(ZObject) void reset(ZObject *object)
+        {
+                Self *self = (Self *) object;
+                clear(self);
+                PARENT_HANDLER(object);
+        }
+
+	public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
+	{
+		Self *self = GET_NEW(ctx, allocator);
+		return self;
+	}
+
+        public void clear(Self *self)
+        {
+                memset(&selfp->info, 0, sizeof(union sock_address));
+                selfp->fd = -1;
+        }
+
+        public void get_serialized_data(Self *self, ZSocketSerialized *data)
+        {
+                data->info = selfp->info;
+                data->fd = selfp->fd;
+        }
+        
+        public void set_serialized_data(Self *self, ZSocketSerialized *data)
+        {
+                selfp->info = data->info;
+                selfp->fd = data->fd;
+        }
+
+        public int is_ipv4
+        {
+                get
+                {
+                        return (selfp->info.common.sa_family == AF_INET)? 1 : 0;
+                }
+        }
+
+        public int is_ipv6
+        {
+                get
+                {
+                        return (selfp->info.common.sa_family == AF_INET6)? 1 : 0;
+                }
+        }
+
+        public in_port_t port
+        {
+                get
+                {
+                        switch (selfp->info.common.sa_family) {
+                        case AF_INET6:
+                                return ntohs(selfp->info.ipv6.sin6_port);
+                        case AF_INET:
+                                return ntohs(selfp->info.ipv4.sin_port);
+                        default:
+                                /* Unsupported address family */
+                                abort();
+                        }
+                }
+                set
+                {
+                        switch (selfp->info.common.sa_family) {
+                        case AF_INET6:
+                                selfp->info.ipv6.sin6_port = htons(value);
+                                break;
+                        case AF_INET:
+                                selfp->info.ipv4.sin_port = htons(value);
+                                break;
+                        default:
+                                /* Unsupported address family */
+                                abort();
+                        }
+                }
+        }
+
+        public uint32_t flowinfo
+        {
+                get
+                {
+                        assert(get_is_ipv6(self));
+                        return selfp->info.ipv6.sin6_flowinfo;
+                }
+                set
+                {
+                        assert(get_is_ipv6(self));
+                        selfp->info.ipv6.sin6_flowinfo = value;
+                }
+        }
+
+        public struct in6_addr ipv6_address
+        {
+                get
+                {
+                        assert(get_is_ipv6(self));
+                        return selfp->info.ipv6.sin6_addr;
+                }
+                set
+                {
+                        assert(get_is_ipv6(self));
+                        selfp->info.ipv6.sin6_addr = value;
+                }
+        }
+
+        public uint32_t ipv4_address
+        {
+                get
+                {
+                        assert(get_is_ipv4(self));
+                        return selfp->info.ipv4.sin_addr.s_addr;
+                }
+                set
+                {
+                        assert(get_is_ipv4(self));
+                        selfp->info.ipv4.sin_addr.s_addr = value;
+                }
+        }
+
+        public uint32_t scope_id
+        {
+                get
+                {
+                        assert(get_is_ipv6(self));
+                        return selfp->info.ipv6.sin6_scope_id;
+                }
+                set
+                {
+                        assert(get_is_ipv6(self));
+                        selfp->info.ipv6.sin6_scope_id = value;
+                }
+        }
+
+        public int connect_stream(Self *self, ZStream *stream)
+        {
+                if (selfp->fd == -1)
+                        return -1;
+
+                z_stream_set_input_fd(stream, selfp->fd);
+                z_stream_set_output_fd(stream, selfp->fd);
+
+                return 0;
+        }
+
+        public int get_fd(Self *self)
+        {
+                return selfp->fd;
+        }
+
+        private void set_fd(Self *self, int fd)
+        {
+                selfp->fd = fd;
+        }
+
+        public int declare_family(Self *self, int family)
+        {
+                int domain;
+                socklen_t address_len;
+
+                switch (family) {
+                case AF_INET6:
+                        domain = PF_INET6;
+                        address_len = sizeof(struct sockaddr_in6);
+                        break;
+                case AF_INET:
+                        domain = PF_INET;
+                        address_len = sizeof(struct sockaddr_in);
+                        break;
+                default:
+                        /* Unsupported address family */
+                        abort();
+                }
+
+                /* Create TCP socket */
+                if ((selfp->fd = socket(domain, SOCK_STREAM, 0)) == -1) {
+                        perror("Failed to create socket");
+                        return -1;
+                }
+
+                selfp->info.common.sa_family = family;
+                return 0;
+        }
+
+        private int bind_to_fd(Self *self)
+        {
+                socklen_t address_len;
+
+                if (selfp->fd == -1)
+                        return -1;
+
+                switch (selfp->info.common.sa_family) {
+                case AF_INET6:
+                        address_len = sizeof(struct sockaddr_in6);
+                        break;
+                case AF_INET:
+                        address_len = sizeof(struct sockaddr_in);
+                        break;
+                default:
+                        /* Unsupported address family */
+                        abort();
+                }
+
+                /* Bind the socket */
+                if (bind(selfp->fd, &selfp->info.common, address_len) == -1) {
+                        perror("Failed to bind the socket");
+                        return -1;
+                }
+
+                return 0;
+        }
+
+        public int enable_passive_mode(Self *self, int backlog)
+        {
+                if (bind_to_fd(self) == -1) {
+                        return -1;
+                }
+
+                if (listen(selfp->fd, backlog) == -1) {
+                        perror("Failed to listen on server socket");
+                        return -1;
+                }
+
+                return 0;
+        }
+
+        public ZSocket * accept_connection(Self *self)
+        {
+                ZSocket *socket = z_socket_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                union sock_address client_address;
+                int client_address_len;
+                int client_fd;
+
+                switch (selfp->info.common.sa_family) {
+                case AF_INET6:
+                        client_address_len = sizeof(struct sockaddr_in6);
+                        client_fd = accept(selfp->fd, &client_address.common, &client_address_len);
+
+                        declare_family(socket, AF_INET6);
+                        set_fd(socket, client_fd);
+                        set_port(socket, ntohs(client_address.ipv6.sin6_port));
+                        set_flowinfo(socket, client_address.ipv6.sin6_flowinfo);
+                        set_ipv6_address(socket, client_address.ipv6.sin6_addr);
+                        set_scope_id(socket, client_address.ipv6.sin6_scope_id);
+
+                        break;
+                case AF_INET:
+                        client_address_len = sizeof(struct sockaddr_in);
+                        client_fd = accept(selfp->fd, &client_address.common, &client_address_len);
+
+                        declare_family(socket, AF_INET);
+                        set_fd(socket, client_fd);
+                        set_port(socket, ntohs(client_address.ipv4.sin_port));
+                        set_ipv4_address(socket, client_address.ipv4.sin_addr.s_addr);
+
+                        break;
+                default:
+                        /* Unsupported address family */
+                        abort();
+                }
+
+                return socket;
+        }
+}
+

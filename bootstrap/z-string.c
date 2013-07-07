@@ -66,6 +66,7 @@
 #define to_lower z_string_to_lower
 #define compare z_string_compare
 #define get_length z_string_get_length
+#define get_size z_string_get_size
 #define get_begin z_string_get_begin
 #define get_end z_string_get_end
 #define clear z_string_clear
@@ -1223,6 +1224,10 @@ int  z_string_compare(Self *self,ZStringIter *it,ZString *other,ZStringIter *oth
 int  z_string_get_length(Self *self)
 {
  return selfp->length;
+ }
+int  z_string_get_size(Self *self)
+{
+ return z_vector_get_size(selfp->data);
  }
 ZStringIter *  z_string_get_begin(Self *self)
 {

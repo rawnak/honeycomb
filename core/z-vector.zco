@@ -115,6 +115,13 @@ class ZVector : ZObject
 
         public int item_size
         {
+                get
+                {
+                        if (selfp->storage_mode == 1)
+                                return 0;
+                        else
+                                return selfp->item_size;
+                }
                 set
                 {
                         if (value == 0) {

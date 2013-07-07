@@ -105,6 +105,7 @@ void  z_string_push_back(Self *self,uint32_t ch);
 void  z_string_insert_char(Self *self,ZStringIter *it,int count,uint32_t ch);
 int  z_string_compare(Self *self,ZStringIter *it,ZString *other,ZStringIter *other_iter,int flags,int64_t count);
 int  z_string_get_length(Self *self);
+int  z_string_get_size(Self *self);
 ZStringIter *  z_string_get_begin(Self *self);
 ZStringIter *  z_string_get_end(Self *self);
 void  z_string_clear(Self *self);

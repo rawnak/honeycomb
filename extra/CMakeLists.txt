@@ -24,6 +24,10 @@ parse_zco(z-worker-group)
 parse_zco(z-guid)
 parse_zco(z-application)
 parse_zco(z-session-manager)
+parse_zco(z-server)
+parse_zco(z-stream)
+parse_zco(z-net-stream)
+parse_zco(z-socket)
 
 add_library(
    zclib-extra SHARED
@@ -31,5 +35,9 @@ add_library(
    z-guid.c
    z-application.c
    z-session-manager.c
+   z-server.c
+   z-stream.c
+   z-net-stream.c
+   z-socket.c
    )
 

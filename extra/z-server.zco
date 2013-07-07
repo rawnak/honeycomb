@@ -1,0 +1,323 @@
+/* ZCO - Cross-platform Application Framework
+ * Copyright (C) 2014  Rawnak Jahan Syeda
+ *
+ * z-server.zco: Server main loop
+ * This file is part of ZCO.
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZCO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+%h{
+#include <z-object.h>
+#include <z-socket.h>
+
+#include <fcntl.h>
+#include <netinet/in.h>
+#include <signal.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <errno.h>
+#include <stdio.h>
+
+
+%}
+
+%{
+#include <z-bind.h>
+#include <sys/epoll.h>
+#include <unistd.h>
+
+#define MAX_EVENTS 100
+
+%}
+
+class ZServer : ZObject
+{
+        private struct zco_context_t *target_context;
+        private ZBind *cb_open_connection;
+        private ZBind *cb_close_connection;
+        private ZBind *cb_process_message;
+        private ZSocket *server_socket;
+        private struct epoll_event *events;
+
+        init(Self *self)
+        {
+                selfp->server_socket = z_socket_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+
+                z_socket_declare_family(selfp->server_socket, AF_INET6);
+                z_socket_set_ipv6_address(selfp->server_socket, in6addr_any);
+                z_socket_set_flowinfo(selfp->server_socket, 0);
+
+                /* Allocate space to hold epoll events */
+                selfp->events = z_memory_allocator_allocate(
+                                CTX_FROM_OBJECT(self)->fixed_allocator,
+                                sizeof(struct epoll_event) * MAX_EVENTS);
+
+                selfp->cb_open_connection = NULL;
+                selfp->cb_close_connection = NULL;
+                selfp->cb_process_message = NULL;
+                selfp->target_context = NULL;
+        }
+
+        override(ZObject) void reset(ZObject *object)
+        {
+                Self *self = (Self *) object;
+
+                /* Release references to event handlers */
+                set_open_connection_callback(self, NULL);
+                set_close_connection_callback(self, NULL);
+                set_message_callback(self, NULL);
+
+                /* Reset IP address information */
+                z_socket_clear(selfp->server_socket);
+
+                z_socket_set_ipv6_address(selfp->server_socket, in6addr_any);
+                z_socket_set_flowinfo(selfp->server_socket, 0);
+
+                selfp->target_context = NULL;
+                PARENT_HANDLER(object);
+        }
+
+	override(ZObject) void dispose(ZObject *object)
+	{
+                Self *self = (Self *) object;
+
+                z_object_unref(Z_OBJECT(selfp->server_socket));
+
+                /* Release references to event handlers */
+                set_open_connection_callback(self, NULL);
+                set_close_connection_callback(self, NULL);
+                set_message_callback(self, NULL);
+
+                /* Free memory used by epoll to store events */
+                z_memory_allocator_deallocate_by_size(
+                                CTX_FROM_OBJECT(self)->fixed_allocator,
+                                selfp->events,
+                                sizeof(struct epoll_event) * MAX_EVENTS);
+
+                PARENT_HANDLER(object);
+	}
+
+	public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
+	{
+		Self *self = GET_NEW(ctx, allocator);
+		return self;
+	}
+
+        public int port
+        {
+                set
+                {
+                        z_socket_set_port(selfp->server_socket, value);
+                }
+                get
+                {
+                        return z_socket_get_port(selfp->server_socket);
+                }
+        }
+
+        public struct zco_context_t * target_context
+        {
+                set
+                {
+                        selfp->target_context = value;
+                }
+        }
+
+        public ZBind * open_connection_callback
+        {
+                set
+                {
+                        if (selfp->cb_open_connection)
+                                z_object_unref(Z_OBJECT(selfp->cb_open_connection));
+
+                        selfp->cb_open_connection = value;
+
+                        if (selfp->cb_open_connection)
+                                z_object_ref(Z_OBJECT(selfp->cb_open_connection));
+                }
+        }
+
+        public ZBind * close_connection_callback
+        {
+                set
+                {
+                        if (selfp->cb_close_connection)
+                                z_object_unref(Z_OBJECT(selfp->cb_close_connection));
+
+                        selfp->cb_close_connection = value;
+
+                        if (selfp->cb_close_connection)
+                                z_object_ref(Z_OBJECT(selfp->cb_close_connection));
+                }
+        }
+
+        public ZBind * message_callback
+        {
+                set
+                {
+                        if (selfp->cb_process_message)
+                                z_object_unref(Z_OBJECT(selfp->cb_process_message));
+
+                        selfp->cb_process_message = value;
+
+                        if (selfp->cb_process_message)
+                                z_object_ref(Z_OBJECT(selfp->cb_process_message));
+                }
+        }
+
+        private void epoll_add(Self *self, int epfd, ZSocket *socket)
+        {
+                struct epoll_event event;
+                int fd = z_socket_get_fd(socket);
+
+                memset(&event, 0, sizeof(struct epoll_event));
+                event.data.ptr = socket;
+                event.events = EPOLLIN | EPOLLRDHUP | EPOLLPRI | EPOLLET;
+
+                if (epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &event) != 0) {
+                        perror("epoll_ctl");
+                        abort();
+                }
+        }
+
+        private void epoll_delete(Self *self, int epfd, int fd)
+        {
+                if (epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL) != 0) {
+                        perror("epoll_ctl");
+                        abort();
+                }
+        }
+
+        private void accept_connection(Self *self, int epfd)
+        {
+                struct sockaddr_in6 cin6;
+
+                /* Wait for client connection. This should be instantanous since we
+                   are already notified that there is an activity on the server socket. */
+                ZSocket *client_socket = z_socket_accept_connection(selfp->server_socket);
+                int client_fd = z_socket_get_fd(client_socket);
+
+                if (client_fd == -1) {
+                        if (errno == EINTR) {
+                                return;
+
+                        } else {
+                                perror("Failed to accept client connection");
+                                return;
+                        }
+                }
+
+                /* Listen to events on the client socket */
+                epoll_add(self, epfd, client_socket);
+
+                /* Backup the original bind so that we can use it the next time */
+                assert(selfp->cb_open_connection);
+                ZBind *original = z_bind_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                z_bind_assign(original, selfp->cb_open_connection);
+
+                /* Append the client socket info */
+                ZSocketSerialized serialized_socket;
+                z_socket_get_serialized_data(client_socket, &serialized_socket);
+                z_bind_append_variable_buffer(selfp->cb_open_connection, &serialized_socket, sizeof(ZSocketSerialized));
+
+                /* We will always post a task to a queue, instead of blockingly invoke it */
+                assert(selfp->target_context);
+                zco_context_post_task(selfp->target_context, selfp->cb_open_connection, NULL, 0);
+
+                z_object_unref(Z_OBJECT(selfp->cb_open_connection));
+                selfp->cb_open_connection = original;
+        }
+
+        private void handle_message(Self *self, ZSocket *client_socket)
+        {
+                if (!selfp->cb_process_message)
+                        return;
+
+                /* Backup the original bind so that we can use it the next time */
+                assert(selfp->cb_process_message);
+                ZBind *original = z_bind_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                z_bind_assign(original, selfp->cb_process_message);
+
+                /* Append the client socket info */
+                ZSocketSerialized serialized_socket;
+                z_socket_get_serialized_data(client_socket, &serialized_socket);
+                z_bind_append_variable_buffer(selfp->cb_process_message, &serialized_socket, sizeof(ZSocketSerialized));
+
+                /* We will always post a task to a queue, instead of blockingly invoke it */
+                assert(selfp->target_context);
+                zco_context_post_task(selfp->target_context, selfp->cb_process_message, NULL, 0);
+
+                /* Restore the original bind */
+                z_object_unref(Z_OBJECT(selfp->cb_process_message));
+                selfp->cb_process_message = original;
+        }
+
+        public int run(Self *self)
+        {
+                struct epoll_event events[MAX_EVENTS];
+                int epfd;
+
+                if (z_socket_enable_passive_mode(selfp->server_socket, 5) == -1)
+                        return -1;
+
+                /* Open an epoll file descriptor */
+                if ((epfd = epoll_create1(0)) < 0) {
+                        perror("Failed on epoll_create1");
+                        return -1;
+                }
+
+                /* Keep an eye on the server socket so we accept a new connection when there is one */
+                epoll_add(self, epfd, selfp->server_socket);
+ 
+                while(1) {
+                        sigset_t sigmask;
+                        sigemptyset(&sigmask);
+
+                        /* epoll_pwait first calls sigprocmask to set the signal mask to the
+                           specified 'sigmask', calls the standard epoll_wait() function and
+                           then resets the signal mask with another call to sigprocmask, all
+                           atomically. although we are not supposed to use sigprocmask in a
+                           multi-threaded application, we can still get away with it as long
+                           as we don't block the SIGCANCEL and SIGSETXID signals. */
+                        int nfds = epoll_pwait(epfd, events, MAX_EVENTS, -1, &sigmask);
+
+                        if (nfds < 0) {
+                                if (errno != EINTR)
+                                        perror("epoll_pwait");
+                        } else {
+                                for (int i=0; i < nfds; ++i) {
+                                        ZSocket *socket = (ZSocket *) events[i].data.ptr;
+
+                                        if (socket == selfp->server_socket) {
+                                                /* The activity happened on the server socket
+                                                   so there may be a new connection. */
+                                                accept_connection(self, epfd);
+
+                                        } else {
+                                                /* The activity happend on a client socket,
+                                                   probably a message from a client */
+                                                handle_message(self, socket);
+                                        }
+                                }
+                        }
+                }
+
+                /* Close the epoll file descriptor */
+                close(epfd);
+
+                return 0;
+        }
+}
+

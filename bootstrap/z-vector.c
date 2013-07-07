@@ -38,6 +38,7 @@
 #define INIT_EXISTS
 #define init z_vector_init
 #define new z_vector_new
+#define get_item_size z_vector_get_item_size
 #define set_item_size z_vector_set_item_size
 #define set_is_insert_only_mode z_vector_set_is_insert_only_mode
 #define set_item_construct z_vector_set_item_construct
@@ -289,6 +290,13 @@ Self * z_vector_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator)
 
  Self *self = GET_NEW(ctx, allocator);
  return self;
+ }
+int  z_vector_get_item_size(Self *self)
+{
+ if (selfp->storage_mode == 1)
+ return 0;
+ else
+ return selfp->item_size;
  }
 void z_vector_set_item_size(Self *self, int  value)
 {

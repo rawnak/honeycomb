@@ -1041,6 +1041,14 @@ class ZString : ZObject
 		}
 	}
 
+        public int size
+        {
+                get
+                {
+                        return z_vector_get_size(selfp->data);
+                }
+        }
+
 	public ZStringIter * begin
 	{
 		get
