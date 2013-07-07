@@ -20,11 +20,11 @@
 
 %h{
 #include <z-map.h>
+#include <z-guid.h>
 %}
 
 %{
 #include <z-string.h>
-#include <z-guid.h>
 #include <z-application.h>
 %}
 

@@ -63,7 +63,7 @@ void trace(const char *fmt, ...)
         va_end(ap);
 }
 
-static void task_callback(ZBind *bind, int test_set_number, int test_case_number, int capacity)
+static void task_callback(ZBind *bind, uint32_t test_set_number, uint32_t test_case_number, uint32_t capacity)
 {
         struct zco_context_t *context = CTX_FROM_OBJECT(bind);
 
@@ -115,13 +115,13 @@ static void application_main(ZBind *bind, int test_set_number, int test_case_num
 
                 } else { 
                         z_bind_set_handler(task, (ZBindHandler) task_callback);
-                        z_bind_append_int(task, test_set_number);
-                        z_bind_append_int(task, test_case_number);
-                        z_bind_append_int(task, capacity);
+                        z_bind_append_uint32(task, test_set_number);
+                        z_bind_append_uint32(task, test_case_number);
+                        z_bind_append_uint32(task, capacity);
 
-                        z_bind_append_int(completion_task, test_set_number);
-                        z_bind_append_int(completion_task, test_case_number);
-                        z_bind_append_int(completion_task, capacity);
+                        z_bind_append_uint32(completion_task, test_set_number);
+                        z_bind_append_uint32(completion_task, test_case_number);
+                        z_bind_append_uint32(completion_task, capacity);
 
                         if (capacity == 1) {
                                 z_bind_append_ptr(completion_task, lock);
@@ -252,8 +252,8 @@ int main(int argc, char **argv)
                 /* Post all the test tasks */
                 ZBind *task = z_bind_new(&main_ctx, main_ctx.flex_allocator);
                 z_bind_set_handler(task, (ZBindHandler) application_main);
-                z_bind_append_int(task, test_set_number);
-                z_bind_append_int(task, test_case_number);
+                z_bind_append_uint32(task, test_set_number);
+                z_bind_append_uint32(task, test_case_number);
                 z_bind_append_ptr(task, worker_group);
                 z_bind_append_ptr(task, &lock);
                 zco_context_post_task(&app_ctx, task, NULL, 0);

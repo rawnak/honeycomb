@@ -97,9 +97,44 @@ class ZBind : ZObject
                 selfp->data.args_size = args_size + arg_size + 1;
         }
 
-        public void append_int(Self *self, int value)
+        public void append_int8(Self *self, int8_t value)
         {
-                append_argument(self, &value, sizeof(int));
+                append_argument(self, &value, sizeof(value));
+        }
+
+        public void append_int16(Self *self, int16_t value)
+        {
+                append_argument(self, &value, sizeof(value));
+        }
+
+        public void append_int32(Self *self, int32_t value)
+        {
+                append_argument(self, &value, sizeof(value));
+        }
+
+        public void append_int64(Self *self, int64_t value)
+        {
+                append_argument(self, &value, sizeof(value));
+        }
+
+        public void append_uint8(Self *self, uint8_t value)
+        {
+                append_argument(self, &value, sizeof(value));
+        }
+
+        public void append_uint16(Self *self, uint16_t value)
+        {
+                append_argument(self, &value, sizeof(value));
+        }
+
+        public void append_uint32(Self *self, uint32_t value)
+        {
+                append_argument(self, &value, sizeof(value));
+        }
+
+        public void append_uint64(Self *self, uint64_t value)
+        {
+                append_argument(self, &value, sizeof(value));
         }
 
         public void append_ptr(Self *self, void *value)
