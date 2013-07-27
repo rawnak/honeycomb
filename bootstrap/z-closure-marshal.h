@@ -53,7 +53,7 @@ struct ZClosureMarshalGlobal {
 };
 
 struct ZClosureMarshalClass {
-	int  (*__invoke)(Self *self,ZObject *target,ZObjectSignalHandler handler,ZVector *args,void *userdata);
+	int  (*__invoke)(Self *self,ZObject *target,ZObjectSignalHandler handler,ZVector *args,ZVector *vargs,void *userdata);
 };
 
 struct ZClosureMarshal {
@@ -65,7 +65,7 @@ extern int z_closure_marshal_type_id;
 ZClosureMarshalGlobal * z_closure_marshal_get_type(struct zco_context_t *ctx);
 void __z_closure_marshal_init(struct zco_context_t *ctx, ZClosureMarshal *self);
 void __z_closure_marshal_class_init(struct zco_context_t *ctx, ZClosureMarshalClass *_class);
-int  z_closure_marshal_invoke(Self *self,ZObject *target,ZObjectSignalHandler handler,ZVector *args,void *userdata);
+int  z_closure_marshal_invoke(Self *self,ZObject *target,ZObjectSignalHandler handler,ZVector *args,ZVector *vargs,void *userdata);
 
 #undef Self
 

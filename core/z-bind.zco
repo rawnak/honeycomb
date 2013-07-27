@@ -22,6 +22,7 @@
 #include <zco-config.h>
 #include <z-vector.h>
 #include <z-closure.h>
+#include <stdarg.h>
 
 struct ZBind;
 typedef void(*ZBindHandler)(struct ZBind *self, ...);
@@ -30,7 +31,9 @@ struct ZBindData
 {
         ZBindHandler handler;
         int args_size;
+        int vargs_size;
         uint8_t args[TASK_ARG_SIZE];
+        uint8_t vargs[TASK_ARG_SIZE];
 };
 
 typedef struct ZBindData ZBindData;
@@ -41,8 +44,9 @@ typedef struct ZBindData ZBindData;
 #include <z-value.h>
 #include <stdint.h>
 #include <assert.h>
+#include <arpa/inet.h>
 
-
+#include <stdio.h>
 %}
 
 class ZBind : ZObject
@@ -55,7 +59,9 @@ class ZBind : ZObject
                 selfp->data_ptr = &selfp->data;
                 selfp->data.handler = NULL;
                 selfp->data.args_size = 0;
+                selfp->data.vargs_size = 0;
                 memset(selfp->data.args, 0, sizeof(selfp->data.args));
+                memset(selfp->data.args, 0, sizeof(selfp->data.vargs));
         }
 
         override(ZObject) void reset(ZObject *object)
@@ -65,7 +71,9 @@ class ZBind : ZObject
                 selfp->data_ptr = &selfp->data;
                 selfp->data.handler = NULL;
                 selfp->data.args_size = 0;
+                selfp->data.vargs_size = 0;
                 memset(selfp->data.args, 0, sizeof(selfp->data.args));
+                memset(selfp->data.args, 0, sizeof(selfp->data.vargs));
 
                 PARENT_HANDLER(object);
         }
@@ -82,8 +90,12 @@ class ZBind : ZObject
                 ZBindData *from = &other->_priv.data;
 
                 to->handler = from->handler;
+
                 to->args_size = from->args_size;
                 memcpy(to->args, from->args, from->args_size);
+
+                to->vargs_size = from->vargs_size;
+                memcpy(to->vargs, from->vargs, from->vargs_size);
         }
 
         private void append_argument(Self *self, void *value, int arg_size)
@@ -95,6 +107,17 @@ class ZBind : ZObject
                 memcpy(args + args_size + 1, value, arg_size);
 
                 selfp->data.args_size = args_size + arg_size + 1;
+        }
+
+        private void append_variable_argument(Self *self, void *value, int arg_size)
+        {
+                uint8_t *vargs = selfp->data.vargs;
+                int vargs_size = selfp->data.vargs_size;
+
+                *(vargs + vargs_size) = arg_size;
+                memcpy(vargs + vargs_size + 1, value, arg_size);
+
+                selfp->data.vargs_size = vargs_size + arg_size + 1;
         }
 
         public void append_int8(Self *self, int8_t value)
@@ -117,6 +140,16 @@ class ZBind : ZObject
                 append_argument(self, &value, sizeof(value));
         }
 
+        public void append_variable_int32(Self *self, int32_t value)
+        {
+                append_variable_argument(self, &value, sizeof(value));
+        }
+
+        public void append_variable_int64(Self *self, int64_t value)
+        {
+                append_variable_argument(self, &value, sizeof(value));
+        }
+
         public void append_uint8(Self *self, uint8_t value)
         {
                 append_argument(self, &value, sizeof(value));
@@ -137,9 +170,55 @@ class ZBind : ZObject
                 append_argument(self, &value, sizeof(value));
         }
 
+        public void append_variable_uint32(Self *self, uint32_t value)
+        {
+                append_variable_argument(self, &value, sizeof(value));
+        }
+
+        public void append_variable_uint64(Self *self, uint64_t value)
+        {
+                append_variable_argument(self, &value, sizeof(value));
+        }
+
         public void append_ptr(Self *self, void *value)
         {
                 append_argument(self, &value, sizeof(void*));
+        }
+
+        public void append_variable_ptr(Self *self, void *value)
+        {
+                append_variable_argument(self, &value, sizeof(void*));
+        }
+
+        public void append_variable_buffer(Self *self, void *buffer, int size)
+        {
+                uint8_t *b8 = (uint8_t *) buffer;
+
+                while (size > 0) {
+                        if (size >= 8) {
+                                append_variable_uint64(self, *((uint64_t *) b8));
+                                size -= 8;
+                                b8 += 8;
+                        } else if (size >= 4) {
+                                append_variable_uint32(self, *((uint32_t *) b8));
+                                size -= 4;
+                                b8 += 4;
+                        } else if (size == 3) {
+                                uint32_t val = 0;
+                                memcpy(&val, b8, 3);
+                                append_variable_uint32(self, val);
+                                size -= 3;
+                                b8 += 3;
+                        } else if (size == 2) {
+                                append_variable_uint32(self, (uint32_t) *((uint16_t *) b8));
+                                size -= 2;
+                                b8 += 2;
+                        } else if (size == 1) {
+                                append_variable_uint32(self, (uint32_t) *b8);
+                                --size;
+                                ++b8;
+                        }
+                }
         }
 
         public ZBindHandler handler
@@ -150,14 +229,11 @@ class ZBind : ZObject
                 }
         }
 
-        private ZVector * create_arglist(Self *self, ZBindData *data, struct zco_context_t *ctx)
+        private ZVector * create_arglist(Self *self, uint8_t *args, int args_size, struct zco_context_t *ctx)
         {
                 ZVector *arglist = z_vector_new(ctx, ctx->flex_allocator);
                 z_vector_set_item_size(arglist, 0);
                 z_vector_set_item_destruct(arglist, (ZVectorItemCallback) z_object_unref);
-
-                uint8_t *args = data->args;
-                int args_size = data->args_size;
                 int i;
 
                 for (i=0; i<args_size; ++i) {
@@ -233,17 +309,50 @@ class ZBind : ZObject
         {
                 struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
                 ZClosure *closure;
-                ZVector *arglist;
+                ZVector *args, *vargs;
 
                 closure = create_closure(self, selfp->data_ptr, ctx);
-                arglist = create_arglist(self, selfp->data_ptr, ctx);
+                args = create_arglist(self, selfp->data_ptr->args, selfp->data_ptr->args_size, ctx);
+                vargs = create_arglist(self, selfp->data_ptr->vargs, selfp->data_ptr->vargs_size, ctx);
 
-                int rc =  z_closure_invoke(closure, arglist);
+                int rc =  z_closure_invoke(closure, args, vargs);
 
-                z_object_unref(Z_OBJECT(arglist));
+                z_object_unref(Z_OBJECT(vargs));
+                z_object_unref(Z_OBJECT(args));
                 z_object_unref(Z_OBJECT(closure));
 
                 return rc;
         }
+
+        public void unpack_variable_buffer(va_list ap, void *buffer, int size)
+        {
+                uint8_t *b8 = (uint8_t *) buffer;
+
+                while (size > 0) {
+                        if (size >= 8) {
+                                *((uint64_t *) b8) = va_arg(ap, uint64_t);
+                                size -= 8;
+                                b8 += 8;
+                        } else if (size >= 4) {
+                                *((uint32_t *) b8) = va_arg(ap, uint32_t);
+                                size -= 4;
+                                b8 += 4;
+                        } else if (size == 3) {
+                                uint32_t val = va_arg(ap, uint32_t);
+                                memcpy(b8, &val, 3);
+                                size -= 3;
+                                b8 += 3;
+                        } else if (size == 2) {
+                                *((uint16_t *) b8) = va_arg(ap, uint32_t);
+                                size -= 2;
+                                b8 += 2;
+                        } else if (size == 1) {
+                                *((uint8_t *) b8) = va_arg(ap, uint32_t);
+                                --size;
+                                ++b8;
+                        }
+                }
+        }
+
 }
 

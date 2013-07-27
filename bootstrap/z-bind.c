@@ -22,8 +22,9 @@
 #include <z-value.h>
 #include <stdint.h>
 #include <assert.h>
+#include <arpa/inet.h>
 
-
+#include <stdio.h>
 
 #include <z-object-tracker.h>
 #include <z-map.h>
@@ -38,15 +39,31 @@
 #define INIT_EXISTS
 #define init z_bind_init
 #define new z_bind_new
+#define assign z_bind_assign
 #define append_argument z_bind_append_argument
-#define append_int z_bind_append_int
+#define append_variable_argument z_bind_append_variable_argument
+#define append_int8 z_bind_append_int8
+#define append_int16 z_bind_append_int16
+#define append_int32 z_bind_append_int32
+#define append_int64 z_bind_append_int64
+#define append_variable_int32 z_bind_append_variable_int32
+#define append_variable_int64 z_bind_append_variable_int64
+#define append_uint8 z_bind_append_uint8
+#define append_uint16 z_bind_append_uint16
+#define append_uint32 z_bind_append_uint32
+#define append_uint64 z_bind_append_uint64
+#define append_variable_uint32 z_bind_append_variable_uint32
+#define append_variable_uint64 z_bind_append_variable_uint64
 #define append_ptr z_bind_append_ptr
+#define append_variable_ptr z_bind_append_variable_ptr
+#define append_variable_buffer z_bind_append_variable_buffer
 #define set_handler z_bind_set_handler
 #define create_arglist z_bind_create_arglist
 #define create_closure z_bind_create_closure
 #define get_data_ptr z_bind_get_data_ptr
 #define set_data_ptr z_bind_set_data_ptr
 #define invoke z_bind_invoke
+#define unpack_variable_buffer z_bind_unpack_variable_buffer
 
 int z_bind_type_id = -1;
 
@@ -79,7 +96,8 @@ static int __map_compare(ZMap *map, const void *a, const void *b)
 static void z_bind_init(Self *self);
 static void  z_bind_reset(ZObject *object);
 static void  z_bind_append_argument(Self *self,void *value,int arg_size);
-static ZVector *  z_bind_create_arglist(Self *self,ZBindData *data,struct zco_context_t *ctx);
+static void  z_bind_append_variable_argument(Self *self,void *value,int arg_size);
+static ZVector *  z_bind_create_arglist(Self *self,uint8_t *args,int args_size,struct zco_context_t *ctx);
 static ZClosure *  z_bind_create_closure(Self *self,ZBindData *data,struct zco_context_t *ctx);
 static void z_bind_class_destroy(ZObjectGlobal *gbl);
 static void z_bind___delete(ZObject *self);
@@ -158,9 +176,24 @@ ZBindGlobal * z_bind_get_type(struct zco_context_t *ctx)
 		z_map_set_compare(global->common.method_map, __map_compare);
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
 		z_map_insert((ZMap *) global->common.method_map, strdup("new"), (ZObjectSignalHandler) new);
-		z_map_insert((ZMap *) global->common.method_map, strdup("append_int"), (ZObjectSignalHandler) append_int);
+		z_map_insert((ZMap *) global->common.method_map, strdup("assign"), (ZObjectSignalHandler) assign);
+		z_map_insert((ZMap *) global->common.method_map, strdup("append_int8"), (ZObjectSignalHandler) append_int8);
+		z_map_insert((ZMap *) global->common.method_map, strdup("append_int16"), (ZObjectSignalHandler) append_int16);
+		z_map_insert((ZMap *) global->common.method_map, strdup("append_int32"), (ZObjectSignalHandler) append_int32);
+		z_map_insert((ZMap *) global->common.method_map, strdup("append_int64"), (ZObjectSignalHandler) append_int64);
+		z_map_insert((ZMap *) global->common.method_map, strdup("append_variable_int32"), (ZObjectSignalHandler) append_variable_int32);
+		z_map_insert((ZMap *) global->common.method_map, strdup("append_variable_int64"), (ZObjectSignalHandler) append_variable_int64);
+		z_map_insert((ZMap *) global->common.method_map, strdup("append_uint8"), (ZObjectSignalHandler) append_uint8);
+		z_map_insert((ZMap *) global->common.method_map, strdup("append_uint16"), (ZObjectSignalHandler) append_uint16);
+		z_map_insert((ZMap *) global->common.method_map, strdup("append_uint32"), (ZObjectSignalHandler) append_uint32);
+		z_map_insert((ZMap *) global->common.method_map, strdup("append_uint64"), (ZObjectSignalHandler) append_uint64);
+		z_map_insert((ZMap *) global->common.method_map, strdup("append_variable_uint32"), (ZObjectSignalHandler) append_variable_uint32);
+		z_map_insert((ZMap *) global->common.method_map, strdup("append_variable_uint64"), (ZObjectSignalHandler) append_variable_uint64);
 		z_map_insert((ZMap *) global->common.method_map, strdup("append_ptr"), (ZObjectSignalHandler) append_ptr);
+		z_map_insert((ZMap *) global->common.method_map, strdup("append_variable_ptr"), (ZObjectSignalHandler) append_variable_ptr);
+		z_map_insert((ZMap *) global->common.method_map, strdup("append_variable_buffer"), (ZObjectSignalHandler) append_variable_buffer);
 		z_map_insert((ZMap *) global->common.method_map, strdup("invoke"), (ZObjectSignalHandler) invoke);
+		z_map_insert((ZMap *) global->common.method_map, strdup("unpack_variable_buffer"), (ZObjectSignalHandler) unpack_variable_buffer);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZBindGlobal *) global);
 		#endif
@@ -192,7 +225,9 @@ static void z_bind_init(Self *self)
  selfp->data_ptr = &selfp->data;
  selfp->data.handler = NULL;
  selfp->data.args_size = 0;
+ selfp->data.vargs_size = 0;
  memset(selfp->data.args, 0, sizeof(selfp->data.args));
+ memset(selfp->data.args, 0, sizeof(selfp->data.vargs));
  }
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_reset
 static void  z_bind_reset(ZObject *object)
@@ -202,7 +237,9 @@ static void  z_bind_reset(ZObject *object)
  selfp->data_ptr = &selfp->data;
  selfp->data.handler = NULL;
  selfp->data.args_size = 0;
+ selfp->data.vargs_size = 0;
  memset(selfp->data.args, 0, sizeof(selfp->data.args));
+ memset(selfp->data.args, 0, sizeof(selfp->data.vargs));
 
  PARENT_HANDLER(object);
  }
@@ -211,6 +248,19 @@ Self * z_bind_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator)
 {
  Self *self = GET_NEW(ctx, allocator);
  return self;
+ }
+void  z_bind_assign(Self *self,ZBind *other)
+{
+ ZBindData *to = &selfp->data;
+ ZBindData *from = &other->_priv.data;
+
+ to->handler = from->handler;
+
+ to->args_size = from->args_size;
+ memcpy(to->args, from->args, from->args_size);
+
+ to->vargs_size = from->vargs_size;
+ memcpy(to->vargs, from->vargs, from->vargs_size);
  }
 static void  z_bind_append_argument(Self *self,void *value,int arg_size)
 {
@@ -222,26 +272,111 @@ static void  z_bind_append_argument(Self *self,void *value,int arg_size)
 
  selfp->data.args_size = args_size + arg_size + 1;
  }
-void  z_bind_append_int(Self *self,int value)
+static void  z_bind_append_variable_argument(Self *self,void *value,int arg_size)
 {
- append_argument(self, &value, sizeof(int));
+ uint8_t *vargs = selfp->data.vargs;
+ int vargs_size = selfp->data.vargs_size;
+
+ *(vargs + vargs_size) = arg_size;
+ memcpy(vargs + vargs_size + 1, value, arg_size);
+
+ selfp->data.vargs_size = vargs_size + arg_size + 1;
+ }
+void  z_bind_append_int8(Self *self,int8_t value)
+{
+ append_argument(self, &value, sizeof(value));
+ }
+void  z_bind_append_int16(Self *self,int16_t value)
+{
+ append_argument(self, &value, sizeof(value));
+ }
+void  z_bind_append_int32(Self *self,int32_t value)
+{
+ append_argument(self, &value, sizeof(value));
+ }
+void  z_bind_append_int64(Self *self,int64_t value)
+{
+ append_argument(self, &value, sizeof(value));
+ }
+void  z_bind_append_variable_int32(Self *self,int32_t value)
+{
+ append_variable_argument(self, &value, sizeof(value));
+ }
+void  z_bind_append_variable_int64(Self *self,int64_t value)
+{
+ append_variable_argument(self, &value, sizeof(value));
+ }
+void  z_bind_append_uint8(Self *self,uint8_t value)
+{
+ append_argument(self, &value, sizeof(value));
+ }
+void  z_bind_append_uint16(Self *self,uint16_t value)
+{
+ append_argument(self, &value, sizeof(value));
+ }
+void  z_bind_append_uint32(Self *self,uint32_t value)
+{
+ append_argument(self, &value, sizeof(value));
+ }
+void  z_bind_append_uint64(Self *self,uint64_t value)
+{
+ append_argument(self, &value, sizeof(value));
+ }
+void  z_bind_append_variable_uint32(Self *self,uint32_t value)
+{
+ append_variable_argument(self, &value, sizeof(value));
+ }
+void  z_bind_append_variable_uint64(Self *self,uint64_t value)
+{
+ append_variable_argument(self, &value, sizeof(value));
  }
 void  z_bind_append_ptr(Self *self,void *value)
 {
  append_argument(self, &value, sizeof(void*));
  }
+void  z_bind_append_variable_ptr(Self *self,void *value)
+{
+ append_variable_argument(self, &value, sizeof(void*));
+ }
+void  z_bind_append_variable_buffer(Self *self,void *buffer,int size)
+{
+ uint8_t *b8 = (uint8_t *) buffer;
+
+ while (size > 0) {
+ if (size >= 8) {
+ append_variable_uint64(self, *((uint64_t *) b8));
+ size -= 8;
+ b8 += 8;
+ } else if (size >= 4) {
+ append_variable_uint32(self, *((uint32_t *) b8));
+ size -= 4;
+ b8 += 4;
+ } else if (size == 3) {
+ uint32_t val = 0;
+ memcpy(&val, b8, 3);
+ append_variable_uint32(self, val);
+ size -= 3;
+ b8 += 3;
+ } else if (size == 2) {
+ append_variable_uint32(self, (uint32_t) *((uint16_t *) b8));
+ size -= 2;
+ b8 += 2;
+ } else if (size == 1) {
+ append_variable_uint32(self, (uint32_t) *b8);
+ --size;
+ ++b8;
+ }
+ }
+ }
 void z_bind_set_handler(Self *self, ZBindHandler  value)
 {
  selfp->data_ptr->handler = value;
  }
-static ZVector *  z_bind_create_arglist(Self *self,ZBindData *data,struct zco_context_t *ctx)
+static ZVector *  z_bind_create_arglist(Self *self,uint8_t *args,int args_size,struct zco_context_t *ctx)
 {
  ZVector *arglist = z_vector_new(ctx, ctx->flex_allocator);
  z_vector_set_item_size(arglist, 0);
  z_vector_set_item_destruct(arglist, (ZVectorItemCallback) z_object_unref);
-
- uint8_t *args = data->args;
- int args_size = data->args_size;
  int i;
 
  for (i=0; i<args_size; ++i) {
@@ -311,17 +446,48 @@ int  z_bind_invoke(Self *self)
 {
  struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
  ZClosure *closure;
- ZVector *arglist;
+ ZVector *args, *vargs;
 
  closure = create_closure(self, selfp->data_ptr, ctx);
- arglist = create_arglist(self, selfp->data_ptr, ctx);
+ args = create_arglist(self, selfp->data_ptr->args, selfp->data_ptr->args_size, ctx);
+ vargs = create_arglist(self, selfp->data_ptr->vargs, selfp->data_ptr->vargs_size, ctx);
 
- int rc = z_closure_invoke(closure, arglist);
+ int rc = z_closure_invoke(closure, args, vargs);
 
- z_object_unref(Z_OBJECT(arglist));
+ z_object_unref(Z_OBJECT(vargs));
+ z_object_unref(Z_OBJECT(args));
  z_object_unref(Z_OBJECT(closure));
 
  return rc;
+ }
+void  z_bind_unpack_variable_buffer(va_list ap,void *buffer,int size)
+{
+ uint8_t *b8 = (uint8_t *) buffer;
+
+ while (size > 0) {
+ if (size >= 8) {
+ *((uint64_t *) b8) = va_arg(ap, uint64_t);
+ size -= 8;
+ b8 += 8;
+ } else if (size >= 4) {
+ *((uint32_t *) b8) = va_arg(ap, uint32_t);
+ size -= 4;
+ b8 += 4;
+ } else if (size == 3) {
+ uint32_t val = va_arg(ap, uint32_t);
+ memcpy(b8, &val, 3);
+ size -= 3;
+ b8 += 3;
+ } else if (size == 2) {
+ *((uint16_t *) b8) = va_arg(ap, uint32_t);
+ size -= 2;
+ b8 += 2;
+ } else if (size == 1) {
+ *((uint8_t *) b8) = va_arg(ap, uint32_t);
+ --size;
+ ++b8;
+ }
+ }
  }
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
 static void z_bind_class_destroy(ZObjectGlobal *gbl)

@@ -257,7 +257,7 @@ static void  z_event_loop_runqueue_key_destroy(void *item,Self *self)
  }
 static void  z_event_loop_runqueue_value_destroy(ZTask *bind_data,Self *self)
 {
- ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
+ ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->ts_fixed_allocator;
  z_memory_allocator_deallocate_by_size(allocator, bind_data, sizeof(ZTask));
  }
 static void z_event_loop_init(Self *self)
@@ -357,7 +357,6 @@ static void  z_event_loop_thread_main(Self *self)
  int is_running = 1;
  struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
  ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
- ZMemoryAllocator *data_allocator = ctx->ts_fixed_allocator;
 
  while (is_running) {
  /* Move tasks from the pending queue into the run queue */

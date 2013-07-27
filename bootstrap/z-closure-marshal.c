@@ -61,7 +61,7 @@ static int __map_compare(ZMap *map, const void *a, const void *b)
 {
 	return strcmp(a, b);
 }
-static int  z_closure_marshal_virtual_invoke(Self *self,ZObject *target,ZObjectSignalHandler handler,ZVector *args,void *userdata);
+static int  z_closure_marshal_virtual_invoke(Self *self,ZObject *target,ZObjectSignalHandler handler,ZVector *args,ZVector *vargs,void *userdata);
 
 static void cleanup_signal_arg(void *item, void *userdata)
 {
@@ -125,15 +125,15 @@ void __z_closure_marshal_init(struct zco_context_t *ctx, Self *self)
 		init(self);
 	#endif
 }
-int  z_closure_marshal_invoke(Self *self,ZObject *target,ZObjectSignalHandler handler,ZVector *args,void *userdata)
+int  z_closure_marshal_invoke(Self *self,ZObject *target,ZObjectSignalHandler handler,ZVector *args,ZVector *vargs,void *userdata)
 {
 	ZObject *obj = (ZObject *) self;
 	ZObjectClass *class_base = (ZObjectClass *) obj->class_base;
 	ZCommonGlobal *common_global = class_base->real_global;
 	unsigned long offset = common_global->svtable_off_list[z_closure_marshal_type_id];
-	((ZClosureMarshalClass *) ((char *) class_base + offset))->__invoke(self,target,handler,args,userdata);
+	((ZClosureMarshalClass *) ((char *) class_base + offset))->__invoke(self,target,handler,args,vargs,userdata);
 }
-static int  z_closure_marshal_virtual_invoke(Self *self,ZObject *target,ZObjectSignalHandler handler,ZVector *args,void *userdata)
+static int  z_closure_marshal_virtual_invoke(Self *self,ZObject *target,ZObjectSignalHandler handler,ZVector *args,ZVector *vargs,void *userdata)
 {
  return 0; /* not handled */
  }

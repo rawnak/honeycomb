@@ -84,7 +84,7 @@ void *  z_closure_get_userdata(Self *self);
 void z_closure_set_userdata(Self *self, void *  value);
 void z_closure_set_marshal(Self *self, ZClosureMarshal *  value);
 void z_closure_set_target(Self *self, ZObject *  value);
-int  z_closure_invoke(Self *self,ZVector *args);
+int  z_closure_invoke(Self *self,ZVector *args,ZVector *vargs);
 
 #undef Self
 

@@ -271,9 +271,9 @@ void z_closure_set_target(Self *self, ZObject *  value)
  selfp->target = value;
  z_object_ref(Z_OBJECT(selfp->target));
  }
-int  z_closure_invoke(Self *self,ZVector *args)
+int  z_closure_invoke(Self *self,ZVector *args,ZVector *vargs)
 {
- return z_closure_marshal_invoke(selfp->marshal, selfp->target, selfp->handler, args, selfp->userdata);
+ return z_closure_marshal_invoke(selfp->marshal, selfp->target, selfp->handler, args, vargs, selfp->userdata);
  }
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
 static void z_closure_class_destroy(ZObjectGlobal *gbl)

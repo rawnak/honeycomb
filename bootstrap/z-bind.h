@@ -24,6 +24,7 @@
 #include <zco-config.h>
 #include <z-vector.h>
 #include <z-closure.h>
+#include <stdarg.h>
 
 struct ZBind;
 typedef void(*ZBindHandler)(struct ZBind *self, ...);
@@ -32,7 +33,9 @@ struct ZBindData
 {
  ZBindHandler handler;
  int args_size;
+ int vargs_size;
  uint8_t args[TASK_ARG_SIZE];
+ uint8_t vargs[TASK_ARG_SIZE];
 };
 
 typedef struct ZBindData ZBindData;
@@ -86,12 +89,27 @@ ZBindGlobal * z_bind_get_type(struct zco_context_t *ctx);
 void __z_bind_init(struct zco_context_t *ctx, ZBind *self);
 void __z_bind_class_init(struct zco_context_t *ctx, ZBindClass *_class);
 Self * z_bind_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator);
-void  z_bind_append_int(Self *self,int value);
+void  z_bind_assign(Self *self,ZBind *other);
+void  z_bind_append_int8(Self *self,int8_t value);
+void  z_bind_append_int16(Self *self,int16_t value);
+void  z_bind_append_int32(Self *self,int32_t value);
+void  z_bind_append_int64(Self *self,int64_t value);
+void  z_bind_append_variable_int32(Self *self,int32_t value);
+void  z_bind_append_variable_int64(Self *self,int64_t value);
+void  z_bind_append_uint8(Self *self,uint8_t value);
+void  z_bind_append_uint16(Self *self,uint16_t value);
+void  z_bind_append_uint32(Self *self,uint32_t value);
+void  z_bind_append_uint64(Self *self,uint64_t value);
+void  z_bind_append_variable_uint32(Self *self,uint32_t value);
+void  z_bind_append_variable_uint64(Self *self,uint64_t value);
 void  z_bind_append_ptr(Self *self,void *value);
+void  z_bind_append_variable_ptr(Self *self,void *value);
+void  z_bind_append_variable_buffer(Self *self,void *buffer,int size);
 void z_bind_set_handler(Self *self, ZBindHandler  value);
 ZBindData *  z_bind_get_data_ptr(Self *self);
 void z_bind_set_data_ptr(Self *self, ZBindData *  value);
 int  z_bind_invoke(Self *self);
+void  z_bind_unpack_variable_buffer(va_list ap,void *buffer,int size);
 
 #undef Self
 

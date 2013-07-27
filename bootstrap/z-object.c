@@ -430,7 +430,7 @@ int  z_object_emit_signal(Self *self,char *name,void *argv)
 
  while (!z_vector_iter_is_equal(it, end)) {
  ZClosure *closure = ((ZClosure *) z_vector_get_item(closure_list, it));
- rc = z_closure_invoke(closure, (ZVector *) argv);
+ rc = z_closure_invoke(closure, (ZVector *) argv, NULL);
 
  if (rc == 1)
  break;

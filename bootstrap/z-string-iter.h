@@ -71,6 +71,7 @@ void __z_string_iter_init(struct zco_context_t *ctx, ZStringIter *self);
 void __z_string_iter_class_init(struct zco_context_t *ctx, ZStringIterClass *_class);
 Self * z_string_iter_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator);
 Self * z_string_iter_dup(ZStringIter *src);
+void  z_string_iter_assign(Self *self,ZStringIter *src);
 int  z_string_iter_get_index(Self *self);
 void z_string_iter_set_index(Self *self, int  value);
 void  z_string_iter_advance(Self *self,int steps);
