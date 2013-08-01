@@ -139,9 +139,9 @@ class ZClosure : ZObject
 	   }
    }
 
-   public int invoke(Self *self, ZVector *args)
+   public int invoke(Self *self, ZVector *args, ZVector *vargs)
    {
-           return z_closure_marshal_invoke(selfp->marshal, selfp->target, selfp->handler, args, selfp->userdata);
+           return z_closure_marshal_invoke(selfp->marshal, selfp->target, selfp->handler, args, vargs, selfp->userdata);
    }
 }
 

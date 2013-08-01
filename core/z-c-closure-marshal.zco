@@ -44,14 +44,17 @@ class ZCClosureMarshal : ZObject,ZClosureMarshal
 	}
 
 	override(ZClosureMarshal)
-	int invoke(ZClosureMarshal *self, ZObject *target, ZObjectSignalHandler handler, ZVector *args, void *userdata)
+	int invoke(ZClosureMarshal *self, ZObject *target, ZObjectSignalHandler handler, ZVector *args, ZVector *vargs, void *userdata)
 	{
 		ffi_cif cif;
-		int i, count;
+		int i, fixed_count, variable_count, count;
 
 		/* allocate space for arguments */
-		count = z_vector_get_size(args) + 1;
-		ffi_type *arg_types[count];
+                fixed_count = z_vector_get_size(args) + 1;
+		variable_count = vargs? z_vector_get_size(vargs) : 0;
+                count = fixed_count + variable_count;
+
+		ffi_type *arg_types[fixed_count];
 		void *values[count];
 
 		memset(arg_types, 0, count * sizeof(void*));
@@ -61,13 +64,13 @@ class ZCClosureMarshal : ZObject,ZClosureMarshal
 		arg_types[0] = &ffi_type_pointer;
 		values[0] = &target;
 
-		/* prepare the remaining argument list */
+		/* prepare the remaining fixed argument list */
 		i = 1;
-		ZVectorIter *it = z_vector_get_begin(args);
-		ZVectorIter *end = z_vector_get_end(args);
+		ZVectorIter *f_it = z_vector_get_begin(args);
+		ZVectorIter *f_end = z_vector_get_end(args);
 		
-		while (!z_vector_iter_is_equal(it, end)) {
-			ZValue *value = z_vector_get_item(args, it);
+		while (!z_vector_iter_is_equal(f_it, f_end)) {
+			ZValue *value = z_vector_get_item(args, f_it);
 
 			if (z_value_get_is_object(value)) {
 				arg_types[i] = &ffi_type_pointer;
@@ -139,15 +142,109 @@ class ZCClosureMarshal : ZObject,ZClosureMarshal
 				abort();
 			}
 
-			assert(i < count);
-			z_vector_iter_increment(it);
+			assert(i < fixed_count);
+			z_vector_iter_increment(f_it);
 			++i;
 		}
 
+                ZVectorIter *v_it;
+                ZVectorIter *v_end;
+
+                if (variable_count) {
+                        /* prepare the variable argument list */
+                        v_it = z_vector_get_begin(vargs);
+                        v_end = z_vector_get_end(vargs);
+
+                        while (!z_vector_iter_is_equal(v_it, v_end)) {
+                                ZValue *value = z_vector_get_item(vargs, v_it);
+
+                                if (z_value_get_is_object(value)) {
+                                        arg_types[i] = &ffi_type_pointer;
+                                        ZObject **temp = alloca(sizeof(ZObject *));
+                                        *temp = z_value_get_as_object(value);
+                                        values[i] = temp;
+
+                                } else if (z_value_get_is_int8(value)) {
+                                        arg_types[i] = &ffi_type_sint8;
+                                        int8_t *temp = alloca(sizeof(int8_t));
+                                        *temp = z_value_get_as_int8(value);
+                                        values[i] = temp;
+
+                                } else if (z_value_get_is_int16(value)) {
+                                        arg_types[i] = &ffi_type_sint16;
+                                        int16_t *temp = alloca(sizeof(int16_t));
+                                        *temp = z_value_get_as_int16(value);
+                                        values[i] = temp;
+
+                                } else if (z_value_get_is_int32(value)) {
+                                        arg_types[i] = &ffi_type_sint32;
+                                        int32_t *temp = alloca(sizeof(int32_t));
+                                        *temp = z_value_get_as_int32(value);
+                                        values[i] = temp;
+
+                                } else if (z_value_get_is_int64(value)) {
+                                        arg_types[i] = &ffi_type_sint64;
+                                        int64_t *temp = alloca(sizeof(int64_t));
+                                        *temp = z_value_get_as_int64(value);
+                                        values[i] = temp;
+
+                                } else if (z_value_get_is_uint8(value)) {
+                                        arg_types[i] = &ffi_type_uint8;
+                                        uint8_t *temp = alloca(sizeof(uint8_t));
+                                        *temp = z_value_get_as_uint8(value);
+                                        values[i] = temp;
+
+                                } else if (z_value_get_is_uint16(value)) {
+                                        arg_types[i] = &ffi_type_uint16;
+                                        uint16_t *temp = alloca(sizeof(uint16_t));
+                                        *temp = z_value_get_as_uint16(value);
+                                        values[i] = temp;
+
+                                } else if (z_value_get_is_uint32(value)) {
+                                        arg_types[i] = &ffi_type_uint32;
+                                        uint32_t *temp = alloca(sizeof(uint32_t));
+                                        *temp = z_value_get_as_uint32(value);
+                                        values[i] = temp;
+
+                                } else if (z_value_get_is_uint64(value)) {
+                                        arg_types[i] = &ffi_type_uint64;
+                                        uint64_t *temp = alloca(sizeof(uint64_t));
+                                        *temp = z_value_get_as_uint64(value);
+                                        values[i] = temp;
+
+                                } else if (z_value_get_is_real32(value)) {
+                                        arg_types[i] = &ffi_type_float;
+                                        float *temp = alloca(sizeof(float));
+                                        *temp = z_value_get_as_real32(value);
+                                        values[i] = temp;
+
+                                } else if (z_value_get_is_real64(value)) {
+                                        arg_types[i] = &ffi_type_double;
+                                        double *temp = alloca(sizeof(double));
+                                        *temp = z_value_get_as_real64(value);
+                                        values[i] = temp;
+                                } else {
+                                        fputs("Invalid argument type\n", stderr);
+                                        abort();
+                                }
+
+                                assert(i >= fixed_count);
+                                assert(i < count);
+                                z_vector_iter_increment(v_it);
+                                ++i;
+                        }
+                }
 	
 		/* invoke the method */
 		int rc;
-		switch (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, count, &ffi_type_sint, arg_types))
+                ffi_status status;
+
+                if (variable_count == 0)
+                        status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI, count, &ffi_type_sint, arg_types);
+                else
+                        status = ffi_prep_cif_var(&cif, FFI_DEFAULT_ABI, fixed_count, count, &ffi_type_sint, arg_types);
+
+		switch (status)
 		{
 		case FFI_OK:
 			ffi_call(&cif, (void(*)(void)) handler, &rc, values);
@@ -166,12 +263,12 @@ class ZCClosureMarshal : ZObject,ZClosureMarshal
 			abort();
 		}
 
-		/* release references to any ZObjects in the argument list */
-		z_vector_iter_set_absolute_index(it, 0);
+		/* release references to any ZObjects in the fixed argument list */
+		z_vector_iter_set_absolute_index(f_it, 0);
 		i = 1;
 	
-		while (!z_vector_iter_is_equal(it, end)) {
-			ZValue *value = z_vector_get_item(args, it);
+		while (!z_vector_iter_is_equal(f_it, f_end)) {
+			ZValue *value = z_vector_get_item(args, f_it);
 
 			if (z_value_get_is_object(value)) {
 				ZObject **temp = values[i];
@@ -179,13 +276,35 @@ class ZCClosureMarshal : ZObject,ZClosureMarshal
 			}
 
 			assert(i < count);
-			z_vector_iter_increment(it);
+			z_vector_iter_increment(f_it);
 			++i;
 		}
 
-		z_object_unref(Z_OBJECT(it));
-		z_object_unref(Z_OBJECT(end));
-		
+		z_object_unref(Z_OBJECT(f_it));
+		z_object_unref(Z_OBJECT(f_end));
+
+
+                if (variable_count > 0) {
+                        /* release references to any ZObjects in the variable argument list */
+                        z_vector_iter_set_absolute_index(v_it, 0);
+
+                        while (!z_vector_iter_is_equal(v_it, v_end)) {
+                                ZValue *value = z_vector_get_item(args, v_it);
+
+                                if (z_value_get_is_object(value)) {
+                                        ZObject **temp = values[i];
+                                        z_object_unref(*temp);
+                                }
+
+                                assert(i < count);
+                                z_vector_iter_increment(v_it);
+                                ++i;
+                        }
+
+
+                        z_object_unref(Z_OBJECT(v_it));
+                        z_object_unref(Z_OBJECT(v_end));
+                }
 
 		return 0;
 	}

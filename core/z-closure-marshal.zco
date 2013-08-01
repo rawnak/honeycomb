@@ -28,7 +28,7 @@
 
 interface ZClosureMarshal 
 {
-	public virtual int invoke(Self *self, ZObject *target, ZObjectSignalHandler handler, ZVector *args, void *userdata)
+	public virtual int invoke(Self *self, ZObject *target, ZObjectSignalHandler handler, ZVector *args, ZVector *vargs, void *userdata)
 	{
 		return 0; /* not handled */
 	}
