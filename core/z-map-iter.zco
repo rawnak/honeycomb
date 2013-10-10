@@ -55,6 +55,11 @@ class ZMapIter : ZObject
 		return self;
 	}
 
+        public void assign(Self *self, ZMapIter *src)
+        {
+                set_index(self, get_index(src)); 
+        }
+
 	public int index
 	{
 		get
