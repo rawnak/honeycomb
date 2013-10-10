@@ -1,241 +1,340 @@
 
+Design goals for ZCLib
+=======================
+
+Introduction
+--------------
+ZCLib is a general purpose library with a few specific aims:
+
+1. All vectors, maps, strings and anything that obtains a list of discrete items are internally stored as vector
+   segments. These segments are reference counted and are copy-on-writeable, meaning that when a large vector, string
+   or map is duplicated, the actual data is not duplicated but a reference is created to the original data. If a
+   reference is modified, the data is then copied into a separate location so the original data is not modified. This
+   will help reduce memory usage as well as improve performance (by avoiding large memory copies) for applications that
+   need to duplicate large amounts of data.
+
+2. The UI toolkit code in ZCLib has two modes of option. It can interact directly with the active display as a
+   standalone program, just like Gtk and Qt. It can also generate code to run inside a VM hosted by another
+   application, such as a web browser with a JavaScript VM. This will allow applications written in a native language
+   to work as a standalone program and will allow a web browser to make a network connection to it so the application
+   will render within the browser. The benefit of generating the UI code instead of running it inside the native
+   process is that there is a much lower latency for UI interactions when network communciations are avoided.
+
+The generated code will be based on the same procedures as the code that is written in C. For this reason, it is a
+requirement that the language of the generated code is a procedural programming language.
+
+Type inheritance
+--------------
+ZCLib heavily relies on reference counting to reduce data copy. It makes perfect sense for every object bound to a
+ZCLib context to have a common field to represent its reference count. There are also other common fields for every
+object, such as a list of attached properties, signals, and a reference to an allocator.
+
+Every class can have private, public, global or class data members. Private data members are specific to the class
+instance and they are only accessible it. Public data members are also specific to the class instance but any C code
+can reference it.
+
+Global and Class data members are specific to the class type and can be accessed by anyone. The difference between the
+two can be best explained with an example. Suppose you have a class A, A1, A2. The A1 and A2 classes derive from the
+class A. The global data members in class A will be the same regardless whether you access it with respect to class A1
+or A2. The class data members in class A have copies of itself in class A1 and A2 so accessing them with respect to
+class A1 or A2 will not reference the same variable. In another words, global data members are defined for the object
+type that they are defined in (like static data members in C++) and class data members are defined for the most derived
+object type.
 
 
-Brainstorming ideas for Project 1A:
+Multiple Inheritance
+-------------
+ZClib does not support multiple inheritance. Multiple inheritance in a reference counted environment doesn't work well
+because an object that derives from two base classes will have two ZObject classes, thus two reference counts. This
+makes no sense and so it simply isn't supported.
 
-- C language has many bit level operators that is not supported by javascript. attempting to support these bit level operators will result in a performance degradation in the javascript code.
+By not supporting multiple inheritance, we can assume that the base pointer of the derived class and the parent classes
+will be the same. This eliminates the need to offset the base address during a downcast, which would have a performance
+hit. 
 
-struct xyz {
-int x:3;
-int y:5;
-}
+Virtual Inheritance
+-------------
+ZClib does not support virtual inheritance. Virtual inheritance requires the implementation of a derived type to know
+the memory layout of the parent type to avoid defining the same parent multiple times. 
 
-- C++ has a nice support for type system but we need a type system that can support inheritance in different languages. for example, if object A inherits from object B, we want sizeof(A) to be greater than sizeof(B) (which C++ does) and we also want the generated javascript code to copy the methods from object 'B' into object 'A' (which C++ doesn't support). Since we cannot rely on C++'s object oriented nature, we will stick to C.
+ZClib supports virtual inheritances only for functions, not for data members. Virtual inheritance requires the derived
+type to have internal structure layout of its parent classes. 
 
-- We will use C++ for wrapping C code that gets a little annoying (such as add(), sub(), less_than(), greater_than() ...). basically do some operator overloading
+** TODO: WRITE DOWN WHY **
 
-- Need a ZCO compiler that generates .c, .h files from the .zco file (just like GOB)
-
-
-
-
-===================================
-
-The zclib project has two parts: a meta-compiler with a type system in C AND an utility library built on top of the type system.
-
-The meta-compiler and type system
---------------------------------------
-The zco meta-compiler has a syntax very similar to that of the Gtk's gob meta-compiler. The compiler reads a file written in zco language (which mostly embeds C) and generates C code. 
-
-One of the language features include the ability to inherit from other class. This requires a type system to be built (which will be a single inheritance type system with interface support). There are several reasons for not supporting multiple inheritance:
-
-- A feature of multiple inheritance is virtual inheritance. The reason virtual inheritance will not be supported is because it requires every class to know the internal structure layout of all of its parent classes.
-- All classes will be directly or indirectly inherited from ZObject. If we allow multiple inheritance (not virtual inheritance), it will most certainly cause a diamond problem every time multiple inheritance is used. Ideally we want ZObject to be a virtual parent of the object (so that it is not subject to the diamond problem) but that too is not feasible.
-- Downcasting a pointer will require offsetting, which is not necessary if the object was not composed of multiple inheritance. It is still possible to have support for downcasting a pointer but it requires dynamic casting, which has a much larger performance hit compared to a reinterpret cast (which would be sufficient if we didn't have support for multiple inheritance).
-
-We can still have multiple interfaces because we don't need to worry about private data members. Non-virtual methods for interface method definition does not make sense. For example, suppose object B inherits from object A and that both implement interface X. If you call X.hello(), there is no way for the type system to know if it should call the implementation in object A or object B. The very nature of interfaces require the functions to be implemented as virtual.
-
-
-Future enhancements:
-At the moment, the meta-compiler only generates C code. A future enhancement will be for it to generate code that generates JavaScript. The procedural logic of the generated JavaScript code will be provided by the writer of the .zco file but much of the glue code will be facilitated by the meta-compiler, to make the programmer's life easier and for the code to be more readable.
-
-The context that is specified to the new method of every class will contain a language field that determines what mode the class will run in. If the language is set to C, the generated code will not do anything special and will just run C code. If the language is set to JavaScript, the generated code will instead generate JavaScript code when the function method is "exposed" and call this JavaScript method when the C function of the class is called. This will allow the binary to run in different environments without requiring a recompilation and will also run at highest possible speed (native C compiled code speed when the executable is running without any language translation).
-
-Part of this enhancement will require to have support for embedding JavaScript. Most compatible C code can be translated to JavaScript code but things that involve the DOM in a web browser will require special attention.
-
-Another enhancement will be to have support for RPC. This will need to be implemented after the meta-compiler is able to generate code that generates JavaScript code. Once it's complete, the generated JavaScript will be able to raise a RPC signal that calls into native C code and then returns back to JavaScript (both possibly running on different machines).
-
-Another enhancement will be to change base container classes (such as ZVector) to support copy-on-write. This will allow range copy from and splicing to be very efficient operations.
-
-
-
-
-
-List of dynamic calling libraries:
-dynlib:
-	pro:
-		- uses ASM
-	cos:
-		- uses SVN
-		- not available as Arch binary
-
-libffi
-	pro:
-		- available in Arch
-		- uses Git
-
-	con:
-
-c/invoke
-	pro:
-
-	con:
-		- not available as Arch binary
-		- uses SVN
-
-ffcall
-	pro:
-		- available in Arch
-
-	con:
-		- uses CVS
-
-
-
-class_off_list:
+//class_off_list:
 We have to store a full list of possible class offset (the offset within the *Class struct) in every class. It may seem that
 we should be able to store just the offset number in the corresponding *Global struct but that would not be possible for an
 interface. Suppose there are two interfaces X and Y. If class A implements interface X, Y and class B implements
 interface Y, X,  the interface X will have a different offset for both classes so we cannot have just a single constant
 within the interface's Global struct.
 
-=============================
+Why C?
+--------------
+One of the design goals for ZCLib is to be very efficient and portable. This rules out scripting languages as they
+require a virtual machine. The two widely known portable languages C, C++ were primary candidates. Although C++
+can be considered as a superset of C, almost all of the additional features it brings cannot be used in ZClib.
+For example, the built-in type system cannot be used since we need to be able to support type inheritance for
+code that is dynamically generated. If an object B inherits from object A, we want the fields in A to be available in
+B. This is achievable in C++ as long as the objects are natively implemented. For generated code, we also want the
+object B to contain all the fields from object A. This requires the type system to generate the language specific code
+to clone the fields from the base class to the derived class.
 
-There are two ways to reuse the same data for multiple vectors:
- 1. Use a linked-list method: every segment will have a prev,next and
-    the vector will contain a reference to the head and tail. When
-    at least one segment is modified in the chain, the entire chain
-    has to be duplicated for the new vector (if the chain was already
-    used by another vector) but the data that each segment refers to
-    remains the same.
-
-    Advantages:
-      1. Avoid potential data copy when array of segment exceeds the
-         array capacity and so the array needn't be reallocated.
-      2. Splitting a segment won't require any modification to the
-         ZVector.
-
- 2. Use an array method: every segment will be a standalone segment
-    and the vector will contain an array of references to segments. When
-    a segment is modified, it is duplicated if its ref count is > 1, and
-    then its ref count drops by 1. 
-
-    Advantages:
-      1. Each segment will have a smaller size overhead since it doesn't
-         need to keep a prev,next pointer.
-      2. Each segment can be updated independently without requiring
-         the entire chain to be duplicated.
+Given that ZClib generates code to be executed in another language, there is a requirement for having multiple contexts
+within the same program. With C++ classes, a static variable is shared among all instances of the class in the running
+process. We need static variables but we need to be able to group them based on contexts in the same process.
 
 
+Why prefer code generation over code translation?
+--------------
+Given that the UI part of the program can run in process (natively) or inside a VM hosted by another application
+(probably JavaScript), the code has to be written such that it can execute in both environments. It can be written in C
+and then translated to JavaScript (to run remotely) or it can be written in JavaScript and translated to C (to run
+locally). For a program to run locally, it's optimal for it to be written in C and executed as a C program. This way,
+there is no need to generate a C program and compile it in process, and the program will run as a C program with very
+minimal overhead.
 
-=======================
+Let's consider a transparent translation from C to a scripting language like JavaScript. There are many low level
+operations available in C that does not exist in JavaScript, such as bitwise operators. Using a transparent translator
+may produce JavaScript code that does not perform very well and efficiently. Because of this, we opt to write code
+in C and call the appropiate functions to generate remotely executable code.
 
-Allocators:
+Code generation also has the benefit of allowing the addition of new language support without requiring any change on
+the application code. For example, suppose the application calls add(z,x,y); mult(z, z, z);, the add, mult functions
+will be responsible for generating the code in the target language. If a new language support is added to ZCLib and the
+context is switched to use this new language, the add, mult functions will simply generate code in the new language.
+Only the ZCLib library needs to change to add support for a new language; The application will remain binary
+compatible.
 
+ZCO preprocessor
+--------------
+The ZCO preprocessor generates the C source and header files with the glue code needed to support class inheritance,
+signals, and attached properties. Its syntax is very similar to that of Gtk's GOB preprocessor. The compiler reads a
+ZCO file (which mostly embeds C) and generates C code. Like the GOB preprocessor, the ZCO preprocessor also provides
+the convinience to the developer so that only one file per class needs to be edited. The preprocessor generates both
+the .c and .h files.
 
-There are multiple ways to implement allocators:
-- 1. Simple C functions that implement certain number of functions
-  Pro: very simple to code
-       no increase in object size
-  Con: cannot be changed during runtime
+Using our own preprocessor for type inheritance instead of relying on the built-in type inheritance provided by C++
+allows us to dynamically generate code for remote execution. The developer does not need to be concerned about using
+special macros or functions to ensure the type inheritance is properly established in the generated code; It will be
+automatically handled by the glue code that is facilitated by the preprocessor.
 
-- 2. A ZCO object that is assumed to be the allocator
-  Pro: simple to code
-  Con: cannot be changed during runtime
-       object must keep a flag of whether it is allocated using a customer allocator
+Why Git?
+--------------
+Git is a distributed SCM and it offers many advantages over a centralized SCM like CVS and SVN. Every single developer
+has a complete copy of the repository so there is no central authority to restrict how you code and what you commit to
+your private repository. When working with a centralized repository, the developer must comply with the rules laid out
+by the repository owner. If there is a disagreement between the repository owners and the developer, it may cause the
+code the developer wrote to never get committed to the repository.
 
-- 3. Same as #2 but with an interface
-  Pro: can be changed during runtime
-  Con: object must keep a reference to the allocator
-       small performance hit due to virtual method call
+Using a distributed SCM also encourages the developer to treat the project as his/her own. Should any disagreement
+happen between a developer and the project maintainer, the developer can easily fork the project and maintain it to
+his/her likings.
 
-- 4. Same as #3 but with individually assigned allocator per object
-  Pro: can be changed during runtime
-       different objects under a context can be associated with different allocators
-  Con: object must keep a reference to the allocator
-       small performance hti due to virtual method call
-       GET_NEW() will require an additional parameter
+Dynamic calling library
+--------------
+To support signals and closures, ZCLib needs to be able to be able to store function arguments in a vector and have
+the ability to call a function with the stored arguments. In order to call a C function without having prior knowledge
+of the function parameter, we need to use a dynamic calling library to use the proper calling convention for the
+target architecture.
 
-Verdict: #4
-Bottom line is that the allocation requirements for different objects are different. A plain
-vector doesn't care about alignment but if the data within the vector needs to be wired for special
-reason (such as DMA), we can use a wired allocator to make sure it doesn't get swapped out. 
+There are a handful of dynamic calling libraries. Some common ones are dynlib, libffi, c/invoke, ffcall. ZClib uses
+libffi primarily because the libffi project is developed using a Git repository. 
 
-More thoughts:
+Vector segments
+--------------
+A vector is composed of one or more vector segments. Each segment refers to a block of data that is also reference
+counted but it isn't a ZObject. When a vector or part of a vector is copied, the vector segment(s) that represent the
+range of data is also copied but the data block that the vector segment points to is not copied. The reference count of
+the data block is simply incremented. When a data block is modified, it follows a copy-on-write so that if its
+reference count is greater than 1, it is cloned and the original block's reference count is decremented.
 
-1. system allocator - a pass through allocator that will delegate the responsibility to malloc/free
-                      this allocator is useful when using a memory profiler, such as valgrind
-2. slab allocator - the allocator maintains a certain number of bins, each associated with a block size.
-                    when a block is freed, it is added to a bin of that size.
+Using copy-on-write vector segments allows part or a complete vector to be copied without having to actually copy the
+data, unless the data is actually modified. Even so, only the modified data is copied and the remaining segments needn't
+be copied.
 
-3. page allocator - another name for mmap. this is only useful for large, long-lived allocations
+It would've been possible to implement a copy-on-writable vector segment by making the vector store an array of
+data blocks instead of a linked list of vector segments. This would've provided the benefit of having a smaller segment
+size overhead since there is no need to hold a previous and next pointer. It would also allow the clone of a data block
+without requiring the vector segment linked list to be duplicated.
 
-4. stack allocator - similar to alloca except the buffer is in the heap. the idea is that there is no
-                     management of freed space. the allocator expects objects to be deleted in the
-                     reverse order in which it is created so there are no holes in the allocated region.
-5. flexible allocator - this is good for vectors or strings that can shrink/grow (more importantly grow).
-                        the slab allocator places every allocation in a certain bin so it is of fixed size,
-                        unless a complicated logic is implemented to consolidate two free objects into one
-                        double sized object. the flexible allocator can be used to allocate blocks
-                        that can be resized.
-
-Allocations made:
-- C strings
-  Always: System allocator
-  The user should be able to call free() on the C string. The use of C strings are discouraged
-  anyway so we don't care much about optimizing the allocator usage
-
-- Vector segment data
-  Default: Flexible allocator
-  Vector segments are resizable so we want to use the allocator that is resize friendly
-
-- ZObject instance
-  Default: Slab allocator
-  Instances of the same type are of the same size so we want to use an allocator that is optimized
-  to retrieve blocks of fixed size 
-
-- ZObject global
-  Always: Slab allocator
-  This is not unique to an instance so its allocator cannot be specified during instantiation.
-  Slab is used because the size is fixed.
-  
-- ZObject class
-  Always: Slab allocator
-  This is not unique to an instance so its allocator cannot be specified during instantiation.
-  Slab is used because the size is fixed.
-
-- Class offset list (Array)
-  Always: Slab allocator
-  This is not unique to an instance so its allocator cannot be specified during instantiation.
-  Slab is used because the size is fixed
-
-- Method map (ZMap)
-  Always: Slab allocator
-  This is not unique to an instance so its allocator cannot be specified during instantiation.
-  Items will be added to this map only once per type initialization. The flexible allocator
-  can be used here but the data would be much more packed (less fragmented) if we used the slab
-  allocator.
-  
-- Attached properties (ZMap)
-  Always: Slab allocator
-  This is not unique to an instance so its allocator cannot be specified during instantiation.
-  Items will be added to this map only once per type initialization. The flexible allocator
-  can be used here but the data would be much more packed (less fragmented) if we used the slab
-  allocator.
+The reason the vector is not implemented this way and it is implemented by storing a linked list of segments is because
+this approach too have some advantages and these advantages outweigh the advantages of the array method. For example,
+using a linked list of vector segments ensures that the segment list is not duplicated if the allocated space is
+used, a common problem with arrays. This approach also allows a segment to be split without requiring a modification
+to the vector itself, meaning that the split will effectively benefit all vectors sharing the segment. This would not
+be possibe with the array approach since there would be no reference from the data block to the list of vectors so it
+would require a complete copy of the data.
 
 
-=====================================
-Possible implementation of allocators
+Event loop model
+--------------
+In any C application, the process starts with only one thread (the main thread). It will almost always be dedicated for
+UI and its event loop will be tied to the UI framework that is being used.
 
-Method #1:
-The smallest block size is void*. When a block is freed, the address of another free
-block of the same size is assigned into this block and this block becomes the head
-node in the single linked list.
+To avoid UI unresponsiveness, the application code should run in a separate thread (the application thread). This
+thread will run almost all of the application code and will communicate with the UI thread only when it needs to update
+the display or retrieve user input.
 
-A mapping from block_size to block_head will be used to determine the head of a chain
-when an allocation is requested.
-***********************
+The UI event loop and the ZEventLoop may operate in a similar pattern in most UI frameworks and for those cases, it may
+be possible for the task management in ZEventLoop to use custom triggers in the UI event loop without requiring another
+thread. This is not always the case though; in Microsoft Windows message loop, every event is categorized and each
+category is given a priority.  All custom events are given a higher priority compared to 'paint' events and
+'user input' events.  Using this UI event loop to manage tasks in ZEventLoop will give the tasks an unfair advantage
+over UI events and user input events. Many applications have done tricky things by forcibly handling UI events and user
+input events when a custom event occurs but doing so adds tremendous amount of complexity and alters assumptions that
+the host applications may make about the message loop. For this reason, we will avoid dual-purposing the UI event loop
+for a general purpose event loop.
 
-Method#2:
+The event loop pattern for a server is very similar to that of ZEventLoop; In a server, there is a list of file
+descriptors that is being watched by an I/O multiplexer and any activity on these file descriptors will trigger the loop
+to run. For ZEventLoop, there is a list of tasks in a queue and when a scheduled task is due to run, the loop will run
+to execute it. Given that the pattern for server and a general purpose event loop is very similar, it is possible to
+combine the event loop for task execution and the event loop for processing I/O events. From this point forward, lets
+call the event loop model where the I/O operations and the task executions are in two threads the "split model" and
+lets call the event loop where both overlap each other the "combined model".
+
+The split model allows a different type of event loop to be used that is specialized for its own use. For the I/O part,
+epoll can be used for the event dispatcher. For the worker part, a conditional variable can be used to wait until an
+event is scheduled to be executed. The epoll interface has a timeout granularity of a millisecond where as a
+conditional variable timed wait has a timeout granularity of a nanosecond. This high precision timing may not be
+necessary but it does provide an advantage over the epoll interface.
+
+The downside of using a split model is that the I/O thread will not do anything useful, besides wait for an event and
+dispatch it to another thread. Of course it is desirable for an event loop to handle tasks as quickly as possible but
+it is also important to keep in mind that system calls are not cheap. It's more optimal to receive a large batch of
+events with one system call than to receive many single events with multiple system calls. Regardless of what thread
+the work is carried out in, it will require the same amount of CPU time so if we take advantage of this time consumption
+to slow down the event loop cycle, we can pack more events per system call and have better overall performance.
+
+There is another downside to the split model; Suppose a thread pool has 24 threads and the application is scheduling
+a task on this thread pool to make a database query. The worker thread sends the query to the database and
+asynchronously waits for a reply. Given that this is an I/O operation, the worker thread would need another thread if
+we were using the split model. Since all worker threads in the thread pool will support the ability to make database
+queries, we will need upto 48 threads. This is a waste if most of the threads are not performing any real work. For the
+reasons mentioned above, we use the combined model instead of the split model.
+
+Contexts
+--------------
+A ZClib context is the environment that maintains the configuration and hosts the type system, closure marshaller,
+framework events, event loops, and allocators. A context is not allowed to touch variables of another context but there
+is no memory protection to enforce this. The only thing that is shared between multiple contexts is the type id
+allocations. The only way two contexts can communicate with one another is by posting tasks over to the another context.
+
+By default, the context is set to be in C mode. This means that all operations will happen natively. The mode can be
+switched to another language, such as JavaScript. Doing so will alter the behavior of some functions to internally
+generate JavaScript code, which will then be pushed to another process (in another machine) for remote execution.
+
+For every function definition in a class, an implementation in the target language will be generated. When this
+function is called natively, a call instruction will be added in the target language. The native code and the generated
+code will share the same list of high-level instructions.
 
 
+Object Tracking
+--------------
+Sometimes it is computationally cheaper to reuse an object that is no longer in use instead of destroying the unused
+object and recreating it later. When an object is disposed (its reference count becomes 0), it is returned to the
+object tracker that is associated with the allocator the object was constructed using. 
+
+The reason there is a separate object tracker per allocator is that we do not want to "create" (or reuse) an object
+with a specified allocator and get an object that was actually allocated using a different allocator. In most cases,
+a custom allocator is used to improve the efficiency of allocation and deallocation. It's possible that the custom
+allocator does more than provide an improved efficiency for a specific use case, such as create a file that backs the
+allocated memory.
+
+When a new object is created, the object tracker first checks to see if there is an unused object of the same type. If
+an object is found, it is told to reset its state and then the object is returned to the caller. If no unused objects
+are found, a new object is created and returned.
+
+The object tracker can perform garbage collection upon request. It walks through all the objects that are in the unused
+bins and destroys them. The object tracker always does a single pass garbage collection, meaning that it does not clean
+up the new unused objects that appeared in the bins during the cleanup process. For a thorough garbage collection, such
+as the one that is performed when a context is about to shutdown, the object tracker is requested to perform garbage
+collection repeatedly until all objects are cleaned up.
+
+Memory Allocators
+--------------
+General purpose allocators perform very well in average cases but it's always beneficial to have the ability to specify
+a custom allocator on a per-object basis. This is not only for the efficiency during allocation or deallocation but it
+may be important for special cases; For example, it may be a requirement for a certain allocated buffer to always
+remain in main memory if there is a hardware device that is expecting it to be there. Using a general purpose allocator
+for this case can bring unpleasant surprises. 
+
+Given that we associate an object tracker with every memory allocator, the memory allocator object is treated as a
+relatively heavy-weight object. In another words, we are not going to create, destroy during the runtime of the
+program context; We will always create the full list of allocators at the beginning of the context initialization and
+destroy all the allocators during the destruction of the context.
+
+Aside from the standard allocator provided by the C library (or a custom general purpose allocator), a few different
+memory allocators are created in the context:
+
+1. Fixed allocator: This allocator is extremely simple. It does not keep track of the block size and requies the caller
+   to provide it during deallocation. This allocator basically keeps a list of bins, each bin consists of a linked list
+   of freed blocks. Each bin is associated with a specific block size. This allocator is not thread safe.
+
+2. TS Fixed allocator: This is a thread-safe implementation of the fixed allocator. This is used only when a context
+   requests a memory allocation on behalf of another context, which happens when a context posts a task over to another
+   context.
+
+3. Flexible allocator: This allocator is optimized for returning a block of memory such that it can later resize it to
+   a larger block in-place. This is very useful for vector segments so that their size can increase without chaining
+   a new vector segment after it.
+   
+   In the current implemention, it is simply a wrapper around the C memory allocator
+   functions. The function malloc_usable_size is used to check how much the block can grow in-place. This is only an
+   interm solution because malloc_usable_size is only meant to be used for debugging and introspection, not for
+   production.
+
+When a memory profiler (such as valgrind) is used to detect memory leaks and corruptions, it is best to use the system
+allocator instead of relying on a custom allocator. This way, the memory leaks that valgrind reports will point to the
+actual location where it was allocated instead of the allocator that made the allocation on behalf of the requester.
+
+There are some pre-defined methods of allocation under specific cases:
+- For C strings, the system allocator is always used. This way, the caller can release allocated block with a simple
+  free() call.
+
+- For vector segments' data block, the flexible allocator is used by default unless another allocator is specified
+  during the the object construction.
+
+- For the object itself, the size is fixed and known based on the object type so the fixed allocator is used.
 
 
+For the following use cases, the allocation is not for a specific object instance but rather for the object type:
+- For the global/class members of a class, the fixed allocator is always used for this case.
 
+- The vtable list is always allocated using the fixed allocator
 
+- The method map consists of vector segment(s) so flexible allocator would be used by default; However, given that the
+  method map remains readonly after type initialization, the benefit of having a more compact allocation outweighs
+  the benefit of using the flexible allocator. For this reason, the method map is allocated using the fixed allocator.
 
+- The attached properties map is also a map that remains readonly after initialization. For the same reason for
+  method map, we use the fixed allocator for attached properties as well.
 
+String encoding
+--------------
+ZStrings internally store the string content with UTF-8 encoding. The reason UTF-8 is chosen instead of UTF-16 or
+UTF-32 is because a large string (regardless the language) will generally be smaller when encoded with UTF-8 than
+if it is encoded with UTF-16 or UTF-32.
 
+In UTF-32, all characters take exactly 4 bytes so the implementation for the encoder/decoder is very simple. For
+characters that only require a single byte to represent their value, there is a 75% waste in space and this waste is
+simply not acceptable.
+
+In UTF-16, characters can multiple of 2 bytes. The complexity of the implementation for an UTF-16 enoder/decoder is
+similar to that of an UTF-8 encoder/decoder since the encoding supports variable length characters. For a very small
+subset of unicode characters, the character will occupy 2 bytes in UTF-16 but it will occupy 3 bytes in UTF-8. Only
+for this subset of characters, UTF-16 performs better than UTF-8 in terms of space efficiency; However, for a large
+subset of unicode characters, a character encoded in UTF-8 will occupy the same or less space compared to UTF-16.
+To optimize for the more general case, it's better to use UTF-8.
+
+Future enhancements
+--------------
+Use C++ for operator overloading. This way, the developer can use the +, -, /, * operators to perform math operations
+and the overloaded functions can generate code for remote execution if needed.
+
+Provide a way to post a task across the network. This will allow the UI context (which may run in a remote VM) to post
+tasks to the main application context and vice versa.
 
 
 
