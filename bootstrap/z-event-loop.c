@@ -82,7 +82,11 @@ struct ZTask {
 #define get_is_current z_event_loop_get_is_current
 #define all_tasks_are_nowait z_event_loop_all_tasks_are_nowait
 #define reload_pending_queue z_event_loop_reload_pending_queue
-#define invoke_tasks z_event_loop_invoke_tasks
+#define run_tasks z_event_loop_run_tasks
+#define reload_runqueue z_event_loop_reload_runqueue
+#define get_ready_tasks z_event_loop_get_ready_tasks
+#define wait_for_signal z_event_loop_wait_for_signal
+#define get_next_task_time z_event_loop_get_next_task_time
 #define thread_main z_event_loop_thread_main
 #define run z_event_loop_run
 #define get_name z_event_loop_get_name
@@ -90,6 +94,7 @@ struct ZTask {
 #define is_active z_event_loop_is_active
 #define convert_monotonic_to_realtime z_event_loop_convert_monotonic_to_realtime
 #define get_monotonic_time z_event_loop_get_monotonic_time
+#define add_to_task_queue z_event_loop_add_to_task_queue
 #define post_task z_event_loop_post_task
 #define zco_context_do_quit z_event_loop_zco_context_do_quit
 #define quit z_event_loop_quit
@@ -132,11 +137,16 @@ static void  z_event_loop_reset(ZObject *object);
 static void  z_event_loop_dispose(ZObject *object);
 static int  z_event_loop_all_tasks_are_nowait(Self *self);
 static void  z_event_loop_reload_pending_queue(Self *self);
-static void  z_event_loop_invoke_tasks(Self *self,ZMapIter *it,ZMapIter *end);
+static void  z_event_loop_run_tasks(Self *self,ZMapIter *it,ZMapIter *end);
+static void  z_event_loop_reload_runqueue(Self *self);
+static void  z_event_loop_get_ready_tasks(Self *self,ZMapIter **it,ZMapIter **end);
+static void  z_event_loop_wait_for_signal(Self *self,struct timespec timeout);
+static uint64_t  z_event_loop_get_next_task_time(Self *self);
 static void  z_event_loop_thread_main(Self *self);
 static int  z_event_loop_is_active(Self *self);
 static uint64_t  z_event_loop_convert_monotonic_to_realtime(Self *self,uint64_t monotonic);
 static uint64_t  z_event_loop_get_monotonic_time();
+static void  z_event_loop_add_to_task_queue(Self *self,ZTask *task);
 static void  z_event_loop_zco_context_do_quit(ZBind *bind,Self *self);
 static void z_event_loop_class_destroy(ZObjectGlobal *gbl);
 static void z_event_loop___delete(ZObject *self);
@@ -390,7 +400,7 @@ static void  z_event_loop_reload_pending_queue(Self *self)
  selfp->pending_queue = selfp->incoming_queue;
  selfp->incoming_queue = temp;
  }
-static void  z_event_loop_invoke_tasks(Self *self,ZMapIter *it,ZMapIter *end)
+static void  z_event_loop_run_tasks(Self *self,ZMapIter *it,ZMapIter *end)
 {
  struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
  ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
@@ -417,6 +427,72 @@ static void  z_event_loop_invoke_tasks(Self *self,ZMapIter *it,ZMapIter *end)
  z_map_iter_increment(it);
  }
  }
+static void  z_event_loop_reload_runqueue(Self *self)
+{
+ /* Move tasks from the pending queue into the run queue */
+ ZTask *bind_data = selfp->pending_queue; 
+ while (bind_data) {
+#if __WORDSIZE >= 64
+ /* For 64-bit systems, we store the time inforation inside the pointer value. This allows
+                           us to eliminate an allocation */
+
+ while (z_map_insert(selfp->run_queue, INT_TO_PTR(bind_data->timeout), bind_data) == -1) {
+ /* In the rare case when two tasks where scheduled to run at the same time,
+                                   we delay one of the tasks by 1ns to ensure all keys in the map are unique */
+ ++bind_data->timeout;
+ }
+#else
+ /* For 32-bit systems (or less), we allocate an 8-byte buffer to store the time information
+                           and stor ethe address to this buffer in the pointer value. */
+
+ uint64_t *task_time = z_memory_allocator_allocate(ctx->fixed_allocator, sizeof(uint64_t));
+ *task_time = bind_data->timeout;
+
+ while (z_map_insert(selfp->run_queue, task_time, bind_data) == -1) {
+ /* In the rare case when two tasks where scheduled to run at the same time,
+                                   we delay one of the tasks by 1ns to ensure all keys in the map are unique */
+ ++(*task_time);
+ }
+#endif
+
+ bind_data = bind_data->next;
+ }
+ }
+static void  z_event_loop_get_ready_tasks(Self *self,ZMapIter **it,ZMapIter **end)
+{
+ uint64_t monotonic_time = get_monotonic_time();
+
+ /* Compute the range of tasks that should be executed now */
+ *it = z_map_get_begin(selfp->run_queue);
+
+#if __WORDSIZE >= 64
+ *end = z_map_upper_bound(selfp->run_queue, INT_TO_PTR(monotonic_time));
+#else
+ *end = z_map_upper_bound(selfp->run_queue, &monotonic_time);
+#endif
+ }
+static void  z_event_loop_wait_for_signal(Self *self,struct timespec timeout)
+{
+ if (timeout.tv_sec == 0 && timeout.tv_nsec == 0)
+ pthread_cond_wait(&selfp->schedule_cond, &selfp->queue_lock);
+ else
+ pthread_cond_timedwait(&selfp->schedule_cond, &selfp->queue_lock, &timeout);
+ }
+static uint64_t  z_event_loop_get_next_task_time(Self *self)
+{
+ uint64_t next_task_time;
+
+ /* Check the time of the next scheduled task in the run queue */
+ ZMapIter *it = z_map_get_begin(selfp->run_queue);
+#if __WORDSIZE >= 64
+ next_task_time = PTR_TO_INT(z_map_get_key(selfp->run_queue, it));
+#else
+ next_task_time = *((uint64_t *) z_map_get_key(selfp->run_queue, it));
+#endif
+ z_object_unref(Z_OBJECT(it));
+
+ return next_task_time;
+ }
 static void  z_event_loop_thread_main(Self *self)
 {
  int is_running = 1;
@@ -424,49 +500,15 @@ static void  z_event_loop_thread_main(Self *self)
  ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
 
  while (is_running) {
- /* Move tasks from the pending queue into the run queue */
- ZTask *bind_data = selfp->pending_queue; 
- while (bind_data) {
-#if __WORDSIZE >= 64
- /* For 64-bit systems, we store the time inforation inside the pointer value. This allows
-                                   us to eliminate an allocation */
-
- while (z_map_insert(selfp->run_queue, INT_TO_PTR(bind_data->timeout), bind_data) == -1) {
- /* In the rare case when two tasks where scheduled to run at the same time,
-                                           we delay one of the tasks by 1ns to ensure all keys in the map are unique */
- ++bind_data->timeout;
- }
-#else
- /* For 32-bit systems (or less), we allocate an 8-byte buffer to store the time information
-                                   and stor ethe address to this buffer in the pointer value. */
-
- uint64_t *task_time = z_memory_allocator_allocate(ctx->fixed_allocator, sizeof(uint64_t));
- *task_time = bind_data->timeout;
-
- while (z_map_insert(selfp->run_queue, task_time, bind_data) == -1) {
- /* In the rare case when two tasks where scheduled to run at the same time,
-                                           we delay one of the tasks by 1ns to ensure all keys in the map are unique */
- ++(*task_time);
- }
-#endif
-
- bind_data = bind_data->next;
- }
-
- uint64_t monotonic_time = get_monotonic_time();
+ /* Reload new tasks into the run queue */
+ reload_runqueue(self);
 
  /* Compute the range of tasks that should be executed now */
  ZMapIter *it, *end;
- it = z_map_get_begin(selfp->run_queue);
-
-#if __WORDSIZE >= 64
- end = z_map_upper_bound(selfp->run_queue, INT_TO_PTR(monotonic_time));
-#else
- end = z_map_upper_bound(selfp->run_queue, &monotonic_time);
-#endif
+ get_ready_tasks(self, &it, &end);
 
  /* Run the tasks */
- invoke_tasks(self, it, end);
+ run_tasks(self, it, end);
 
  /* Remove the tasks from the queue that have been executed */
  z_map_erase(selfp->run_queue, NULL, end);
@@ -513,7 +555,7 @@ static void  z_event_loop_thread_main(Self *self)
  it = z_map_get_begin(selfp->run_queue);
  end = z_map_get_end(selfp->run_queue);
 
- invoke_tasks(self, it, end);
+ run_tasks(self, it, end);
 
  z_object_unref(Z_OBJECT(it));
  z_object_unref(Z_OBJECT(end));
@@ -525,27 +567,21 @@ static void  z_event_loop_thread_main(Self *self)
  goto release_lock;
 
  } else {
- /* Check the time of the next scheduled task in the run queue */
- it = z_map_get_begin(selfp->run_queue);
-#if __WORDSIZE >= 64
- next_task_time = PTR_TO_INT(z_map_get_key(selfp->run_queue, it));
-#else
- next_task_time = *((uint64_t *) z_map_get_key(selfp->run_queue, it));
-#endif
- z_object_unref(Z_OBJECT(it));
+ next_task_time = get_next_task_time(self);
  }
+
+ struct timespec timeout;
 
  if (next_task_time) {
  next_task_time = convert_monotonic_to_realtime(self, next_task_time);
- struct timespec timeout;
  timeout.tv_sec = next_task_time / 1000000000ul;
  timeout.tv_nsec = next_task_time % 1000000000ul;
-
- pthread_cond_timedwait(&selfp->schedule_cond, &selfp->queue_lock, &timeout);
  } else {
- pthread_cond_wait(&selfp->schedule_cond, &selfp->queue_lock);
+ timeout.tv_sec = 0;
+ timeout.tv_nsec = 0;
  }
 
+ wait_for_signal(self, timeout);
  reload_pending_queue(self);
 
 release_lock:
@@ -612,6 +648,22 @@ static uint64_t  z_event_loop_get_monotonic_time()
  clock_gettime(CLOCK_BOOTTIME, &tp);
  return ((uint64_t) tp.tv_sec) * 1000000000ul + tp.tv_nsec;
  }
+static void  z_event_loop_add_to_task_queue(Self *self,ZTask *task)
+{
+ /* Prepend it into the incoming queue. We don't care
+                   about the order of insertion into the incoming queue; The order of execution
+                   is preserved because each task knows what time it should be executed. As
+                   long as the tasks that are scheduled the earliest are executed first, the
+                   order will be maintained */
+ task->next = selfp->incoming_queue;
+ selfp->incoming_queue = task;
+
+ /* Send a signal that new work has been scheduled */
+ pthread_cond_signal(&selfp->schedule_cond);
+
+ /* Release the incoming_queue lock */
+ pthread_mutex_unlock(&selfp->queue_lock);
+ }
 void  z_event_loop_post_task(Self *self,ZBind *request,ZBind *response,uint64_t timeout,int flags)
 {
  if (!is_active(self))
@@ -650,19 +702,7 @@ void  z_event_loop_post_task(Self *self,ZBind *request,ZBind *response,uint64_t 
                    monotonic time and the time the task is scheduled to run */
  task->timeout = timeout + get_monotonic_time();
 
- /* Prepend it into the incoming queue. We don't care
-                   about the order of insertion into the incoming queue; The order of execution
-                   is preserved because each task knows what time it should be executed. As
-                   long as the tasks that are scheduled the earliest are executed first, the
-                   order will be maintained */
- task->next = selfp->incoming_queue;
- selfp->incoming_queue = task;
-
- /* Send a signal that new work has been scheduled */
- pthread_cond_signal(&selfp->schedule_cond);
-
- /* Release the incoming_queue lock */
- pthread_mutex_unlock(&selfp->queue_lock);
+ add_to_task_queue(self, task);
  }
 static void  z_event_loop_zco_context_do_quit(ZBind *bind,Self *self)
 {
