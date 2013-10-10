@@ -305,7 +305,7 @@ class ZEventLoop : ZObject
                                 if (task->has_response) {
                                         ZBind *response_bind = z_bind_new(ctx, allocator);
                                         z_bind_set_data_ptr(response_bind, &task->response);
-                                        zco_context_post_task(task->origin_context, response_bind, NULL, 0);
+                                        zco_context_post_task(task->origin_context, response_bind, NULL, 0, 0);
                                         z_object_unref(Z_OBJECT(response_bind));
                                 }
 
@@ -448,7 +448,7 @@ release_lock:
                 return ((uint64_t) tp.tv_sec) * 1000000000ul + tp.tv_nsec;
         }
 
-        public void post_task(Self *self, ZBind *bind, ZBind *response_bind, uint64_t timeout)
+        public void post_task(Self *self, ZBind *bind, ZBind *response_bind, uint64_t timeout, int flags)
         {
                 if (!is_active(self))
                         return;
@@ -505,7 +505,13 @@ release_lock:
                         return;
 
                 /* Send a QUIT signal to the thread */
-                post_task(self, selfp->quit_task, NULL, 0);
+                post_task(self, selfp->quit_task, NULL, 0, 0);
+        }
+
+        /* An external thread may call join() to block itself until this event loop is terminated */
+        public void join(Self *self)
+        {
+                pthread_join(selfp->thread, NULL);
         }
 
 }

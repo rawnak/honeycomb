@@ -358,10 +358,10 @@ void zco_context_full_garbage_collect(struct zco_context_t *ctx)
         } while (objects_released);
 }
 
-void zco_context_post_task(struct zco_context_t *ctx, ZBind *bind, ZBind *response_bind, uint64_t timeout)
+void zco_context_post_task(struct zco_context_t *ctx, ZBind *request, ZBind *response, uint64_t timeout, int flags)
 {
         assert(ctx->event_loop);
-        z_event_loop_post_task(ctx->event_loop, bind, response_bind, timeout);
+        z_event_loop_post_task(ctx->event_loop, request, response, timeout, flags);
 }
 
 void zco_context_run(struct zco_context_t *ctx, char *name)
@@ -373,5 +373,11 @@ void zco_context_run(struct zco_context_t *ctx, char *name)
 
         z_event_loop_set_name(ctx->event_loop, name);
         z_event_loop_run(ctx->event_loop);
+}
+
+void zco_context_join(struct zco_context_t *ctx)
+{
+        assert(ctx->event_loop);
+        z_event_loop_join(ctx->event_loop);
 }
 

@@ -1076,6 +1076,9 @@ int  z_vector_clear(Self *self)
 static void z_vector_class_destroy(ZObjectGlobal *gbl)
 {
 	ZVectorGlobal *_global = (ZVectorGlobal *) gbl;
+	#ifdef GLOBAL_DESTROY_EXISTS
+		global_destroy(_global);
+	#endif
 
 }
 

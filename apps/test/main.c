@@ -256,7 +256,7 @@ int main(int argc, char **argv)
                 z_bind_append_uint32(task, test_case_number);
                 z_bind_append_ptr(task, worker_group);
                 z_bind_append_ptr(task, &lock);
-                zco_context_post_task(&app_ctx, task, NULL, 0);
+                zco_context_post_task(&app_ctx, task, NULL, 0, 0);
                 z_object_unref(Z_OBJECT(task));
 
                 /* Wait for all tests to be completed */

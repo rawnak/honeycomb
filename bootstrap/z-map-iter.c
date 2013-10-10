@@ -35,6 +35,7 @@
 #define init z_map_iter_init
 #define new z_map_iter_new
 #define dup z_map_iter_dup
+#define assign z_map_iter_assign
 #define get_index z_map_iter_get_index
 #define set_index z_map_iter_set_index
 #define advance z_map_iter_advance
@@ -152,6 +153,7 @@ ZMapIterGlobal * z_map_iter_get_type(struct zco_context_t *ctx)
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
 		z_map_insert((ZMap *) global->common.method_map, strdup("new"), (ZObjectSignalHandler) new);
 		z_map_insert((ZMap *) global->common.method_map, strdup("dup"), (ZObjectSignalHandler) dup);
+		z_map_insert((ZMap *) global->common.method_map, strdup("assign"), (ZObjectSignalHandler) assign);
 		z_map_insert((ZMap *) global->common.method_map, strdup("advance"), (ZObjectSignalHandler) advance);
 		z_map_insert((ZMap *) global->common.method_map, strdup("increment"), (ZObjectSignalHandler) increment);
 		z_map_insert((ZMap *) global->common.method_map, strdup("decrement"), (ZObjectSignalHandler) decrement);
@@ -207,6 +209,10 @@ Self * z_map_iter_dup(ZMapIter *src)
 
  set_index(self, get_index(src));
  return self;
+ }
+void  z_map_iter_assign(Self *self,ZMapIter *src)
+{
+ set_index(self, get_index(src)); 
  }
 int  z_map_iter_get_index(Self *self)
 {

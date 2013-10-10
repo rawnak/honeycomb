@@ -90,8 +90,9 @@ int  z_event_loop_get_is_current(Self *self);
 void  z_event_loop_run(Self *self);
 char *  z_event_loop_get_name(Self *self);
 void z_event_loop_set_name(Self *self, char *  value);
-void  z_event_loop_post_task(Self *self,ZBind *bind,ZBind *response_bind,uint64_t timeout);
+void  z_event_loop_post_task(Self *self,ZBind *bind,ZBind *response_bind,uint64_t timeout,int flags);
 void  z_event_loop_quit(Self *self);
+void  z_event_loop_join(Self *self);
 
 #undef Self
 

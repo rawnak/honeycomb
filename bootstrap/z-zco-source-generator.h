@@ -115,6 +115,7 @@ struct ZZcoSourceGeneratorPrivate {
 	ZString *str_class_init;
 	ZString *str_global_init;
 	ZString *str_init;
+	ZString *str_global_destroy;
 	ZString *str_get;
 	ZString *str_set;
 	ZString *str_comma;

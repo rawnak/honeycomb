@@ -71,6 +71,7 @@ void __z_map_iter_init(struct zco_context_t *ctx, ZMapIter *self);
 void __z_map_iter_class_init(struct zco_context_t *ctx, ZMapIterClass *_class);
 Self * z_map_iter_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator);
 Self * z_map_iter_dup(ZMapIter *src);
+void  z_map_iter_assign(Self *self,ZMapIter *src);
 int  z_map_iter_get_index(Self *self);
 void z_map_iter_set_index(Self *self, int  value);
 void  z_map_iter_advance(Self *self,int steps);

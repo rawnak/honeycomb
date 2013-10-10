@@ -280,6 +280,7 @@ static void z_zco_source_generator_init(Self *self)
  selfp->str_class_init = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  selfp->str_global_init = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  selfp->str_init = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ selfp->str_global_destroy = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  selfp->str_get = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  selfp->str_set = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  selfp->str_comma = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
@@ -313,6 +314,7 @@ static void z_zco_source_generator_init(Self *self)
  z_string_set_cstring(selfp->str_class_init, "class_init", Z_STRING_ENCODING_UTF8);
  z_string_set_cstring(selfp->str_global_init, "global_init", Z_STRING_ENCODING_UTF8);
  z_string_set_cstring(selfp->str_init, "init", Z_STRING_ENCODING_UTF8);
+ z_string_set_cstring(selfp->str_global_destroy, "global_destroy", Z_STRING_ENCODING_UTF8);
  z_string_set_cstring(selfp->str_get, "get", Z_STRING_ENCODING_UTF8);
  z_string_set_cstring(selfp->str_set, "set", Z_STRING_ENCODING_UTF8);
  z_string_set_cstring(selfp->str_comma, ",", Z_STRING_ENCODING_UTF8);
@@ -356,6 +358,7 @@ static void  z_zco_source_generator_dispose(ZObject *object)
  z_object_unref(Z_OBJECT(selfp->str_class_init));
  z_object_unref(Z_OBJECT(selfp->str_global_init));
  z_object_unref(Z_OBJECT(selfp->str_init));
+ z_object_unref(Z_OBJECT(selfp->str_global_destroy));
  z_object_unref(Z_OBJECT(selfp->str_get));
  z_object_unref(Z_OBJECT(selfp->str_set));
  z_object_unref(Z_OBJECT(selfp->str_comma));
@@ -441,6 +444,9 @@ void  z_zco_source_generator_special_member_function_decl(Self *self,ZString *sy
 
  else if (!z_string_compare(symbol, NULL, selfp->str_init, NULL, 0, -1))
  z_string_append_cstring(selfp->c_macros, "#define INIT_EXISTS\n", Z_STRING_ENCODING_UTF8);
+
+ else if (!z_string_compare(symbol, NULL, selfp->str_global_destroy, NULL, 0, -1))
+ z_string_append_cstring(selfp->c_macros, "#define GLOBAL_DESTROY_EXISTS\n", Z_STRING_ENCODING_UTF8);
 
  print_line_number(self, selfp->c_macros);
  z_string_append_format(selfp->c_macros, "#define %S %S_%S\n", symbol, selfp->current_class_name_lowercase, symbol);
@@ -1517,6 +1523,9 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
  z_string_append_format(code,
  "\x7b\n"
  "\t%SGlobal *_global = (%SGlobal *) gbl;\n"
+ "\t#ifdef GLOBAL_DESTROY_EXISTS\n"
+ "\t\tglobal_destroy(_global);\n"
+ "\t#endif\n"
  "%S\n"
  "\x7d\n",
  selfp->current_class_name_pascal,

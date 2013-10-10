@@ -248,7 +248,7 @@ class ZWorkerGroup : ZObject
                         z_map_insert(selfp->responses, INT_TO_PTR(selfp->count), NULL);
 
                         /* Post the task to the target worker */
-                        zco_context_post_task(ctx, bind, proxy_bind, 0);
+                        zco_context_post_task(ctx, bind, proxy_bind, 0, 0);
 
                         /* We no longer need a reference to the proxy bind */
                         z_object_unref(Z_OBJECT(proxy_bind));
@@ -258,7 +258,7 @@ class ZWorkerGroup : ZObject
                         ++selfp->count;
                 } else {
                         /* Post the task to the target worker */
-                        zco_context_post_task(ctx, bind, response_bind, 0);
+                        zco_context_post_task(ctx, bind, response_bind, 0, 0);
                 }
         }
 }

@@ -1923,6 +1923,9 @@ int  z_string_token_next(Self *self,ZString *separator,ZStringIter *first,ZStrin
 static void z_string_class_destroy(ZObjectGlobal *gbl)
 {
 	ZStringGlobal *_global = (ZStringGlobal *) gbl;
+	#ifdef GLOBAL_DESTROY_EXISTS
+		global_destroy(_global);
+	#endif
 
 }
 

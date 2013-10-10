@@ -89,6 +89,7 @@ struct ZTask {
 #define post_task z_event_loop_post_task
 #define zco_context_do_quit z_event_loop_zco_context_do_quit
 #define quit z_event_loop_quit
+#define join z_event_loop_join
 
 int z_event_loop_type_id = -1;
 
@@ -216,6 +217,7 @@ ZEventLoopGlobal * z_event_loop_get_type(struct zco_context_t *ctx)
 		z_map_insert((ZMap *) global->common.method_map, strdup("run"), (ZObjectSignalHandler) run);
 		z_map_insert((ZMap *) global->common.method_map, strdup("post_task"), (ZObjectSignalHandler) post_task);
 		z_map_insert((ZMap *) global->common.method_map, strdup("quit"), (ZObjectSignalHandler) quit);
+		z_map_insert((ZMap *) global->common.method_map, strdup("join"), (ZObjectSignalHandler) join);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZEventLoopGlobal *) global);
 		#endif
@@ -412,7 +414,7 @@ static void  z_event_loop_thread_main(Self *self)
  if (task->has_response) {
  ZBind *response_bind = z_bind_new(ctx, allocator);
  z_bind_set_data_ptr(response_bind, &task->response);
- zco_context_post_task(task->origin_context, response_bind, NULL, 0);
+ zco_context_post_task(task->origin_context, response_bind, NULL, 0, 0);
  z_object_unref(Z_OBJECT(response_bind));
  }
 
@@ -545,7 +547,7 @@ static uint64_t  z_event_loop_get_monotonic_time()
  clock_gettime(CLOCK_BOOTTIME, &tp);
  return ((uint64_t) tp.tv_sec) * 1000000000ul + tp.tv_nsec;
  }
-void  z_event_loop_post_task(Self *self,ZBind *bind,ZBind *response_bind,uint64_t timeout)
+void  z_event_loop_post_task(Self *self,ZBind *bind,ZBind *response_bind,uint64_t timeout,int flags)
 {
  if (!is_active(self))
  return;
@@ -598,7 +600,11 @@ void  z_event_loop_quit(Self *self)
  return;
 
  /* Send a QUIT signal to the thread */
- post_task(self, selfp->quit_task, NULL, 0);
+ post_task(self, selfp->quit_task, NULL, 0, 0);
+ }
+void  z_event_loop_join(Self *self)
+{
+ pthread_join(selfp->thread, NULL);
  }
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
 static void z_event_loop_class_destroy(ZObjectGlobal *gbl)
