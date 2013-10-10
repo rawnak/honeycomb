@@ -26,6 +26,10 @@
 #include <z-bind.h>
 #include <signal.h>
 
+/* When the event loop is ready to exit and NO_WAIT events are the only events in its queue,
+   it will invoke them immediately instead of waiting for their specified timeout */
+#define Z_EVENT_LOOP_NO_WAIT 0x1
+
 struct ZTask;
 typedef struct ZTask ZTask;
 
@@ -90,7 +94,7 @@ int  z_event_loop_get_is_current(Self *self);
 void  z_event_loop_run(Self *self);
 char *  z_event_loop_get_name(Self *self);
 void z_event_loop_set_name(Self *self, char *  value);
-void  z_event_loop_post_task(Self *self,ZBind *bind,ZBind *response_bind,uint64_t timeout,int flags);
+void  z_event_loop_post_task(Self *self,ZBind *request,ZBind *response,uint64_t timeout,int flags);
 void  z_event_loop_quit(Self *self);
 void  z_event_loop_join(Self *self);
 

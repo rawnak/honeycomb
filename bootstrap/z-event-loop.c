@@ -51,12 +51,14 @@
 #define PTR_TO_INT(x) ((int64_t) ((long) (x)))
 
 struct ZTask {
- ZBindData target;
+ ZBindData request;
  ZBindData response;
  struct zco_context_t *origin_context;
- uint64_t timeout;
- int has_response;
  struct ZTask *next;
+ uint64_t timeout;
+ int has_request : 1;
+ int has_response : 1;
+ int no_wait : 1;
 };
 
 
@@ -78,7 +80,9 @@ struct ZTask {
 #define delete_queue z_event_loop_delete_queue
 #define new z_event_loop_new
 #define get_is_current z_event_loop_get_is_current
+#define all_tasks_are_nowait z_event_loop_all_tasks_are_nowait
 #define reload_pending_queue z_event_loop_reload_pending_queue
+#define invoke_tasks z_event_loop_invoke_tasks
 #define thread_main z_event_loop_thread_main
 #define run z_event_loop_run
 #define get_name z_event_loop_get_name
@@ -126,7 +130,9 @@ static void z_event_loop_init(Self *self);
 static void  z_event_loop_delete_queue(Self *self,ZTask **queue);
 static void  z_event_loop_reset(ZObject *object);
 static void  z_event_loop_dispose(ZObject *object);
+static int  z_event_loop_all_tasks_are_nowait(Self *self);
 static void  z_event_loop_reload_pending_queue(Self *self);
+static void  z_event_loop_invoke_tasks(Self *self,ZMapIter *it,ZMapIter *end);
 static void  z_event_loop_thread_main(Self *self);
 static int  z_event_loop_is_active(Self *self);
 static uint64_t  z_event_loop_convert_monotonic_to_realtime(Self *self,uint64_t monotonic);
@@ -344,6 +350,36 @@ int  z_event_loop_get_is_current(Self *self)
 {
  return pthread_equal(pthread_self(), selfp->thread);
  }
+static int  z_event_loop_all_tasks_are_nowait(Self *self)
+{
+ /* The worst case time complexity of this function is O(n) because, in the
+                   worst case, it will have to iterate through the entire map. The average
+                   case is actually close to O(1) because the loop starts from the first
+                   element in the map and iterates forward. It's very likely that the
+                   application scheduled a NO_WAIT task far into the future and so it's
+                   less likely that the lower elements in the map is marked with NO_WAIT.
+                   This loop may very well exit with 1 iteration in most cases */
+
+ ZMapIter *it, *end;
+ it = z_map_get_begin(selfp->run_queue);
+ end = z_map_get_end(selfp->run_queue);
+ int value = 1;
+
+ while (!z_map_iter_is_equal(it, end)) {
+ ZTask *task = (ZTask *) z_map_get_value(selfp->run_queue, it);
+ if (!task->no_wait) {
+ value = 0; 
+ break;
+ }
+
+ z_map_iter_increment(it);
+ }
+
+ z_object_unref(Z_OBJECT(end));
+ z_object_unref(Z_OBJECT(it));
+
+ return value;
+ }
 static void  z_event_loop_reload_pending_queue(Self *self)
 {
  /* Ensure pending queue is empty */
@@ -353,6 +389,33 @@ static void  z_event_loop_reload_pending_queue(Self *self)
  ZTask *temp = selfp->pending_queue;
  selfp->pending_queue = selfp->incoming_queue;
  selfp->incoming_queue = temp;
+ }
+static void  z_event_loop_invoke_tasks(Self *self,ZMapIter *it,ZMapIter *end)
+{
+ struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
+ ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
+
+ /* Iterate through the run queue and execute the tasks that
+                   are scheduled to run now */
+ while (!z_map_iter_is_equal(it, end)) {
+ ZTask *task = (ZTask *) z_map_get_value(selfp->run_queue, it);
+
+ if (task->has_request) {
+ ZBind *request = z_bind_new(ctx, allocator);
+ z_bind_set_data_ptr(request, &task->request);
+ z_bind_invoke(request);
+ z_object_unref(Z_OBJECT(request));
+ }
+
+ if (task->has_response) {
+ ZBind *response_bind = z_bind_new(ctx, allocator);
+ z_bind_set_data_ptr(response_bind, &task->response);
+ zco_context_post_task(task->origin_context, response_bind, NULL, 0, 0);
+ z_object_unref(Z_OBJECT(response_bind));
+ }
+
+ z_map_iter_increment(it);
+ }
  }
 static void  z_event_loop_thread_main(Self *self)
 {
@@ -402,24 +465,8 @@ static void  z_event_loop_thread_main(Self *self)
  end = z_map_upper_bound(selfp->run_queue, &monotonic_time);
 #endif
 
- /* Iterate through the run queue and execute the tasks that
-                           are scheduled to run now */
- while (!z_map_iter_is_equal(it, end)) {
- ZTask *task = (ZTask *) z_map_get_value(selfp->run_queue, it);
- ZBind *target_bind = z_bind_new(ctx, allocator);
- z_bind_set_data_ptr(target_bind, &task->target);
- z_bind_invoke(target_bind);
- z_object_unref(Z_OBJECT(target_bind));
-
- if (task->has_response) {
- ZBind *response_bind = z_bind_new(ctx, allocator);
- z_bind_set_data_ptr(response_bind, &task->response);
- zco_context_post_task(task->origin_context, response_bind, NULL, 0, 0);
- z_object_unref(Z_OBJECT(response_bind));
- }
-
- z_map_iter_increment(it);
- }
+ /* Run the tasks */
+ invoke_tasks(self, it, end);
 
  /* Remove the tasks from the queue that have been executed */
  z_map_erase(selfp->run_queue, NULL, end);
@@ -458,6 +505,24 @@ static void  z_event_loop_thread_main(Self *self)
  is_running = 0;
  goto release_lock;
  }
+
+ } else if (selfp->is_done && all_tasks_are_nowait(self)) {
+ /* Invoke all tasks in the queue */
+ ZMapIter *it, *end;
+
+ it = z_map_get_begin(selfp->run_queue);
+ end = z_map_get_end(selfp->run_queue);
+
+ invoke_tasks(self, it, end);
+
+ z_object_unref(Z_OBJECT(it));
+ z_object_unref(Z_OBJECT(end));
+
+ z_map_clear(selfp->run_queue);
+
+ /* Release the locks and exit the loop */
+ is_running = 0;
+ goto release_lock;
 
  } else {
  /* Check the time of the next scheduled task in the run queue */
@@ -547,7 +612,7 @@ static uint64_t  z_event_loop_get_monotonic_time()
  clock_gettime(CLOCK_BOOTTIME, &tp);
  return ((uint64_t) tp.tv_sec) * 1000000000ul + tp.tv_nsec;
  }
-void  z_event_loop_post_task(Self *self,ZBind *bind,ZBind *response_bind,uint64_t timeout,int flags)
+void  z_event_loop_post_task(Self *self,ZBind *request,ZBind *response,uint64_t timeout,int flags)
 {
  if (!is_active(self))
  return;
@@ -556,19 +621,28 @@ void  z_event_loop_post_task(Self *self,ZBind *bind,ZBind *response_bind,uint64_
  ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->ts_fixed_allocator;
  ZTask *task = z_memory_allocator_allocate(allocator, sizeof(ZTask));
 
- task->origin_context = CTX_FROM_OBJECT(bind);
+ task->origin_context = CTX_FROM_OBJECT(request);
 
  /* Hold the incoming_queue lock */
  pthread_mutex_lock(&selfp->queue_lock);
 
- memcpy(&task->target, z_bind_get_data_ptr(bind), sizeof(ZBindData));
+ if (request) {
+ task->origin_context = CTX_FROM_OBJECT(request);
+ task->has_request = 1;
+ memcpy(&task->request, z_bind_get_data_ptr(request), sizeof(ZBindData));
+ } else {
+ task->origin_context = CTX_FROM_OBJECT(response);
+ task->has_request = 0;
+ }
 
- if (response_bind) {
+ if (response) {
  task->has_response = 1;
- memcpy(&task->response, z_bind_get_data_ptr(response_bind), sizeof(ZBindData));
+ memcpy(&task->response, z_bind_get_data_ptr(response), sizeof(ZBindData));
  } else {
  task->has_response = 0;
  }
+
+ task->no_wait = (flags & Z_EVENT_LOOP_NO_WAIT)? 1 : 0;
 
  /* Normalize the timeout with a monotonic clock - Instead of
                    it being the time between now and the time the task is
@@ -610,6 +684,9 @@ void  z_event_loop_join(Self *self)
 static void z_event_loop_class_destroy(ZObjectGlobal *gbl)
 {
 	ZEventLoopGlobal *_global = (ZEventLoopGlobal *) gbl;
+	#ifdef GLOBAL_DESTROY_EXISTS
+		global_destroy(_global);
+	#endif
 
 }
 
