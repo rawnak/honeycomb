@@ -25,6 +25,7 @@
 #include <z-closure.h>
 #include <z-bind.h>
 #include <signal.h>
+#include <sys/epoll.h>
 
 /* When the event loop is ready to exit and NO_WAIT events are the only events in its queue,
    it will invoke them immediately instead of waiting for their specified timeout */
@@ -54,11 +55,16 @@ struct ZEventLoopPrivate {
 	char *name;
 	ZBind *quit_task;
 	pthread_t thread;
-	pthread_cond_t schedule_cond;
-	pthread_mutex_t queue_lock;
 	ZMap *run_queue;
+	int ep_fd;
+	struct epoll_event *ep_events;
+	int ep_nfds;
+	int pipe_in;
+	int pipe_out;
 	ZTask *pending_queue;
 	ZTask *incoming_queue;
+	pthread_cond_t schedule_cond;
+	pthread_mutex_t queue_lock;
 	volatile sig_atomic_t is_done;
 	volatile sig_atomic_t is_running;
 };
@@ -94,8 +100,8 @@ int  z_event_loop_get_is_current(Self *self);
 void  z_event_loop_run(Self *self);
 char *  z_event_loop_get_name(Self *self);
 void z_event_loop_set_name(Self *self, char *  value);
-void  z_event_loop_post_task(Self *self,ZBind *request,ZBind *response,uint64_t timeout,int flags);
-void  z_event_loop_quit(Self *self);
+int  z_event_loop_post_task(Self *self,ZBind *request,ZBind *response,uint64_t timeout,int flags);
+int  z_event_loop_quit(Self *self);
 void  z_event_loop_join(Self *self);
 
 #undef Self

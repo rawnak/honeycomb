@@ -234,7 +234,9 @@ class ZServer : ZObject
 
                 /* We will always post a task to a queue, instead of blockingly invoke it */
                 assert(selfp->target_context);
-                zco_context_post_task(selfp->target_context, selfp->cb_open_connection, NULL, 0, 0);
+
+                /* TODO: This assertion needs to be handled gracefully */
+                assert(zco_context_post_task(selfp->target_context, selfp->cb_open_connection, NULL, 0, 0) == 0);
 
                 z_object_unref(Z_OBJECT(selfp->cb_open_connection));
                 selfp->cb_open_connection = original;
@@ -257,7 +259,9 @@ class ZServer : ZObject
 
                 /* We will always post a task to a queue, instead of blockingly invoke it */
                 assert(selfp->target_context);
-                zco_context_post_task(selfp->target_context, selfp->cb_process_message, NULL, 0, 0);
+
+                /* TODO: This assertion needs to be handled gracefully */
+                assert(zco_context_post_task(selfp->target_context, selfp->cb_process_message, NULL, 0, 0) == 0);
 
                 /* Restore the original bind */
                 z_object_unref(Z_OBJECT(selfp->cb_process_message));

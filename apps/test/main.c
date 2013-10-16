@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <stdarg.h>
+#include <assert.h>
 
 enum TestSet {
 	TestSetVector = 1,
@@ -130,7 +131,7 @@ static void application_main(ZBind *bind, int test_set_number, int test_case_num
                                 z_bind_set_handler(completion_task, (ZBindHandler) task_complete);
                         }
 
-                        z_worker_group_post_task(worker_group, task, completion_task, 1);
+                        assert(z_worker_group_post_task(worker_group, task, completion_task, 1) == 0);
                 }
 
                 z_object_unref(Z_OBJECT(completion_task));
@@ -256,7 +257,7 @@ int main(int argc, char **argv)
                 z_bind_append_uint32(task, test_case_number);
                 z_bind_append_ptr(task, worker_group);
                 z_bind_append_ptr(task, &lock);
-                zco_context_post_task(&app_ctx, task, NULL, 0, 0);
+                assert(zco_context_post_task(&app_ctx, task, NULL, 0, 0) == 0);
                 z_object_unref(Z_OBJECT(task));
 
                 /* Wait for all tests to be completed */

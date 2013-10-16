@@ -219,9 +219,10 @@ class ZWorkerGroup : ZObject
                 z_object_unref(Z_OBJECT(self));
         }
 
-        public void post_task(Self *self, ZBind *bind, ZBind *response_bind, int in_order)
+        public int post_task(Self *self, ZBind *bind, ZBind *response_bind, int in_order)
         {
                 struct zco_context_t *ctx = get_next_worker(self);
+                int rc;
 
                 if (in_order) {
                         /* Create a proxy bind. This bind will be invoked as the response bind instead
@@ -248,18 +249,21 @@ class ZWorkerGroup : ZObject
                         z_map_insert(selfp->responses, INT_TO_PTR(selfp->count), NULL);
 
                         /* Post the task to the target worker */
-                        zco_context_post_task(ctx, bind, proxy_bind, 0, 0);
+                        rc = zco_context_post_task(ctx, bind, proxy_bind, 0, 0);
 
                         /* We no longer need a reference to the proxy bind */
                         z_object_unref(Z_OBJECT(proxy_bind));
 
                         /* Increment the counter. This counter is used to determine which task was scheduled
                            after another */
-                        ++selfp->count;
+                        if (rc == 0)
+                                ++selfp->count;
                 } else {
                         /* Post the task to the target worker */
-                        zco_context_post_task(ctx, bind, response_bind, 0, 0);
+                        rc = zco_context_post_task(ctx, bind, response_bind, 0, 0);
                 }
+
+                return rc;
         }
 }
 
