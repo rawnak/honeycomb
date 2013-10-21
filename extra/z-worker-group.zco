@@ -234,33 +234,37 @@ class ZWorkerGroup : ZObject
                         z_bind_append_ptr(proxy_bind, response_bind);
                         z_bind_append_uint32(proxy_bind, selfp->count);
 
-                        /* We need to hold a reference to self so it can stay alive until the proxy function
-                           is invoked. Having the proxy function run without 'self' will not work out well */
-                        z_object_ref(Z_OBJECT(self));
-
-                        /* We need to hold a reference to the response bind until it is invoked. It will
-                           be unref'd when the associated element is removed from the responses map */
-                        z_object_ref(Z_OBJECT(response_bind));
-
-                        /* Insert a blank slot into the response map. This will serve as a hole so the
-                           proxy bind's handler knows when to stop. This hole will be replaced by the
-                           real response if it is available and so if the loop runs after it has been
-                           replaced, it will not be considered as a hole */
-                        z_map_insert(selfp->responses, INT_TO_PTR(selfp->count), NULL);
-
                         /* Post the task to the target worker */
                         rc = zco_context_post_task(ctx, bind, proxy_bind, 0, 0);
+
+                        if (rc == 0) {
+                                /* We need to hold a reference to self so it can stay alive until the proxy function
+                                   is invoked. Having the proxy function run without 'self' will not work out well */
+                                z_object_ref(Z_OBJECT(self));
+
+                                /* We need to hold a reference to the response bind until it is invoked. It will
+                                   be unref'd when the associated element is removed from the responses map */
+                                z_object_ref(Z_OBJECT(response_bind));
+
+                                /* Insert a blank slot into the response map. This will serve as a hole so the
+                                   proxy bind's handler knows when to stop. This hole will be replaced by the
+                                   real response if it is available and so if the loop runs after it has been
+                                   replaced, it will not be considered as a hole */
+                                z_map_insert(selfp->responses, INT_TO_PTR(selfp->count), NULL);
+                        }
 
                         /* We no longer need a reference to the proxy bind */
                         z_object_unref(Z_OBJECT(proxy_bind));
 
-                        /* Increment the counter. This counter is used to determine which task was scheduled
-                           after another */
-                        if (rc == 0)
-                                ++selfp->count;
                 } else {
                         /* Post the task to the target worker */
                         rc = zco_context_post_task(ctx, bind, response_bind, 0, 0);
+                }
+
+                if (rc == 0) {
+                        /* Increment the counter. This counter is used to determine which task was scheduled
+                           after another */
+                        ++selfp->count;
                 }
 
                 return rc;
