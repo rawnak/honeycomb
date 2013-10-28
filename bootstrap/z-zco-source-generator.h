@@ -76,10 +76,12 @@ typedef struct ZZcoSourceGenerator ZZcoSourceGenerator;
 struct ZZcoSourceGeneratorPrivate {
 	ZFile *source_file;
 	ZFile *header_file;
+	ZFile *protected_header_file;
 	ZString *type_name;
 	ZString *symbol_name;
 	ZString *virtual_base_name;
 	char *header_filename;
+	char *protected_header_filename;
 	char *zco_filename;
 	ZString *current_class_name_lowercase;
 	ZString *current_class_name_pascal;
@@ -106,6 +108,7 @@ struct ZZcoSourceGeneratorPrivate {
 	ZString *h_macros_tail;
 	ZString *c_macros;
 	ZString *function_prototypes_h;
+	ZString *function_prototypes_ph;
 	ZString *function_registrations;
 	ZString *signal_registrations;
 	ZString *attached_prop_registrations;
@@ -184,6 +187,7 @@ void  z_zco_source_generator_prepare_interface(Self *self,ZString *interface_nam
 void  z_zco_source_generator_finalize_class_definition(Self *self);
 void  z_zco_source_generator_finalize_interface_definition(Self *self);
 void  z_zco_source_generator_write_header_block(Self *self,ZString *s);
+void  z_zco_source_generator_write_protected_header_block(Self *self,ZString *s);
 void  z_zco_source_generator_write_source_block(Self *self,ZString *s);
 void  z_zco_source_generator_class_declaration(Self *self);
 void  z_zco_source_generator_interface_declaration(Self *self);

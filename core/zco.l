@@ -75,6 +75,7 @@ static ZString *to_zstring(char *s)
 "#"                     { yylval=to_zstring("#");                   return HASH;       }
 "global"                { yylval=to_zstring("global");              return GLOBAL;     }
 "public"                { yylval=to_zstring("public");              return PUBLIC;     }
+"protected"             { yylval=to_zstring("protected");           return PROTECTED;  }
 "private"               { yylval=to_zstring("private");             return PRIVATE;    }
 "get"                   { yylval=to_zstring("get");                 return GET;        }
 "set"                   { yylval=to_zstring("set");                 return SET;        }

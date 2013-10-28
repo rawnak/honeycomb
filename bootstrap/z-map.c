@@ -32,7 +32,7 @@
 #include <z-map.h>
 #include <string.h>
 #include <z-memory-allocator.h>
-#include <z-map.h>
+#include <z-map-protected.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZMap
@@ -698,6 +698,9 @@ void z_map_set_compare(Self *self, ZMapCompareFunc  value)
 static void z_map_class_destroy(ZObjectGlobal *gbl)
 {
 	ZMapGlobal *_global = (ZMapGlobal *) gbl;
+	#ifdef GLOBAL_DESTROY_EXISTS
+		global_destroy(_global);
+	#endif
 
 }
 

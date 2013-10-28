@@ -36,7 +36,7 @@ ZZcoSourceGenerator *source_generator;
 int yylex(void);
 %}
 
-%token HEADER_BLK_START SOURCE_BLK_START FILE_BLK_END CLASS INTERFACE STRUCT UNION CONST SIGNED UNSIGNED COLON GLOBAL PUBLIC PRIVATE GET SET 
+%token HEADER_BLK_START SOURCE_BLK_START FILE_BLK_END CLASS INTERFACE STRUCT UNION CONST SIGNED UNSIGNED COLON GLOBAL PUBLIC PROTECTED PRIVATE GET SET 
 %token OVERRIDE VIRTUAL WORD CODE OBRACE EBRACE OPAREN EPAREN SEMICOLON VAR_ARGS SPACE ASTERISK COMMENT COMMA HASH BANG VOLATILE
 
 
@@ -318,6 +318,18 @@ ccodes
 		z_object_unref(Z_OBJECT($1));
 	}
 	| ccodes PUBLIC
+	{
+		z_string_append_format((ZString *) $1, "%S", $2);
+		z_object_unref(Z_OBJECT($2));
+	}
+
+	| PROTECTED
+	{
+		$$=z_zco_source_generator_new_string(source_generator,NULL);
+		z_string_append_format($$, "%S", $1);
+		z_object_unref(Z_OBJECT($1));
+	}
+	| ccodes PROTECTED
 	{
 		z_string_append_format((ZString *) $1, "%S", $2);
 		z_object_unref(Z_OBJECT($2));
@@ -835,6 +847,11 @@ access_specifier
 	| PUBLIC
 	{
 		z_zco_source_generator_set_access_mode(source_generator, ACCESS_PUBLIC);
+		z_object_unref(Z_OBJECT($1));
+	}
+	| PROTECTED
+	{
+		z_zco_source_generator_set_access_mode(source_generator, ACCESS_PROTECTED);
 		z_object_unref(Z_OBJECT($1));
 	}
 	| GLOBAL

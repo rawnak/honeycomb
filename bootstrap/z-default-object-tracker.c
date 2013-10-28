@@ -35,7 +35,7 @@ extern int z_map_iter_type_id;
 #include <z-map.h>
 #include <string.h>
 #include <z-memory-allocator.h>
-#include <z-default-object-tracker.h>
+#include <z-default-object-tracker-protected.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZDefaultObjectTracker
@@ -481,6 +481,9 @@ static int  z_default_object_tracker_garbage_collect(ZObjectTracker *tracker)
 static void z_default_object_tracker_class_destroy(ZObjectGlobal *gbl)
 {
 	ZDefaultObjectTrackerGlobal *_global = (ZDefaultObjectTrackerGlobal *) gbl;
+	#ifdef GLOBAL_DESTROY_EXISTS
+		global_destroy(_global);
+	#endif
 
 }
 

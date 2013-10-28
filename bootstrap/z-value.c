@@ -46,7 +46,7 @@ enum ZValueType {
 #include <z-map.h>
 #include <string.h>
 #include <z-memory-allocator.h>
-#include <z-value.h>
+#include <z-value-protected.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZValue
@@ -489,6 +489,9 @@ void z_value_set_as_real64(Self *self, double  value)
 static void z_value_class_destroy(ZObjectGlobal *gbl)
 {
 	ZValueGlobal *_global = (ZValueGlobal *) gbl;
+	#ifdef GLOBAL_DESTROY_EXISTS
+		global_destroy(_global);
+	#endif
 
 }
 

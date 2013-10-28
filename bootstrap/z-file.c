@@ -26,7 +26,7 @@
 #include <z-map.h>
 #include <string.h>
 #include <z-memory-allocator.h>
-#include <z-file.h>
+#include <z-file-protected.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZFile
@@ -229,6 +229,9 @@ void  z_file_write_format(Self *self,const char *fmt,...)
 static void z_file_class_destroy(ZObjectGlobal *gbl)
 {
 	ZFileGlobal *_global = (ZFileGlobal *) gbl;
+	#ifdef GLOBAL_DESTROY_EXISTS
+		global_destroy(_global);
+	#endif
 
 }
 

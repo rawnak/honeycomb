@@ -29,7 +29,7 @@
 #include <z-map.h>
 #include <string.h>
 #include <z-memory-allocator.h>
-#include <z-vector.h>
+#include <z-vector-protected.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZVector

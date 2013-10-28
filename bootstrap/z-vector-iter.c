@@ -26,7 +26,7 @@
 #include <z-map.h>
 #include <string.h>
 #include <z-memory-allocator.h>
-#include <z-vector-iter.h>
+#include <z-vector-iter-protected.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZVectorIter
@@ -481,6 +481,9 @@ int  z_vector_iter_is_in_bound(ZVectorIter *self)
 static void z_vector_iter_class_destroy(ZObjectGlobal *gbl)
 {
 	ZVectorIterGlobal *_global = (ZVectorIterGlobal *) gbl;
+	#ifdef GLOBAL_DESTROY_EXISTS
+		global_destroy(_global);
+	#endif
 
 }
 

@@ -37,7 +37,7 @@
 #include <z-map.h>
 #include <string.h>
 #include <z-memory-allocator.h>
-#include <z-thread-simple-memory-allocator.h>
+#include <z-thread-simple-memory-allocator-protected.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZThreadSimpleMemoryAllocator
@@ -363,6 +363,9 @@ static int  z_thread_simple_memory_allocator_garbage_collect(ZMemoryAllocator *a
 static void z_thread_simple_memory_allocator_class_destroy(ZObjectGlobal *gbl)
 {
 	ZThreadSimpleMemoryAllocatorGlobal *_global = (ZThreadSimpleMemoryAllocatorGlobal *) gbl;
+	#ifdef GLOBAL_DESTROY_EXISTS
+		global_destroy(_global);
+	#endif
 
 }
 

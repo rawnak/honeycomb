@@ -30,7 +30,7 @@
 #include <z-map.h>
 #include <string.h>
 #include <z-memory-allocator.h>
-#include <z-bind.h>
+#include <z-bind-protected.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZBind
@@ -493,6 +493,9 @@ void  z_bind_unpack_variable_buffer(va_list ap,void *buffer,int size)
 static void z_bind_class_destroy(ZObjectGlobal *gbl)
 {
 	ZBindGlobal *_global = (ZBindGlobal *) gbl;
+	#ifdef GLOBAL_DESTROY_EXISTS
+		global_destroy(_global);
+	#endif
 
 }
 

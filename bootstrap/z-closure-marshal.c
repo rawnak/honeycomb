@@ -25,7 +25,7 @@
 #include <z-map.h>
 #include <string.h>
 #include <z-memory-allocator.h>
-#include <z-closure-marshal.h>
+#include <z-closure-marshal-protected.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZClosureMarshal

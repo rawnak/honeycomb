@@ -26,7 +26,7 @@
 #include <z-map.h>
 #include <string.h>
 #include <z-memory-allocator.h>
-#include <z-closure.h>
+#include <z-closure-protected.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZClosure
@@ -279,6 +279,9 @@ int  z_closure_invoke(Self *self,ZVector *args,ZVector *vargs)
 static void z_closure_class_destroy(ZObjectGlobal *gbl)
 {
 	ZClosureGlobal *_global = (ZClosureGlobal *) gbl;
+	#ifdef GLOBAL_DESTROY_EXISTS
+		global_destroy(_global);
+	#endif
 
 }
 

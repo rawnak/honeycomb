@@ -8,6 +8,7 @@ classes=( z-zco-source-generator z-closure z-closure-marshal z-map-iter z-map z-
 for class_name in ${classes[@]}; do
    grep -v "#line" build/core/$class_name.c > bootstrap/$class_name.c
    grep -v "#line" build/core/$class_name.h > bootstrap/$class_name.h
+   grep -v "#line" build/core/$class_name-protected.h > bootstrap/$class_name-protected.h
 done
 
 

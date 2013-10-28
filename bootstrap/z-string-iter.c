@@ -25,7 +25,7 @@
 #include <z-map.h>
 #include <string.h>
 #include <z-memory-allocator.h>
-#include <z-string-iter.h>
+#include <z-string-iter-protected.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZStringIter
@@ -251,6 +251,9 @@ int  z_string_iter_is_gte(Self *self,Self *other)
 static void z_string_iter_class_destroy(ZObjectGlobal *gbl)
 {
 	ZStringIterGlobal *_global = (ZStringIterGlobal *) gbl;
+	#ifdef GLOBAL_DESTROY_EXISTS
+		global_destroy(_global);
+	#endif
 
 }
 

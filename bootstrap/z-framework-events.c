@@ -25,7 +25,7 @@
 #include <z-map.h>
 #include <string.h>
 #include <z-memory-allocator.h>
-#include <z-framework-events.h>
+#include <z-framework-events-protected.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #include <z-vector.h>
@@ -216,6 +216,9 @@ void  z_framework_events_io_event(Self *self)
 static void z_framework_events_class_destroy(ZObjectGlobal *gbl)
 {
 	ZFrameworkEventsGlobal *_global = (ZFrameworkEventsGlobal *) gbl;
+	#ifdef GLOBAL_DESTROY_EXISTS
+		global_destroy(_global);
+	#endif
 
 }
 

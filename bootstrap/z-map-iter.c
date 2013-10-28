@@ -25,7 +25,7 @@
 #include <z-map.h>
 #include <string.h>
 #include <z-memory-allocator.h>
-#include <z-map-iter.h>
+#include <z-map-iter-protected.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZMapIter
@@ -250,6 +250,9 @@ int  z_map_iter_is_gte(Self *self,Self *other)
 static void z_map_iter_class_destroy(ZObjectGlobal *gbl)
 {
 	ZMapIterGlobal *_global = (ZMapIterGlobal *) gbl;
+	#ifdef GLOBAL_DESTROY_EXISTS
+		global_destroy(_global);
+	#endif
 
 }
 

@@ -41,7 +41,7 @@ struct ZSegmentData {
 #include <z-map.h>
 #include <string.h>
 #include <z-memory-allocator.h>
-#include <z-vector-segment.h>
+#include <z-vector-segment-protected.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZVectorSegment
@@ -873,6 +873,9 @@ int  z_vector_segment_erase(Self *self,ZVectorIter *start,ZVectorIter *end,int i
 static void z_vector_segment_class_destroy(ZObjectGlobal *gbl)
 {
 	ZVectorSegmentGlobal *_global = (ZVectorSegmentGlobal *) gbl;
+	#ifdef GLOBAL_DESTROY_EXISTS
+		global_destroy(_global);
+	#endif
 
 }
 

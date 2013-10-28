@@ -32,7 +32,7 @@ typedef void(*CallbackFunc)(struct ZZcoSourceGenerator *self, int is_first, ZStr
 #include <z-map.h>
 #include <string.h>
 #include <z-memory-allocator.h>
-#include <z-zco-source-generator.h>
+#include <z-zco-source-generator-protected.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZZcoSourceGenerator
@@ -74,6 +74,7 @@ typedef void(*CallbackFunc)(struct ZZcoSourceGenerator *self, int is_first, ZStr
 #define finalize_interface_definition z_zco_source_generator_finalize_interface_definition
 #define external_definition z_zco_source_generator_external_definition
 #define write_header_block z_zco_source_generator_write_header_block
+#define write_protected_header_block z_zco_source_generator_write_protected_header_block
 #define write_source_block z_zco_source_generator_write_source_block
 #define class_declaration z_zco_source_generator_class_declaration
 #define interface_declaration z_zco_source_generator_interface_declaration
@@ -232,6 +233,7 @@ ZZcoSourceGeneratorGlobal * z_zco_source_generator_get_type(struct zco_context_t
 		z_map_insert((ZMap *) global->common.method_map, strdup("finalize_class_definition"), (ZObjectSignalHandler) finalize_class_definition);
 		z_map_insert((ZMap *) global->common.method_map, strdup("finalize_interface_definition"), (ZObjectSignalHandler) finalize_interface_definition);
 		z_map_insert((ZMap *) global->common.method_map, strdup("write_header_block"), (ZObjectSignalHandler) write_header_block);
+		z_map_insert((ZMap *) global->common.method_map, strdup("write_protected_header_block"), (ZObjectSignalHandler) write_protected_header_block);
 		z_map_insert((ZMap *) global->common.method_map, strdup("write_source_block"), (ZObjectSignalHandler) write_source_block);
 		z_map_insert((ZMap *) global->common.method_map, strdup("class_declaration"), (ZObjectSignalHandler) class_declaration);
 		z_map_insert((ZMap *) global->common.method_map, strdup("interface_declaration"), (ZObjectSignalHandler) interface_declaration);
@@ -347,6 +349,7 @@ static void z_zco_source_generator_init(Self *self)
  }
 void  z_zco_source_generator_shutdown(Self *self)
 {
+ z_file_write(selfp->protected_header_file, "\n#endif\n");
  z_file_write(selfp->header_file, "\n#endif\n");
  z_file_write(selfp->source_file, "\n\n");
  }
@@ -390,10 +393,13 @@ static void  z_zco_source_generator_dispose(ZObject *object)
  z_object_unref(Z_OBJECT(selfp->z_object_class_name_pascal));
 
  free(selfp->header_filename);
+ free(selfp->protected_header_filename);
 
+ z_file_close(selfp->protected_header_file);
  z_file_close(selfp->header_file);
  z_file_close(selfp->source_file);
 
+ z_object_unref(Z_OBJECT(selfp->protected_header_file));
  z_object_unref(Z_OBJECT(selfp->header_file));
  z_object_unref(Z_OBJECT(selfp->source_file));
 
@@ -767,6 +773,16 @@ static void  z_zco_source_generator_member_function_decl(Self *self,ZString *typ
  /* for function definition */
  print_line_number(self, selfp->function_definitions);
  z_string_append_format(selfp->function_definitions, "static %S %S_%S%S\n%S\n", type, selfp->current_class_name_lowercase, symbol, arglist, code);
+ break;
+
+ case ACCESS_PROTECTED:
+ /* for function prototype */
+ print_line_number(self, selfp->function_prototypes_ph);
+ z_string_append_format(selfp->function_prototypes_ph, "%S %S_%S%S;\n", type, selfp->current_class_name_lowercase, symbol, arglist);
+
+ /* for function definition */
+ print_line_number(self, selfp->function_definitions);
+ z_string_append_format(selfp->function_definitions, "%S %S_%S%S\n%S\n", type, selfp->current_class_name_lowercase, symbol, arglist, code);
  break;
 
  case ACCESS_PUBLIC:
@@ -1154,10 +1170,6 @@ static void  z_zco_source_generator_for_each_arg(Self *self,ZString *output,ZStr
  }
 static void  z_zco_source_generator_virtual_member_function_decl(Self *self,ZString *type,ZString *symbol,ZString *arglist,ZString *code)
 {
- if (selfp->access_mode == ACCESS_PRIVATE) {
- yyerror("Cannot declare virtual function with private access specifier");
- }
-
  /* virtual function prototype */
  print_line_number(self, selfp->function_prototypes_c);
  z_string_append_format(selfp->function_prototypes_c, "static %S %S_virtual_%S%S;\n", type, selfp->current_class_name_lowercase, symbol, arglist);
@@ -1165,16 +1177,16 @@ static void  z_zco_source_generator_virtual_member_function_decl(Self *self,ZStr
  /* virtual function caller */
  ZString *vcode = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
 
- if (selfp->access_mode == ACCESS_PUBLIC) {
+ if (selfp->access_mode == ACCESS_GLOBAL) {
+ z_string_append_format(vcode, 
+ "\x7b\n"
+ "\tZObjectClass *class_base = CLASS_FROM_GLOBAL(gbl);\n"
+ "\tZCommonGlobal *common_global = class_base->real_global;\n");
+ } else {
  z_string_append_format(vcode, 
  "\x7b\n"
  "\tZObject *obj = (ZObject *) self;\n"
  "\tZObjectClass *class_base = (ZObjectClass *) obj->class_base;\n"
- "\tZCommonGlobal *common_global = class_base->real_global;\n");
- } else if (selfp->access_mode == ACCESS_GLOBAL) {
- z_string_append_format(vcode, 
- "\x7b\n"
- "\tZObjectClass *class_base = CLASS_FROM_GLOBAL(gbl);\n"
  "\tZCommonGlobal *common_global = class_base->real_global;\n");
  }
 
@@ -1273,6 +1285,7 @@ void  z_zco_source_generator_prepare_class(Self *self,ZString *class_name)
  selfp->h_macros_tail = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  selfp->c_macros = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  selfp->function_prototypes_h = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ selfp->function_prototypes_ph = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  selfp->function_registrations = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  selfp->signal_registrations = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  selfp->attached_prop_registrations = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
@@ -1368,6 +1381,7 @@ void  z_zco_source_generator_prepare_interface(Self *self,ZString *interface_nam
  selfp->h_macros_tail = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  selfp->c_macros = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  selfp->function_prototypes_h = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ selfp->function_prototypes_ph = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  selfp->function_registrations = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  selfp->signal_registrations = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  selfp->attached_prop_registrations = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
@@ -1457,7 +1471,7 @@ static char *  z_zco_source_generator_get_base_filename(const char *full_filenam
 
  /* allocating space for full file name. we will use the spare space
                            for new file extension */
- res = malloc(length);
+ res = malloc(length + 16);
 
  /* copy base part of the filename */
  memcpy(res, full_filename, length-4);
@@ -1572,6 +1586,10 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
  z_file_write(selfp->header_file,
  "#include <zco-type.h>\n");
 
+ z_file_write_format(selfp->protected_header_file,
+ "#include <%s>\n",
+ selfp->header_filename);
+
  /* includes in the source file */
  z_file_write(selfp->source_file,
  "#include <z-object-tracker.h>\n"
@@ -1654,6 +1672,12 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
  z_object_unref(Z_OBJECT(selfp->function_prototypes_h));
  selfp->function_prototypes_h = NULL;
 
+ /* function prototypes in protected header file */
+ z_file_write_format(selfp->protected_header_file, "%S\n", selfp->function_prototypes_ph);
+
+ z_object_unref(Z_OBJECT(selfp->function_prototypes_ph));
+ selfp->function_prototypes_ph = NULL;
+
 
  /* tail macros in header file */
  z_file_write_format(selfp->header_file, "%S\n", selfp->h_macros_tail);
@@ -1666,7 +1690,7 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
  "#include <%s>\n"
  "#include <zco-type.h>\n"
  "#include <stdlib.h>\n",
- selfp->header_filename);
+ selfp->protected_header_filename);
 
  if (selfp->class_needs_vector) {
  selfp->class_needs_vector = 0;
@@ -2011,6 +2035,13 @@ void  z_zco_source_generator_write_header_block(Self *self,ZString *s)
 
  z_file_write_format(selfp->header_file, "%S\n", s);
  }
+void  z_zco_source_generator_write_protected_header_block(Self *self,ZString *s)
+{
+ record_line_number(self);
+ print_line_number_on_file(self, selfp->protected_header_file);
+
+ z_file_write_format(selfp->protected_header_file, "%S\n", s);
+ }
 void  z_zco_source_generator_write_source_block(Self *self,ZString *s)
 {
  record_line_number(self);
@@ -2166,13 +2197,35 @@ int  z_zco_source_generator_setup(Self *self,int argc,char **argv)
  return -1;
  }
 
+ char *temp;
+
  /* write the include guard in the header file */
- char *temp = macro_safe(selfp->header_filename);
+ temp = macro_safe(selfp->header_filename);
  z_file_write_format(selfp->header_file, "#ifndef _%s_\n#define _%s_\n", temp, temp);
  free(temp);
 
+ /* open the output protected header file for writing */
+ filename[base_length] = 0;
+ strcat(filename, "-protected.h");
+ selfp->protected_header_filename = strdup(filename);
+
+ selfp->protected_header_file = z_file_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+
+ if (z_file_open(selfp->protected_header_file, selfp->protected_header_filename, "w") != 0) {
+ fputs("zco: ", stderr);
+ perror(selfp->protected_header_filename);
+ return -1;
+ }
+
+ /* write the include guard in the protected header file */
+ temp = macro_safe(selfp->protected_header_filename);
+ z_file_write_format(selfp->protected_header_file, "#ifndef _%s_\n#define _%s_\n", temp, temp);
+ free(temp);
+
  /* open the output source file for writing */
+ filename[base_length] = '.';
  filename[base_length+1] = 'c';
+ filename[base_length+2] = 0;
 
  selfp->source_file = z_file_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
 
@@ -2197,6 +2250,9 @@ int  z_zco_source_generator_setup(Self *self,int argc,char **argv)
 static void z_zco_source_generator_class_destroy(ZObjectGlobal *gbl)
 {
 	ZZcoSourceGeneratorGlobal *_global = (ZZcoSourceGeneratorGlobal *) gbl;
+	#ifdef GLOBAL_DESTROY_EXISTS
+		global_destroy(_global);
+	#endif
 
 }
 

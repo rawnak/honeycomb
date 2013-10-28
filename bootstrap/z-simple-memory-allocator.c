@@ -37,7 +37,7 @@
 #include <z-map.h>
 #include <string.h>
 #include <z-memory-allocator.h>
-#include <z-simple-memory-allocator.h>
+#include <z-simple-memory-allocator-protected.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZSimpleMemoryAllocator
@@ -332,6 +332,9 @@ static int  z_simple_memory_allocator_garbage_collect(ZMemoryAllocator *allocato
 static void z_simple_memory_allocator_class_destroy(ZObjectGlobal *gbl)
 {
 	ZSimpleMemoryAllocatorGlobal *_global = (ZSimpleMemoryAllocatorGlobal *) gbl;
+	#ifdef GLOBAL_DESTROY_EXISTS
+		global_destroy(_global);
+	#endif
 
 }
 

@@ -31,8 +31,38 @@
    it will invoke them immediately instead of waiting for their specified timeout */
 #define Z_EVENT_LOOP_NO_WAIT 0x1
 
+/* We require Linux kernel 2.6.37 or higher. The epoll_wait implementation for prior versions
+   of the kernel assume an infinite wait time when the specified wait time is larger than
+   LONG_MAX / HZ */
+#define Z_EVENT_LOOP_MAX_EVENTS 5 
+
 struct ZTask;
 typedef struct ZTask ZTask;
+
+struct ZEventLoopInfo {
+#ifdef USE_IO_EVENT_LOOP
+ int ep_fd;
+ struct epoll_event ep_events[Z_EVENT_LOOP_MAX_EVENTS];
+ int ep_nfds;
+ int pipe_in;
+ int pipe_out;
+#else
+ /* pending_queue is a thread-unsafe queue that is only read by the guest thread.
+           It contains a list of tasks that was previously written to on the incoming
+           queue. These tasks are moved to the run queue by the guest thread.
+
+           incoming_queue is a thread-safe queue that is written to by the host thread.
+           The guest thread will periodically change the pointer to point to a 'new'
+           queue
+         */
+ ZTask *pending_queue;
+ ZTask *incoming_queue;
+ pthread_cond_t schedule_cond;
+ pthread_mutex_t queue_lock;
+#endif
+};
+typedef struct ZEventLoopInfo ZEventLoopInfo;
+
 
 #include <zco-type.h>
 #define Self ZEventLoop
@@ -55,16 +85,8 @@ struct ZEventLoopPrivate {
 	char *name;
 	ZBind *quit_task;
 	pthread_t thread;
+	ZEventLoopInfo info;
 	ZMap *run_queue;
-	int ep_fd;
-	struct epoll_event *ep_events;
-	int ep_nfds;
-	int pipe_in;
-	int pipe_out;
-	ZTask *pending_queue;
-	ZTask *incoming_queue;
-	pthread_cond_t schedule_cond;
-	pthread_mutex_t queue_lock;
 	volatile sig_atomic_t is_done;
 	volatile sig_atomic_t is_running;
 };

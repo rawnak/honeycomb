@@ -32,7 +32,7 @@
 #include <z-map.h>
 #include <string.h>
 #include <z-memory-allocator.h>
-#include <z-string.h>
+#include <z-string-protected.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZString

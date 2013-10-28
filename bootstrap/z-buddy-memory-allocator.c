@@ -25,7 +25,7 @@
 #include <z-map.h>
 #include <string.h>
 #include <z-memory-allocator.h>
-#include <z-buddy-memory-allocator.h>
+#include <z-buddy-memory-allocator-protected.h>
 #include <zco-type.h>
 #include <stdlib.h>
 #define Self ZBuddyMemoryAllocator
@@ -247,6 +247,9 @@ static void  z_buddy_memory_allocator_deallocate(ZMemoryAllocator *allocator,voi
 static void z_buddy_memory_allocator_class_destroy(ZObjectGlobal *gbl)
 {
 	ZBuddyMemoryAllocatorGlobal *_global = (ZBuddyMemoryAllocatorGlobal *) gbl;
+	#ifdef GLOBAL_DESTROY_EXISTS
+		global_destroy(_global);
+	#endif
 
 }
 
