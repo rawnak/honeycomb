@@ -53,17 +53,6 @@
 #define INT_TO_PTR(x) ((void *) ((unsigned long) (x)))
 #define PTR_TO_INT(x) ((int64_t) ((long) (x)))
 
-struct ZTask {
- ZBindData request;
- ZBindData response;
- struct zco_context_t *origin_context;
- struct ZTask *next;
- uint64_t timeout;
- int has_request : 1;
- int has_response : 1;
- int no_wait : 1;
-};
-
 
 #include <z-object-tracker.h>
 #include <z-map.h>
@@ -80,32 +69,27 @@ struct ZTask {
 #define runqueue_value_destroy z_event_loop_runqueue_value_destroy
 #define INIT_EXISTS
 #define init z_event_loop_init
-#define set_fd_flags z_event_loop_set_fd_flags
-#define delete_queue z_event_loop_delete_queue
-#define new z_event_loop_new
+#define ensure_thread_is_current z_event_loop_ensure_thread_is_current
 #define get_is_current z_event_loop_get_is_current
 #define all_tasks_are_nowait z_event_loop_all_tasks_are_nowait
 #define run_tasks z_event_loop_run_tasks
-#define add_task_to_runqueue z_event_loop_add_task_to_runqueue
-#define reload_runqueue z_event_loop_reload_runqueue
 #define get_ready_tasks z_event_loop_get_ready_tasks
-#define wait_for_signal_with_timeout z_event_loop_wait_for_signal_with_timeout
-#define wait_for_signal_with_abstime z_event_loop_wait_for_signal_with_abstime
 #define get_next_task_time z_event_loop_get_next_task_time
-#define reload_pending_queue z_event_loop_reload_pending_queue
 #define thread_main z_event_loop_thread_main
 #define run z_event_loop_run
 #define get_name z_event_loop_get_name
 #define set_name z_event_loop_set_name
 #define is_active z_event_loop_is_active
-#define convert_monotonic_to_realtime z_event_loop_convert_monotonic_to_realtime
-#define convert_monotonic_to_timeout z_event_loop_convert_monotonic_to_timeout
-#define get_monotonic_time z_event_loop_get_monotonic_time
-#define add_to_task_queue z_event_loop_add_to_task_queue
 #define post_task z_event_loop_post_task
 #define zco_context_do_quit z_event_loop_zco_context_do_quit
 #define quit z_event_loop_quit
 #define join z_event_loop_join
+#define add_task_to_runqueue z_event_loop_add_task_to_runqueue
+#define reload_pending_queue z_event_loop_reload_pending_queue
+#define get_monotonic_time z_event_loop_get_monotonic_time
+#define reload_runqueue z_event_loop_reload_runqueue
+#define wait_for_signal z_event_loop_wait_for_signal
+#define add_to_task_queue z_event_loop_add_to_task_queue
 
 int z_event_loop_type_id = -1;
 
@@ -139,26 +123,22 @@ static int  z_event_loop_map_compare(ZMap *map,const void *a,const void *b);
 static void  z_event_loop_runqueue_key_destroy(void *item,Self *self);
 static void  z_event_loop_runqueue_value_destroy(ZTask *bind_data,Self *self);
 static void z_event_loop_init(Self *self);
-static void  z_event_loop_set_fd_flags(int fd,int flags);
-static void  z_event_loop_delete_queue(Self *self,ZTask **queue);
 static void  z_event_loop_reset(ZObject *object);
 static void  z_event_loop_dispose(ZObject *object);
 static int  z_event_loop_all_tasks_are_nowait(Self *self);
 static void  z_event_loop_run_tasks(Self *self,ZMapIter *it,ZMapIter *end);
-static void  z_event_loop_add_task_to_runqueue(Self *self,ZTask *task);
-static void  z_event_loop_reload_runqueue(Self *self);
 static void  z_event_loop_get_ready_tasks(Self *self,ZMapIter **it,ZMapIter **end);
-static void  z_event_loop_wait_for_signal_with_timeout(Self *self,int timeout_ms);
-static void  z_event_loop_wait_for_signal_with_abstime(Self *self,struct timespec timeout);
 static uint64_t  z_event_loop_get_next_task_time(Self *self);
-static void  z_event_loop_reload_pending_queue(Self *self);
 static void  z_event_loop_thread_main(Self *self);
 static int  z_event_loop_is_active(Self *self);
-static uint64_t  z_event_loop_convert_monotonic_to_realtime(Self *self,uint64_t monotonic);
-static int64_t  z_event_loop_convert_monotonic_to_timeout(Self *self,uint64_t monotonic);
-static uint64_t  z_event_loop_get_monotonic_time();
-static int  z_event_loop_add_to_task_queue(Self *self,ZTask *task);
 static void  z_event_loop_zco_context_do_quit(ZBind *bind,Self *self);
+static int  z_event_loop_virtual_reload_pending_queue(Self *self);
+static void  z_event_loop_virtual_reload_runqueue(Self *self);
+static void  z_event_loop_reload_runqueue(Self *self);
+static void  z_event_loop_virtual_wait_for_signal(Self *self,uint64_t next_task_time);
+static void  z_event_loop_wait_for_signal(Self *self,uint64_t next_task_time);
+static int  z_event_loop_virtual_add_to_task_queue(Self *self,ZTask *task);
+static int  z_event_loop_add_to_task_queue(Self *self,ZTask *task);
 static void z_event_loop_class_destroy(ZObjectGlobal *gbl);
 static void z_event_loop___delete(ZObject *self);
 
@@ -226,6 +206,10 @@ ZEventLoopGlobal * z_event_loop_get_type(struct zco_context_t *ctx)
 			global->__parent_dispose = p_class->__dispose;
 			p_class->__dispose = z_event_loop_dispose;
 		}
+		CLASS_FROM_GLOBAL(global)->__reload_pending_queue = z_event_loop_virtual_reload_pending_queue;
+		CLASS_FROM_GLOBAL(global)->__reload_runqueue = z_event_loop_virtual_reload_runqueue;
+		CLASS_FROM_GLOBAL(global)->__wait_for_signal = z_event_loop_virtual_wait_for_signal;
+		CLASS_FROM_GLOBAL(global)->__add_to_task_queue = z_event_loop_virtual_add_to_task_queue;
 		{
 			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
 			global->__parent_class_destroy = p_class->__class_destroy;
@@ -240,11 +224,13 @@ ZEventLoopGlobal * z_event_loop_get_type(struct zco_context_t *ctx)
 		global->common.method_map = z_map_new(ctx, NULL);
 		z_map_set_compare(global->common.method_map, __map_compare);
 		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
-		z_map_insert((ZMap *) global->common.method_map, strdup("new"), (ZObjectSignalHandler) new);
+		z_map_insert((ZMap *) global->common.method_map, strdup("ensure_thread_is_current"), (ZObjectSignalHandler) ensure_thread_is_current);
 		z_map_insert((ZMap *) global->common.method_map, strdup("run"), (ZObjectSignalHandler) run);
 		z_map_insert((ZMap *) global->common.method_map, strdup("post_task"), (ZObjectSignalHandler) post_task);
 		z_map_insert((ZMap *) global->common.method_map, strdup("quit"), (ZObjectSignalHandler) quit);
 		z_map_insert((ZMap *) global->common.method_map, strdup("join"), (ZObjectSignalHandler) join);
+		z_map_insert((ZMap *) global->common.method_map, strdup("add_task_to_runqueue"), (ZObjectSignalHandler) add_task_to_runqueue);
+		z_map_insert((ZMap *) global->common.method_map, strdup("reload_pending_queue"), (ZObjectSignalHandler) reload_pending_queue);
 		#ifdef GLOBAL_INIT_EXISTS
 			global_init((ZEventLoopGlobal *) global);
 		#endif
@@ -312,54 +298,6 @@ static void z_event_loop_init(Self *self)
  z_map_set_key_destruct(selfp->run_queue, (ZMapItemCallback) runqueue_key_destroy);
 #endif
  z_map_set_value_destruct(selfp->run_queue, (ZMapItemCallback) runqueue_value_destroy);
-
-#ifdef USE_IO_EVENT_LOOP
- /* Create an epoll file descriptor */
- assert((selfp->info.ep_fd = epoll_create1(0)) >= 0);
-
- /* Create a pipe to send tasks into guest thread */
- int pipe_fds[2];
- assert(pipe(pipe_fds) == 0);
-
- selfp->info.pipe_out = pipe_fds[0];
- selfp->info.pipe_in = pipe_fds[1];
-
- /* Set file descriptors to non-blocking mode */
- set_fd_flags(selfp->info.pipe_out, O_NONBLOCK);
-
- /* Subscribe the output of the pipe to epoll */
- struct epoll_event event;
- event.data.ptr = NULL;
- event.events = EPOLLIN | EPOLLRDHUP | EPOLLPRI | EPOLLET;
- assert(epoll_ctl(selfp->info.ep_fd, EPOLL_CTL_ADD, selfp->info.pipe_out, &event) == 0);
-#else
- selfp->info.pending_queue = NULL;
- selfp->info.incoming_queue = NULL;
-
- /* Initialize locks */
- pthread_mutex_init(&selfp->info.queue_lock, NULL);
-
- /* Initialize condition variables */
- pthread_cond_init(&selfp->info.schedule_cond, NULL);
-#endif
- }
-static void  z_event_loop_set_fd_flags(int fd,int flags)
-{
- int old_flags = fcntl(fd, F_GETFL, 0);
- fcntl(fd, F_SETFL, old_flags | flags);
- }
-static void  z_event_loop_delete_queue(Self *self,ZTask **queue)
-{
- ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->ts_fixed_allocator;
- ZTask *p = *queue;
-
- while (p) {
- ZTask *next = p->next;
- z_memory_allocator_deallocate_by_size(allocator, p, sizeof(ZTask));
- p = next;
- }
-
- *queue = NULL;
  }
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_reset
 static void  z_event_loop_reset(ZObject *object)
@@ -373,30 +311,25 @@ static void  z_event_loop_dispose(ZObject *object)
 {
  Self *self = (Self *) object;
 
- quit(self);
- z_object_unref(Z_OBJECT(selfp->quit_task));
-
- /* Wait for thread to complete */
- join(self);
  selfp->is_done = 0;
-
-#ifdef USE_IO_EVENT_LOOP
- close(selfp->info.pipe_in);
- close(selfp->info.pipe_out);
- close(selfp->info.ep_fd);
-#else
- delete_queue(self, &selfp->info.incoming_queue);
- delete_queue(self, &selfp->info.pending_queue);
- pthread_mutex_destroy(&selfp->info.queue_lock);
-#endif
+ z_object_unref(Z_OBJECT(selfp->quit_task));
 
  PARENT_HANDLER(object);
  }
 #undef PARENT_HANDLER
-Self * z_event_loop_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator)
+void  z_event_loop_ensure_thread_is_current(Self *self)
 {
- Self *self = GET_NEW(ctx, allocator);
- return self;
+ if (get_is_current(self))
+ return;
+
+ char name2[100];
+ pthread_getname_np(pthread_self(), name2, sizeof(name2));
+
+ fprintf(stderr, "Thread access violation - Calling thread is '%s' but object belongs to thread '%s'\n",
+ name2, selfp->name? selfp->name : "(null)");
+
+ fflush(stderr);
+ exit(EFAULT);
  }
 int  z_event_loop_get_is_current(Self *self)
 {
@@ -452,76 +385,15 @@ static void  z_event_loop_run_tasks(Self *self,ZMapIter *it,ZMapIter *end)
  if (task->has_response) {
  ZBind *response_bind = z_bind_new(ctx, allocator);
  z_bind_set_data_ptr(response_bind, &task->response);
- assert(zco_context_post_task(task->origin_context, response_bind, NULL, 0, 0) == 0);
+
+ ZEventLoop *ev = zco_context_get_event_loop(task->origin_context);
+ assert(z_event_loop_post_task(ev, response_bind, NULL, 0, 0) == 0);
+ z_object_unref(Z_OBJECT(ev));
  z_object_unref(Z_OBJECT(response_bind));
  }
 
  z_map_iter_increment(it);
  }
- }
-static void  z_event_loop_add_task_to_runqueue(Self *self,ZTask *task)
-{
-#if __WORDSIZE >= 64
- /* For 64-bit systems, we store the time inforation inside the pointer value. This allows
-                   us to eliminate an allocation */
-
- while (z_map_insert(selfp->run_queue, INT_TO_PTR(task->timeout), task) == -1) {
- /* In the rare case when two tasks where scheduled to run at the same time,
-                           we delay one of the tasks by 1ns to ensure all keys in the map are unique */
- ++task->timeout;
- }
-#else
- /* For 32-bit systems (or less), we allocate an 8-byte buffer to store the time information
-                   and stor ethe address to this buffer in the pointer value. */
-
- uint64_t *task_time = z_memory_allocator_allocate(ctx->fixed_allocator, sizeof(uint64_t));
- *task_time = task->timeout;
-
- while (z_map_insert(selfp->run_queue, task_time, task) == -1) {
- /* In the rare case when two tasks where scheduled to run at the same time,
-                           we delay one of the tasks by 1ns to ensure all keys in the map are unique */
- ++(*task_time);
- }
-#endif
- }
-static void  z_event_loop_reload_runqueue(Self *self)
-{
- int need_recheck = 0;
- uint64_t earliest_time = UINT64_MAX;
-
-#ifdef USE_IO_EVENT_LOOP
- ZTask *tasks[Z_EVENT_LOOP_MAX_EVENTS];
- struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
- ssize_t nbytes;
-
- while(1) {
- nbytes = read(selfp->info.pipe_out, &tasks[0], sizeof(tasks));
-
- if (nbytes == -1) {
- if (errno == EAGAIN)
- break;
-
- perror("read");
- continue;
- }
-
- int i;
- int count = nbytes / sizeof(ZTask *);
-
- for (i=0; i<count; ++i) {
- ZTask *task = tasks[i];
- add_task_to_runqueue(self, task);
- }
-
- };
-#else
- /* Move tasks from the pending queue into the run queue */
- ZTask *task = selfp->info.pending_queue; 
- while (task) {
- add_task_to_runqueue(self, task);
- task = task->next;
- }
-#endif
  }
 static void  z_event_loop_get_ready_tasks(Self *self,ZMapIter **it,ZMapIter **end)
 {
@@ -534,33 +406,6 @@ static void  z_event_loop_get_ready_tasks(Self *self,ZMapIter **it,ZMapIter **en
  *end = z_map_upper_bound(selfp->run_queue, INT_TO_PTR(monotonic_time));
 #else
  *end = z_map_upper_bound(selfp->run_queue, &monotonic_time);
-#endif
- }
-static void  z_event_loop_wait_for_signal_with_timeout(Self *self,int timeout_ms)
-{
-#ifdef USE_IO_EVENT_LOOP
- /* epoll_pwait first calls sigprocmask to set the signal mask to the
-                   specified 'sigmask', calls the standard epoll_wait() function and
-                   then resets the signal mask with another call to sigprocmask, all
-                   atomically. although we are not supposed to use sigprocmask in a
-                   multi-threaded application, we can still get away with it as long
-                   as we don't block the SIGCANCEL and SIGSETXID signals. */
- sigset_t sigmask;
- sigemptyset(&sigmask);
- selfp->info.ep_nfds = epoll_pwait(selfp->info.ep_fd, selfp->info.ep_events, Z_EVENT_LOOP_MAX_EVENTS, timeout_ms, &sigmask);
-#endif
- }
-static void  z_event_loop_wait_for_signal_with_abstime(Self *self,struct timespec timeout)
-{
-#ifndef USE_IO_EVENT_LOOP
- pthread_mutex_lock(&selfp->info.queue_lock);
-
- if (timeout.tv_sec == 0 && timeout.tv_nsec == 0)
- pthread_cond_wait(&selfp->info.schedule_cond, &selfp->info.queue_lock);
- else
- pthread_cond_timedwait(&selfp->info.schedule_cond, &selfp->info.queue_lock, &timeout);
-
- pthread_mutex_unlock(&selfp->info.queue_lock);
 #endif
  }
 static uint64_t  z_event_loop_get_next_task_time(Self *self)
@@ -577,28 +422,6 @@ static uint64_t  z_event_loop_get_next_task_time(Self *self)
  z_object_unref(Z_OBJECT(it));
 
  return next_task_time;
- }
-static void  z_event_loop_reload_pending_queue(Self *self)
-{
-#ifndef USE_IO_EVENT_LOOP
- /* All tasks in the pending queue has been moved over to the run queue. Lets
-                   swap the pending queue and incoming queue so we can execute newly added tasks
-                   that exists in the incoming queue.
-
-                   We should do this as late as possible so that the incoming queue has a better
-                   chance of having some tasks */
- selfp->info.pending_queue = NULL;
-
- /* Hold the queue lock */
- pthread_mutex_lock(&selfp->info.queue_lock);
-
- /* Swap the pending queue and incoming queue */
- ZTask *temp = selfp->info.pending_queue;
- selfp->info.pending_queue = selfp->info.incoming_queue;
- selfp->info.incoming_queue = temp;
-
- pthread_mutex_unlock(&selfp->info.queue_lock);
-#endif
  }
 static void  z_event_loop_thread_main(Self *self)
 {
@@ -625,14 +448,10 @@ static void  z_event_loop_thread_main(Self *self)
  z_object_unref(Z_OBJECT(it));
  z_object_unref(Z_OBJECT(end));
 
-#ifndef USE_IO_EVENT_LOOP
  /* Pick up the new queue. If new tasks are available, we won't wait
                            for a signal and just repeat the loop */
- reload_pending_queue(self);
-
- if (selfp->info.pending_queue)
+ if (reload_pending_queue(self))
  continue;
-#endif
 
  uint64_t next_task_time;
 
@@ -669,31 +488,7 @@ static void  z_event_loop_thread_main(Self *self)
  next_task_time = get_next_task_time(self);
  }
 
-#ifdef USE_IO_EVENT_LOOP
- int timeout;
-
- if (next_task_time)
- timeout = (int) convert_monotonic_to_timeout(self, next_task_time);
- else
- timeout = -1;
-
- wait_for_signal_with_timeout(self, timeout);
-#else
- struct timespec abstime;
-
- if (next_task_time) {
- next_task_time = convert_monotonic_to_realtime(self, next_task_time);
- abstime.tv_sec = next_task_time / 1000000000ul;
- abstime.tv_nsec = next_task_time % 1000000000ul;
- } else {
- abstime.tv_sec = 0;
- abstime.tv_nsec = 0;
- }
-
- wait_for_signal_with_abstime(self, abstime);
-
- reload_pending_queue(self);
-#endif
+ wait_for_signal(self, next_task_time);
  }
 
  selfp->is_running = 0;
@@ -738,57 +533,6 @@ static int  z_event_loop_is_active(Self *self)
  return 0;
 
  return 1;
- }
-static uint64_t  z_event_loop_convert_monotonic_to_realtime(Self *self,uint64_t monotonic)
-{
- struct timespec realtime_tp;
- clock_gettime(CLOCK_REALTIME, &realtime_tp);
- uint64_t realtime_ns = ((uint64_t) realtime_tp.tv_sec) * 1000000000ul + realtime_tp.tv_nsec;
-
- uint64_t monotonic_ns = get_monotonic_time(); 
-
- return (uint64_t) ((int64_t) monotonic - (int64_t) monotonic_ns + (int64_t) realtime_ns);
- }
-static int64_t  z_event_loop_convert_monotonic_to_timeout(Self *self,uint64_t monotonic)
-{
- /* During the conversion from nanoseconds to milliseconds, the
-                   value is rounded up to the nearest integer */
- uint64_t monotonic_ns = get_monotonic_time(); 
- int64_t timeout_ms = ((int64_t) monotonic - (int64_t) monotonic_ns + 999999) / 1000000;
- return (timeout_ms >= 0)? timeout_ms : 0;
- }
-static uint64_t  z_event_loop_get_monotonic_time()
-{
- struct timespec tp;
- clock_gettime(CLOCK_BOOTTIME, &tp);
- return ((uint64_t) tp.tv_sec) * 1000000000ul + tp.tv_nsec;
- }
-static int  z_event_loop_add_to_task_queue(Self *self,ZTask *task)
-{
-#ifdef USE_IO_EVENT_LOOP
- /* Send the address of the task to the guest thread through the pipe */
- int rc = write(selfp->info.pipe_in, &task, sizeof(ZTask *));
- return (rc < 0)? -errno : 0;
-#else
- /* Hold the incoming_queue lock */
- assert(pthread_mutex_lock(&selfp->info.queue_lock) == 0);
-
- /* Prepend it into the incoming queue. We don't care
-                   about the order of insertion into the incoming queue; The order of execution
-                   is preserved because each task knows what time it should be executed. As
-                   long as the tasks that are scheduled the earliest are executed first, the
-                   order will be maintained */
- task->next = selfp->info.incoming_queue;
- selfp->info.incoming_queue = task;
-
- /* Send a signal that new work has been scheduled */
- assert(pthread_cond_signal(&selfp->info.schedule_cond) == 0);
-
- /* Release the incoming_queue lock */
- assert(pthread_mutex_unlock(&selfp->info.queue_lock) == 0);
-
- return 0;
-#endif
  }
 int  z_event_loop_post_task(Self *self,ZBind *request,ZBind *response,uint64_t timeout,int flags)
 {
@@ -842,6 +586,85 @@ int  z_event_loop_quit(Self *self)
 void  z_event_loop_join(Self *self)
 {
  pthread_join(selfp->thread, NULL);
+ }
+void  z_event_loop_add_task_to_runqueue(Self *self,ZTask *task)
+{
+#if __WORDSIZE >= 64
+ /* For 64-bit systems, we store the time inforation inside the pointer value. This allows
+                   us to eliminate an allocation */
+
+ while (z_map_insert(selfp->run_queue, INT_TO_PTR(task->timeout), task) == -1) {
+ /* In the rare case when two tasks where scheduled to run at the same time,
+                           we delay one of the tasks by 1ns to ensure all keys in the map are unique */
+ ++task->timeout;
+ }
+#else
+ /* For 32-bit systems (or less), we allocate an 8-byte buffer to store the time information
+                   and stor ethe address to this buffer in the pointer value. */
+
+ uint64_t *task_time = z_memory_allocator_allocate(ctx->fixed_allocator, sizeof(uint64_t));
+ *task_time = task->timeout;
+
+ while (z_map_insert(selfp->run_queue, task_time, task) == -1) {
+ /* In the rare case when two tasks where scheduled to run at the same time,
+                           we delay one of the tasks by 1ns to ensure all keys in the map are unique */
+ ++(*task_time);
+ }
+#endif
+ }
+int  z_event_loop_reload_pending_queue(Self *self)
+{
+	ZObject *obj = (ZObject *) self;
+	ZObjectClass *class_base = (ZObjectClass *) obj->class_base;
+	ZCommonGlobal *common_global = class_base->real_global;
+	unsigned long offset = common_global->svtable_off_list[z_event_loop_type_id];
+	((ZEventLoopClass *) ((char *) class_base + offset))->__reload_pending_queue(self);
+}
+static int  z_event_loop_virtual_reload_pending_queue(Self *self)
+{
+ return 0;
+ }
+uint64_t  z_event_loop_get_monotonic_time()
+{
+ struct timespec tp;
+ clock_gettime(CLOCK_BOOTTIME, &tp);
+ return ((uint64_t) tp.tv_sec) * 1000000000ul + tp.tv_nsec;
+ }
+static void  z_event_loop_reload_runqueue(Self *self)
+{
+	ZObject *obj = (ZObject *) self;
+	ZObjectClass *class_base = (ZObjectClass *) obj->class_base;
+	ZCommonGlobal *common_global = class_base->real_global;
+	unsigned long offset = common_global->svtable_off_list[z_event_loop_type_id];
+	((ZEventLoopClass *) ((char *) class_base + offset))->__reload_runqueue(self);
+}
+static void  z_event_loop_virtual_reload_runqueue(Self *self)
+{
+ abort();
+ }
+static void  z_event_loop_wait_for_signal(Self *self,uint64_t next_task_time)
+{
+	ZObject *obj = (ZObject *) self;
+	ZObjectClass *class_base = (ZObjectClass *) obj->class_base;
+	ZCommonGlobal *common_global = class_base->real_global;
+	unsigned long offset = common_global->svtable_off_list[z_event_loop_type_id];
+	((ZEventLoopClass *) ((char *) class_base + offset))->__wait_for_signal(self,next_task_time);
+}
+static void  z_event_loop_virtual_wait_for_signal(Self *self,uint64_t next_task_time)
+{
+ abort();
+ }
+static int  z_event_loop_add_to_task_queue(Self *self,ZTask *task)
+{
+	ZObject *obj = (ZObject *) self;
+	ZObjectClass *class_base = (ZObjectClass *) obj->class_base;
+	ZCommonGlobal *common_global = class_base->real_global;
+	unsigned long offset = common_global->svtable_off_list[z_event_loop_type_id];
+	((ZEventLoopClass *) ((char *) class_base + offset))->__add_to_task_queue(self,task);
+}
+static int  z_event_loop_virtual_add_to_task_queue(Self *self,ZTask *task)
+{
+ abort();
  }
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
 static void z_event_loop_class_destroy(ZObjectGlobal *gbl)

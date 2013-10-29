@@ -28,6 +28,7 @@
 %{
 #include <z-string.h>
 #include <stdio.h>
+#include <z-event-loop-linux.h>
 
 /* In any C application, the process starts with only one thread (the main thread).
    It will almost always be dedicated for UI and its event loop will be tied to the
@@ -121,7 +122,13 @@ class ZWorkerGroup : ZObject
                 char *temp = z_string_get_cstring(app_name, Z_STRING_ENCODING_UTF8);
                 z_object_unref(Z_OBJECT(app_name));
 
-                zco_context_run(ctx, temp);
+                ZEventLoop *ev = Z_EVENT_LOOP(z_event_loop_linux_new(ctx, NULL));
+                zco_context_set_event_loop(ctx, ev);
+
+                z_event_loop_set_name(ev, temp);
+                z_event_loop_run(ev);
+                z_object_unref(Z_OBJECT(ev));
+
                 free(temp);
         }
 
@@ -162,7 +169,11 @@ class ZWorkerGroup : ZObject
                                 while (!z_vector_iter_is_equal(it, end))
                                 {
                                         struct zco_context_t *ctx = z_vector_get_item(selfp->workers, it);
-                                        zco_context_prepare_destroy(ctx);
+
+                                        ZEventLoop *ev = zco_context_get_event_loop(ctx);
+                                        z_event_loop_quit(ev);
+                                        z_object_unref(Z_OBJECT(ev));
+
                                         z_vector_iter_increment(it);
                                 }
 
@@ -235,7 +246,9 @@ class ZWorkerGroup : ZObject
                         z_bind_append_uint32(proxy_bind, selfp->count);
 
                         /* Post the task to the target worker */
-                        rc = zco_context_post_task(ctx, bind, proxy_bind, 0, 0);
+                        ZEventLoop *ev = zco_context_get_event_loop(ctx);
+                        rc = z_event_loop_post_task(ev, bind, proxy_bind, 0, 0);
+                        z_object_unref(Z_OBJECT(ev));
 
                         if (rc == 0) {
                                 /* We need to hold a reference to self so it can stay alive until the proxy function
@@ -258,7 +271,9 @@ class ZWorkerGroup : ZObject
 
                 } else {
                         /* Post the task to the target worker */
-                        rc = zco_context_post_task(ctx, bind, response_bind, 0, 0);
+                        ZEventLoop *ev = zco_context_get_event_loop(ctx);
+                        rc = z_event_loop_post_task(ev, bind, response_bind, 0, 0);
+                        z_object_unref(Z_OBJECT(ev));
                 }
 
                 if (rc == 0) {

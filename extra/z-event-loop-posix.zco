@@ -1,0 +1,201 @@
+/* ZCO - Cross-platform Application Framework
+ * Copyright (C) 2014  Rawnak Jahan Syeda
+ *
+ * z-event-loop-posix.zco: Event loop based around futex
+ * This file is part of ZCO.
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZCO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+%h{
+#include <z-object.h>
+#include <z-event-loop-protected.h>
+%}
+
+%{
+
+#include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+
+%}
+
+class ZEventLoopPosix : ZEventLoop
+{
+        /* pending_queue is a thread-unsafe queue that is only read by the guest thread.
+           It contains a list of tasks that was previously written to on the incoming
+           queue. These tasks are moved to the run queue by the guest thread.
+
+           incoming_queue is a thread-safe queue that is written to by the host thread.
+           The guest thread will periodically change the pointer to point to a 'new'
+           queue
+         */
+        private ZTask *pending_queue;
+        private ZTask *incoming_queue;
+        private pthread_cond_t schedule_cond;
+        private pthread_mutex_t queue_lock;
+
+	public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
+	{
+		Self *self = GET_NEW(ctx, allocator);
+		return self;
+	}
+
+	init(Self *self)
+	{
+                selfp->pending_queue = NULL;
+                selfp->incoming_queue = NULL;
+
+                /* Initialize locks */
+                pthread_mutex_init(&selfp->queue_lock, NULL);
+
+                /* Initialize condition variables */
+                pthread_cond_init(&selfp->schedule_cond, NULL);
+
+	}
+
+        override(ZObject) void dispose(ZObject *object)
+        {
+                Self *self = (Self *) object;
+
+                /* Wait for thread to complete */
+                z_event_loop_quit(Z_EVENT_LOOP(self));
+                z_event_loop_join(Z_EVENT_LOOP(self));
+
+                delete_queue(self, &selfp->incoming_queue);
+                delete_queue(self, &selfp->pending_queue);
+                pthread_mutex_destroy(&selfp->queue_lock);
+
+                PARENT_HANDLER(object);
+        }
+
+        private void delete_queue(Self *self, ZTask **queue)
+        {
+                ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->ts_fixed_allocator;
+                ZTask *p = *queue;
+
+                while (p) {
+                        ZTask *next = p->next;
+                        z_memory_allocator_deallocate_by_size(allocator, p, sizeof(ZTask));
+                        p = next;
+                }
+
+                *queue = NULL;
+        }
+
+        override(ZEventLoop) void reload_runqueue(ZEventLoop *ev)
+        {
+                Self *self = (Self *) ev;
+
+                /* Move tasks from the pending queue into the run queue */
+                ZTask *task = selfp->pending_queue; 
+                while (task) {
+                        z_event_loop_add_task_to_runqueue(Z_EVENT_LOOP(self), task);
+                        task = task->next;
+                }
+        }
+
+        override(ZEventLoop) int reload_pending_queue(ZEventLoop *ev)
+        {
+                Self *self = (Self *) ev;
+
+                /* All tasks in the pending queue has been moved over to the run queue. Lets
+                   swap the pending queue and incoming queue so we can execute newly added tasks
+                   that exists in the incoming queue.
+
+                   We should do this as late as possible so that the incoming queue has a better
+                   chance of having some tasks */
+                selfp->pending_queue = NULL;
+
+                /* Hold the queue lock */
+                pthread_mutex_lock(&selfp->queue_lock);
+
+                /* Swap the pending queue and incoming queue */
+                ZTask *temp = selfp->pending_queue;
+                selfp->pending_queue = selfp->incoming_queue;
+                selfp->incoming_queue = temp;
+
+                pthread_mutex_unlock(&selfp->queue_lock);
+
+                return (selfp->pending_queue)? 1 : 0;
+        }
+
+        private uint64_t convert_monotonic_to_realtime(Self *self, uint64_t monotonic)
+        {
+                struct timespec realtime_tp;
+                clock_gettime(CLOCK_REALTIME, &realtime_tp);
+                uint64_t realtime_ns = ((uint64_t) realtime_tp.tv_sec) * 1000000000ul + realtime_tp.tv_nsec;
+
+                uint64_t monotonic_ns = z_event_loop_get_monotonic_time(); 
+
+                return (uint64_t) ((int64_t) monotonic - (int64_t) monotonic_ns + (int64_t) realtime_ns);
+        }
+
+        private void wait_for_signal_with_abstime(Self *self, struct timespec timeout)
+        {
+                pthread_mutex_lock(&selfp->queue_lock);
+
+                if (timeout.tv_sec == 0 && timeout.tv_nsec == 0)
+                        pthread_cond_wait(&selfp->schedule_cond, &selfp->queue_lock);
+                else
+                        pthread_cond_timedwait(&selfp->schedule_cond, &selfp->queue_lock, &timeout);
+
+                pthread_mutex_unlock(&selfp->queue_lock);
+        }
+
+        override(ZEventLoop) void wait_for_signal(ZEventLoop *ev, uint64_t next_task_time)
+        {
+                Self *self = (Self *) ev;
+                struct timespec abstime;
+
+                if (next_task_time) {
+                        next_task_time = convert_monotonic_to_realtime(self, next_task_time);
+                        abstime.tv_sec = next_task_time / 1000000000ul;
+                        abstime.tv_nsec = next_task_time % 1000000000ul;
+                } else {
+                        abstime.tv_sec = 0;
+                        abstime.tv_nsec = 0;
+                }
+
+                wait_for_signal_with_abstime(self, abstime);
+                z_event_loop_reload_pending_queue(Z_EVENT_LOOP(self));
+        }
+
+        override(ZEventLoop) int add_to_task_queue(ZEventLoop *ev, ZTask *task)
+        {
+                Self *self = (Self *) ev;
+
+                /* Hold the incoming_queue lock */
+                assert(pthread_mutex_lock(&selfp->queue_lock) == 0);
+
+                /* Prepend it into the incoming queue. We don't care
+                   about the order of insertion into the incoming queue; The order of execution
+                   is preserved because each task knows what time it should be executed. As
+                   long as the tasks that are scheduled the earliest are executed first, the
+                   order will be maintained */
+                task->next = selfp->incoming_queue;
+                selfp->incoming_queue = task;
+
+                /* Send a signal that new work has been scheduled */
+                assert(pthread_cond_signal(&selfp->schedule_cond) == 0);
+
+                /* Release the incoming_queue lock */
+                assert(pthread_mutex_unlock(&selfp->queue_lock) == 0);
+
+                return 0;
+        }
+
+}
+

@@ -118,7 +118,6 @@ struct zco_context_t {
 };
 
 void    zco_context_init(struct zco_context_t *ctx);
-void    zco_context_prepare_destroy(struct zco_context_t *ctx);
 void    zco_context_destroy(struct zco_context_t *ctx);
 void    zco_context_set_marshal(struct zco_context_t *ctx, void *marshal);
 void *  zco_context_get_framework_events(struct zco_context_t *ctx);
@@ -133,9 +132,8 @@ void    zco_context_full_garbage_collect(struct zco_context_t *ctx);
    This ensures that the user of the event loop class does not accidently ref/unref the message
    loop. The event loop lives on another thread so any attempt to modify the thread-unsafe
    ref-count can lead to problems */
-int     zco_context_post_task(struct zco_context_t *ctx, ZBind *request, ZBind *response, uint64_t timeout, int flags);
-void    zco_context_run(struct zco_context_t *ctx, char *name);
-void    zco_context_join(struct zco_context_t *ctx);
+void *  zco_context_get_event_loop(struct zco_context_t *ctx);
+void    zco_context_set_event_loop(struct zco_context_t *ctx, void *ev);
 
 
 

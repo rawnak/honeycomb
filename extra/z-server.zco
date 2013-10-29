@@ -34,6 +34,7 @@
 %}
 
 %{
+#include <z-event-loop.h>
 #include <z-bind.h>
 #include <sys/epoll.h>
 #include <unistd.h>
@@ -236,7 +237,9 @@ class ZServer : ZObject
                 assert(selfp->target_context);
 
                 /* TODO: This assertion needs to be handled gracefully */
-                assert(zco_context_post_task(selfp->target_context, selfp->cb_open_connection, NULL, 0, 0) == 0);
+                ZEventLoop *ev = zco_context_get_event_loop(selfp->target_context);
+                assert(z_event_loop_post_task(ev, selfp->cb_open_connection, NULL, 0, 0) == 0);
+                z_object_unref(Z_OBJECT(ev));
 
                 z_object_unref(Z_OBJECT(selfp->cb_open_connection));
                 selfp->cb_open_connection = original;
@@ -261,7 +264,9 @@ class ZServer : ZObject
                 assert(selfp->target_context);
 
                 /* TODO: This assertion needs to be handled gracefully */
-                assert(zco_context_post_task(selfp->target_context, selfp->cb_process_message, NULL, 0, 0) == 0);
+                ZEventLoop *ev = zco_context_get_event_loop(selfp->target_context);
+                assert(z_event_loop_post_task(ev, selfp->cb_process_message, NULL, 0, 0) == 0);
+                z_object_unref(Z_OBJECT(ev));
 
                 /* Restore the original bind */
                 z_object_unref(Z_OBJECT(selfp->cb_process_message));

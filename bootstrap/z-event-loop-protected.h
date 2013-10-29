@@ -21,6 +21,7 @@
 #ifndef _Z_EVENT_LOOP_PROTECTED_H_
 #define _Z_EVENT_LOOP_PROTECTED_H_
 #include <z-event-loop.h>
+uint64_t  z_event_loop_get_monotonic_time();
 
 
 #endif

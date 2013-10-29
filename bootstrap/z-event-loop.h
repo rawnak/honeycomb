@@ -25,43 +25,23 @@
 #include <z-closure.h>
 #include <z-bind.h>
 #include <signal.h>
-#include <sys/epoll.h>
 
 /* When the event loop is ready to exit and NO_WAIT events are the only events in its queue,
    it will invoke them immediately instead of waiting for their specified timeout */
 #define Z_EVENT_LOOP_NO_WAIT 0x1
 
-/* We require Linux kernel 2.6.37 or higher. The epoll_wait implementation for prior versions
-   of the kernel assume an infinite wait time when the specified wait time is larger than
-   LONG_MAX / HZ */
-#define Z_EVENT_LOOP_MAX_EVENTS 5 
-
-struct ZTask;
-typedef struct ZTask ZTask;
-
-struct ZEventLoopInfo {
-#ifdef USE_IO_EVENT_LOOP
- int ep_fd;
- struct epoll_event ep_events[Z_EVENT_LOOP_MAX_EVENTS];
- int ep_nfds;
- int pipe_in;
- int pipe_out;
-#else
- /* pending_queue is a thread-unsafe queue that is only read by the guest thread.
-           It contains a list of tasks that was previously written to on the incoming
-           queue. These tasks are moved to the run queue by the guest thread.
-
-           incoming_queue is a thread-safe queue that is written to by the host thread.
-           The guest thread will periodically change the pointer to point to a 'new'
-           queue
-         */
- ZTask *pending_queue;
- ZTask *incoming_queue;
- pthread_cond_t schedule_cond;
- pthread_mutex_t queue_lock;
-#endif
+struct ZTask {
+ ZBindData request;
+ ZBindData response;
+ struct zco_context_t *origin_context;
+ struct ZTask *next;
+ uint64_t timeout;
+ int has_request : 1;
+ int has_response : 1;
+ int no_wait : 1;
 };
-typedef struct ZEventLoopInfo ZEventLoopInfo;
+
+typedef struct ZTask ZTask;
 
 
 #include <zco-type.h>
@@ -85,7 +65,6 @@ struct ZEventLoopPrivate {
 	char *name;
 	ZBind *quit_task;
 	pthread_t thread;
-	ZEventLoopInfo info;
 	ZMap *run_queue;
 	volatile sig_atomic_t is_done;
 	volatile sig_atomic_t is_running;
@@ -105,6 +84,10 @@ struct ZEventLoopGlobal {
 
 struct ZEventLoopClass {
 	struct ZObjectClass parent_z_object;
+	int  (*__reload_pending_queue)(Self *self);
+	void  (*__reload_runqueue)(Self *self);
+	void  (*__wait_for_signal)(Self *self,uint64_t next_task_time);
+	int  (*__add_to_task_queue)(Self *self,ZTask *task);
 };
 
 struct ZEventLoop {
@@ -117,7 +100,7 @@ extern int z_event_loop_type_id;
 ZEventLoopGlobal * z_event_loop_get_type(struct zco_context_t *ctx);
 void __z_event_loop_init(struct zco_context_t *ctx, ZEventLoop *self);
 void __z_event_loop_class_init(struct zco_context_t *ctx, ZEventLoopClass *_class);
-Self * z_event_loop_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator);
+void  z_event_loop_ensure_thread_is_current(Self *self);
 int  z_event_loop_get_is_current(Self *self);
 void  z_event_loop_run(Self *self);
 char *  z_event_loop_get_name(Self *self);
@@ -125,6 +108,8 @@ void z_event_loop_set_name(Self *self, char *  value);
 int  z_event_loop_post_task(Self *self,ZBind *request,ZBind *response,uint64_t timeout,int flags);
 int  z_event_loop_quit(Self *self);
 void  z_event_loop_join(Self *self);
+void  z_event_loop_add_task_to_runqueue(Self *self,ZTask *task);
+int  z_event_loop_reload_pending_queue(Self *self);
 
 #undef Self
 

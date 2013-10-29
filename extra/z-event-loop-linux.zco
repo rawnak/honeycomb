@@ -1,0 +1,178 @@
+/* ZCO - Cross-platform Application Framework
+ * Copyright (C) 2014  Rawnak Jahan Syeda
+ *
+ * z-event-loop-linux.zco: Event loop based around epoll
+ * This file is part of ZCO.
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZCO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+%h{
+#include <z-object.h>
+#include <z-event-loop-protected.h>
+#include <sys/epoll.h>
+
+/* We require Linux kernel 2.6.37 or higher. The epoll_wait implementation for prior versions
+   of the kernel assume an infinite wait time when the specified wait time is larger than
+   LONG_MAX / HZ */
+#define Z_EVENT_LOOP_MAX_EVENTS 5 
+
+typedef struct epoll_event events_t[Z_EVENT_LOOP_MAX_EVENTS];
+
+%}
+
+%{
+#define _GNU_SOURCE
+#include <unistd.h>
+
+#include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+
+%}
+
+class ZEventLoopLinux : ZEventLoop
+{
+        private int ep_fd;
+        private events_t ep_events;
+        private int ep_nfds;
+        private int pipe_in;
+        private int pipe_out;
+
+	public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
+	{
+		Self *self = GET_NEW(ctx, allocator);
+		return self;
+	}
+
+	init(Self *self)
+	{
+                /* Create an epoll file descriptor */
+                assert((selfp->ep_fd = epoll_create1(0)) >= 0);
+
+                /* Create a pipe to send tasks into guest thread */
+                int pipe_fds[2];
+                assert(pipe(pipe_fds) == 0);
+
+                selfp->pipe_out = pipe_fds[0];
+                selfp->pipe_in = pipe_fds[1];
+
+                /* Set file descriptors to non-blocking mode */
+                set_fd_flags(selfp->pipe_out, O_NONBLOCK);
+
+                /* Subscribe the output of the pipe to epoll */
+                struct epoll_event event;
+                event.data.ptr = NULL;
+                event.events = EPOLLIN | EPOLLRDHUP | EPOLLPRI | EPOLLET;
+                assert(epoll_ctl(selfp->ep_fd, EPOLL_CTL_ADD, selfp->pipe_out, &event) == 0);
+
+	}
+
+        override(ZObject) void dispose(ZObject *object)
+        {
+                Self *self = (Self *) object;
+
+                /* Wait for thread to complete */
+                z_event_loop_quit(Z_EVENT_LOOP(self));
+                z_event_loop_join(Z_EVENT_LOOP(self));
+
+                close(selfp->pipe_in);
+                close(selfp->pipe_out);
+                close(selfp->ep_fd);
+
+                PARENT_HANDLER(object);
+        }
+
+        private void set_fd_flags(int fd, int flags)
+        {
+                int old_flags = fcntl(fd, F_GETFL, 0);
+                fcntl(fd, F_SETFL, old_flags | flags);
+        }
+
+        override(ZEventLoop) void reload_runqueue(ZEventLoop *ev)
+        {
+                Self *self = (Self *) ev;
+
+                ZTask *tasks[Z_EVENT_LOOP_MAX_EVENTS];
+                struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
+                ssize_t nbytes;
+
+                while(1) {
+                        nbytes = read(selfp->pipe_out, &tasks[0], sizeof(tasks));
+
+                        if (nbytes == -1) {
+                                if (errno == EAGAIN)
+                                        break;
+
+                                perror("read");
+                                continue;
+                        }
+
+                        int i;
+                        int count = nbytes / sizeof(ZTask *);
+
+                        for (i=0; i<count; ++i) {
+                                ZTask *task = tasks[i];
+                                z_event_loop_add_task_to_runqueue(Z_EVENT_LOOP(self), task);
+                        }
+
+                };
+        }
+
+        private int64_t convert_monotonic_to_timeout(Self *self, uint64_t monotonic)
+        {
+                /* During the conversion from nanoseconds to milliseconds, the
+                   value is rounded up to the nearest integer */
+                uint64_t monotonic_ns = z_event_loop_get_monotonic_time(); 
+                int64_t timeout_ms = ((int64_t) monotonic - (int64_t) monotonic_ns + 999999) / 1000000;
+                return (timeout_ms >= 0)? timeout_ms : 0;
+        }
+
+        private void wait_for_signal_with_timeout(Self *self, int timeout_ms)
+        {
+                /* epoll_pwait first calls sigprocmask to set the signal mask to the
+                   specified 'sigmask', calls the standard epoll_wait() function and
+                   then resets the signal mask with another call to sigprocmask, all
+                   atomically. although we are not supposed to use sigprocmask in a
+                   multi-threaded application, we can still get away with it as long
+                   as we don't block the SIGCANCEL and SIGSETXID signals. */
+                sigset_t sigmask;
+                sigemptyset(&sigmask);
+                selfp->ep_nfds = epoll_pwait(selfp->ep_fd, selfp->ep_events, Z_EVENT_LOOP_MAX_EVENTS, timeout_ms, &sigmask);
+        }
+
+        override(ZEventLoop) void wait_for_signal(ZEventLoop *ev, uint64_t next_task_time)
+        {
+                Self *self = (Self *) ev;
+                int timeout;
+
+                if (next_task_time)
+                        timeout = (int) convert_monotonic_to_timeout(self, next_task_time);
+                else
+                        timeout = -1;
+
+                wait_for_signal_with_timeout(self, timeout);
+        }
+
+
+        override(ZEventLoop) int add_to_task_queue(ZEventLoop *ev, ZTask *task)
+        {
+                Self *self = (Self *) ev;
+                /* Send the address of the task to the guest thread through the pipe */
+                int rc = write(selfp->pipe_in, &task, sizeof(ZTask *));
+                return (rc < 0)? -errno : 0;
+        }
+}
+

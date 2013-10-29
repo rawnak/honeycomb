@@ -24,6 +24,7 @@
 #include <zco-config.h>
 
 #include <z-object.h>
+#include <z-event-loop.h>
 #include <z-framework-events.h>
 #include <z-default-object-tracker.h>
 #include <z-sys-memory-allocator.h>
@@ -31,7 +32,6 @@
 #include <z-buddy-memory-allocator.h>
 #include <z-thread-simple-memory-allocator.h>
 #include <z-vector-segment.h>
-#include <z-event-loop.h>
 #include <z-bind.h>
 #include <stdlib.h>
 #include <string.h>
@@ -97,18 +97,6 @@ void zco_context_init(struct zco_context_t *ctx)
 
         /* Create an object to manage framework events */
 	ctx->framework_events = z_framework_events_new(ctx, NULL);
-}
-
-void zco_context_prepare_destroy(struct zco_context_t *ctx)
-{
-        /* This function sends a QUIT signal to the thread so that it doesn't accept
-           new tasks and terminates once its entire queue is finished. It's better to
-           send this signal to multiple event loops and then wait for the thread
-           destruction. This way, we parallelize the shutdown process of all event
-           loops */
-
-        if (ctx->event_loop)
-                z_event_loop_quit(ctx->event_loop);
 }
 
 void zco_context_destroy(struct zco_context_t *ctx)
@@ -205,20 +193,10 @@ void zco_context_destroy(struct zco_context_t *ctx)
 
 static void zco_context_ensure_thread_is_current(struct zco_context_t *ctx)
 {
-        if (ctx->event_loop && !z_event_loop_get_is_current(ctx->event_loop)) {
-                char *name1 = z_event_loop_get_name(ctx->event_loop);
-
-                char name2[100];
-                pthread_getname_np(pthread_self(), name2, sizeof(name2));
-
-                fprintf(stderr, "Thread access violation - Calling thread is '%s' but object belongs to thread '%s'\n",
-                                name2, name1);
-
-                free(name1);
-                fflush(stderr);
-
-                abort();
-        }
+#ifdef CHECK_THREAD_ACCESS
+        if (ctx->event_loop)
+                z_event_loop_ensure_thread_is_current(ctx->event_loop);
+#endif
 }
 
 void zco_context_set_marshal(struct zco_context_t *ctx, void *marshal)
@@ -358,26 +336,23 @@ void zco_context_full_garbage_collect(struct zco_context_t *ctx)
         } while (objects_released);
 }
 
-int zco_context_post_task(struct zco_context_t *ctx, ZBind *request, ZBind *response, uint64_t timeout, int flags)
+void * zco_context_get_event_loop(struct zco_context_t *ctx)
 {
-        assert(ctx->event_loop);
-        return z_event_loop_post_task(ctx->event_loop, request, response, timeout, flags);
+        if (ctx->event_loop)
+                z_object_ref((ZObject *) ctx->event_loop);
+
+        return ctx->event_loop;
 }
 
-void zco_context_run(struct zco_context_t *ctx, char *name)
+void zco_context_set_event_loop(struct zco_context_t *ctx, void *ev)
 {
-        if (!ctx->event_loop) {
-                /* Create an object to manage the event loop */
-                ctx->event_loop = z_event_loop_new(ctx, NULL);
-        }
+        if (ctx->event_loop)
+                z_object_unref((ZObject *) ctx->event_loop);
 
-        z_event_loop_set_name(ctx->event_loop, name);
-        z_event_loop_run(ctx->event_loop);
+        ctx->event_loop = ev;
+
+        if (ctx->event_loop)
+                z_object_ref((ZObject *) ctx->event_loop);
 }
 
-void zco_context_join(struct zco_context_t *ctx)
-{
-        assert(ctx->event_loop);
-        z_event_loop_join(ctx->event_loop);
-}
 

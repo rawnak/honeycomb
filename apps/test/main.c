@@ -22,7 +22,7 @@
 #include <zco-test.h>
 #include <z-bind.h>
 #include <z-c-closure-marshal.h>
-#include <z-event-loop.h>
+#include <z-event-loop-linux.h>
 #include <z-string.h>
 #include <z-worker-group.h>
 
@@ -241,7 +241,12 @@ int main(int argc, char **argv)
                 ZCClosureMarshal *app_marshal = z_c_closure_marshal_new(&app_ctx, app_ctx.flex_allocator);
                 zco_context_set_marshal(&app_ctx, app_marshal);
                 z_object_unref(Z_OBJECT(app_marshal));
-                zco_context_run(&app_ctx, "Application");
+
+                ZEventLoop *ev = Z_EVENT_LOOP(z_event_loop_linux_new(&app_ctx, NULL));
+                zco_context_set_event_loop(&app_ctx, ev);
+                z_event_loop_set_name(ev, "Application");
+                z_event_loop_run(ev);
+
 
                 /* Create a worker group */
                 ZWorkerGroup *worker_group = z_worker_group_new(&main_ctx, main_ctx.flex_allocator);
@@ -257,7 +262,9 @@ int main(int argc, char **argv)
                 z_bind_append_uint32(task, test_case_number);
                 z_bind_append_ptr(task, worker_group);
                 z_bind_append_ptr(task, &lock);
-                assert(zco_context_post_task(&app_ctx, task, NULL, 0, 0) == 0);
+
+                assert(z_event_loop_post_task(ev, task, NULL, 0, 0) == 0);
+                z_object_unref(Z_OBJECT(ev));
                 z_object_unref(Z_OBJECT(task));
 
                 /* Wait for all tests to be completed */

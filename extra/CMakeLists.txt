@@ -20,6 +20,8 @@ macro(parse_zco OBJECT_NAME)
 	      )
 endmacro(parse_zco OBJECT_NAME)
 
+parse_zco(z-event-loop-linux)
+parse_zco(z-event-loop-posix)
 parse_zco(z-worker-group)
 parse_zco(z-guid)
 parse_zco(z-application)
@@ -31,6 +33,8 @@ parse_zco(z-socket)
 
 add_library(
    zclib-extra SHARED
+   z-event-loop-linux.c
+   z-event-loop-posix.c
    z-worker-group.c
    z-guid.c
    z-application.c
