@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <assert.h>
 
+
 static int clicked(ZTestDerivedObject *self, void *userdata)
 {
 	trace("clicked signal emitted\n");
@@ -32,6 +33,11 @@ static int clicked(ZTestDerivedObject *self, void *userdata)
 static void case1(struct zco_context_t *context)
 {
 	ZTestDerivedObject *test_object = z_test_derived_object_new(context, NULL);
+
+        ZCClosureMarshal *marshal;
+	marshal = z_c_closure_marshal_new(context, NULL);
+        z_object_set_closure_marshal(Z_OBJECT(test_object), Z_OBJECT(marshal));
+	z_object_unref(Z_OBJECT(marshal));
 
 	void *key1 = z_object_connect(Z_OBJECT(test_object), "clicked", Z_OBJECT(test_object), "close1", NULL);
 	void *key2 = z_object_connect(Z_OBJECT(test_object), "clicked", Z_OBJECT(test_object), "close2", NULL);
@@ -46,12 +52,5 @@ static void case1(struct zco_context_t *context)
 
 void signal_test(struct zco_context_t *context, int id)
 {
-	ZCClosureMarshal *marshal;
-
-	marshal = z_c_closure_marshal_new(context, NULL);
-	zco_context_set_marshal(context, marshal);
-
 	DEFINE_TEST(1, case1);
-
-	z_object_unref(Z_OBJECT(marshal));
 }

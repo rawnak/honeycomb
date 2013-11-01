@@ -42,7 +42,7 @@ struct ZSegmentData {
 #include <string.h>
 #include <z-memory-allocator.h>
 #include <z-vector-segment-protected.h>
-#include <zco-type.h>
+#include <zco-context.h>
 #include <stdlib.h>
 #define Self ZVectorSegment
 #define selfp (&self->_priv)

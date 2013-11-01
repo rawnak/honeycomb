@@ -23,7 +23,7 @@
 
 #include <z-object.h>
 
-#include <zco-type.h>
+#include <zco-context.h>
 #define Self ZStringIter
 #define Z_STRING_ITER(s) ((ZStringIter *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_string_iter_type_id]))
 

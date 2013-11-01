@@ -25,7 +25,7 @@
 #include <z-object-tracker.h>
 #include <assert.h>
 
-#include <zco-type.h>
+#include <zco-context.h>
 #define Self ZMemoryAllocator
 #define Z_MEMORY_ALLOCATOR(s) ((ZMemoryAllocator *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_memory_allocator_type_id]))
 

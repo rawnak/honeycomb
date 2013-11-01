@@ -31,7 +31,7 @@
 struct ZTask {
         ZBindData request;
         ZBindData response;
-        struct zco_context_t *origin_context;
+        ZEventLoop *origin_ev;
         struct ZTask *next;
         uint64_t timeout;
         int has_request : 1;
@@ -45,6 +45,8 @@ typedef struct ZTask ZTask;
 
 %{
 #define _GNU_SOURCE
+
+#include <z-c-closure-marshal.h>
 
 #include <z-value.h>
 #include <z-bind.h>
@@ -77,6 +79,9 @@ typedef struct ZTask ZTask;
 
 #define INT_TO_PTR(x) ((void *) ((unsigned long) (x)))
 #define PTR_TO_INT(x) ((int64_t) ((long) (x)))
+
+static pthread_key_t key;
+static pthread_once_t key_once = PTHREAD_ONCE_INIT;
 
 %}
 
@@ -123,6 +128,27 @@ class ZEventLoop : ZObject
            moment.  */
         private volatile sig_atomic_t is_running;
 
+        global Self *instance;
+
+        global_init(ZEventLoopGlobal *_global)
+        {
+                _global->_instance = NULL;
+        }
+
+        public Self *get_instance(struct zco_context_t *ctx)
+        {
+                /* Return NULL if a type id hasn't even been allocated for ZEventLoop. This means that no instance of
+                   the object exists in any context in the process */
+                if (z_event_loop_type_id == -1)
+                        return NULL;
+
+                ZEventLoopGlobal *_global = *((ZEventLoopGlobal **) zco_get_ctx_type(ctx, z_event_loop_type_id));
+                if (_global)
+                        return _global->_instance;
+
+                return NULL;
+        }
+
         private int map_compare(ZMap *map, const void *a, const void *b)
         {
 #if __WORDSIZE >= 64
@@ -144,8 +170,17 @@ class ZEventLoop : ZObject
                 z_memory_allocator_deallocate_by_size(allocator, bind_data, sizeof(ZTask));
         }
 
+        private void make_key()
+        {
+                pthread_key_create(&key, NULL);
+        }
+
         init(Self *self)
         {
+                /* Make sure this is the one and only instance in the context */
+                assert(instance == NULL);
+                instance = self;
+
                 selfp->is_done = 0;
                 selfp->is_running = 0;
                 selfp->name = NULL;
@@ -153,8 +188,15 @@ class ZEventLoop : ZObject
                 struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
                 ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
 
+                pthread_once(&key_once, make_key);
+
                 /* Create a bind closure for the quit task */
                 selfp->quit_task = z_bind_new(ctx, allocator);
+
+                ZCClosureMarshal *marshal = z_c_closure_marshal_new(ctx, NULL);
+                z_object_set_closure_marshal(Z_OBJECT(selfp->quit_task), Z_OBJECT(marshal));
+                z_object_unref(Z_OBJECT(marshal));
+
                 z_bind_set_handler(selfp->quit_task, (ZBindHandler) zco_context_do_quit);
                 z_bind_append_ptr(selfp->quit_task, self);
 
@@ -182,6 +224,8 @@ class ZEventLoop : ZObject
                 selfp->is_done = 0;
                 z_object_unref(Z_OBJECT(selfp->quit_task));
 
+                instance = NULL;
+
 		PARENT_HANDLER(object);
 	}
 
@@ -198,6 +242,12 @@ class ZEventLoop : ZObject
 
                 fflush(stderr);
                 exit(EFAULT);
+        }
+
+        private Self *get_current()
+        {
+                pthread_once(&key_once, make_key);
+                return pthread_getspecific(key);
         }
 
         public int is_current
@@ -243,6 +293,7 @@ class ZEventLoop : ZObject
         {
                 struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
                 ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
+                ZCClosureMarshal *marshal = z_c_closure_marshal_new(ctx, NULL);
 
                 /* Iterate through the run queue and execute the tasks that
                    are scheduled to run now */
@@ -251,6 +302,7 @@ class ZEventLoop : ZObject
 
                         if (task->has_request) {
                                 ZBind *request = z_bind_new(ctx, allocator);
+                                z_object_set_closure_marshal(Z_OBJECT(request), Z_OBJECT(marshal));
                                 z_bind_set_data_ptr(request, &task->request);
                                 z_bind_invoke(request);
                                 z_object_unref(Z_OBJECT(request));
@@ -258,16 +310,16 @@ class ZEventLoop : ZObject
 
                         if (task->has_response) {
                                 ZBind *response_bind = z_bind_new(ctx, allocator);
+                                z_object_set_closure_marshal(Z_OBJECT(response_bind), Z_OBJECT(marshal));
                                 z_bind_set_data_ptr(response_bind, &task->response);
-
-                                ZEventLoop *ev = zco_context_get_event_loop(task->origin_context);
-                                assert(z_event_loop_post_task(ev, response_bind, NULL, 0, 0) == 0);
-                                z_object_unref(Z_OBJECT(ev));
+                                assert(post_task(task->origin_ev, response_bind, NULL, 0, 0) == 0);
                                 z_object_unref(Z_OBJECT(response_bind));
                         }
 
                         z_map_iter_increment(it);
                 }
+
+                z_object_unref(Z_OBJECT(marshal));
         }
 
         private void get_ready_tasks(Self *self, ZMapIter **it, ZMapIter **end)
@@ -302,6 +354,8 @@ class ZEventLoop : ZObject
 
         private void thread_main(Self *self)
         {
+                pthread_setspecific(key, self);
+
                 int is_running = 1;
                 struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
                 ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
@@ -421,21 +475,21 @@ class ZEventLoop : ZObject
 
         public int post_task(Self *self, ZBind *request, ZBind *response, uint64_t timeout, int flags)
         {
-                if (!is_active(self))
+                if (!is_active(self)) {
+                        abort();
                         return -EPERM;
+                }
 
                 /* Use the thread-safe allocator to allocate memory for the raw closure */
                 ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->ts_fixed_allocator;
                 ZTask *task = z_memory_allocator_allocate(allocator, sizeof(ZTask));
 
-                task->origin_context = CTX_FROM_OBJECT(request);
+                task->origin_ev = get_current();
 
                 if (request) {
-                        task->origin_context = CTX_FROM_OBJECT(request);
                         task->has_request = 1;
                         memcpy(&task->request, z_bind_get_data_ptr(request), sizeof(ZBindData));
                 } else {
-                        task->origin_context = CTX_FROM_OBJECT(response);
                         task->has_request = 0;
                 }
 

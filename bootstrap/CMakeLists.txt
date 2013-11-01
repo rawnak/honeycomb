@@ -12,16 +12,16 @@ bison_target(ZCO_PARSER ${CMAKE_SOURCE_DIR}/core/zco.y ${CMAKE_CURRENT_BINARY_DI
 flex_target(ZCO_SCANNER ${CMAKE_SOURCE_DIR}/core/zco.l ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.c)
 add_flex_bison_dependency(ZCO_SCANNER ZCO_PARSER)
 
+add_definitions(-DBOOTSTRAP)
+
 # bootstrapped zco compiler
 add_executable(
       bootstrap
       EXCLUDE_FROM_ALL
       ${BISON_ZCO_PARSER_OUTPUTS}
       ${FLEX_ZCO_SCANNER_OUTPUTS}
-      ${CMAKE_SOURCE_DIR}/core/zco-type.c
+      ${CMAKE_SOURCE_DIR}/core/zco-context.c
       z-zco-source-generator.c
-      z-closure.c
-      z-closure-marshal.c
       z-map.c
       z-map-iter.c
       z-string.c
@@ -31,18 +31,9 @@ add_executable(
       z-vector-segment.c
       z-object.c
       z-file.c
-      z-zco-source-generator.c
-      z-value.c
-      z-framework-events.c
       z-object-tracker.c
-      z-default-object-tracker.c
       z-memory-allocator.c
       z-sys-memory-allocator.c
-      z-simple-memory-allocator.c
-      z-buddy-memory-allocator.c
-      z-thread-simple-memory-allocator.c
-      z-bind.c
-      z-event-loop.c
 )
 
 target_link_libraries(bootstrap m pthread)

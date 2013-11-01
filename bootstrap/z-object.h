@@ -30,7 +30,11 @@ typedef void(*ZObjectSignalHandler)(struct ZObject *self, ...);
 struct ZMemoryAllocator;
 typedef struct ZMemoryAllocator ZMemoryAllocator;
 
-#include <zco-type.h>
+struct ZClosureMarshal;
+typedef struct ZClosureMarshal ZClosureMarshal;
+
+
+#include <zco-context.h>
 #define Self ZObject
 #define Z_OBJECT(s) ((ZObject *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_object_type_id]))
 
@@ -49,8 +53,9 @@ typedef struct ZObject ZObject;
 
 struct ZObjectPrivate {
 	unsigned int ref_count;
-	void *attached_properties;
-	void *signal_map;
+	ZObject *attached_properties;
+	ZObject *signal_map;
+	ZObject *closure_marshal;
 	ZMemoryAllocator *allocator;
 };
 
@@ -93,6 +98,8 @@ int  z_object_emit_signal(Self *self,char *name,void *argv);
 void  z_object_add_attached_property_map(Self *self,void *map);
 ZMemoryAllocator *  z_object_get_allocator_ptr(Self *self);
 void z_object_set_allocator_ptr(Self *self, ZMemoryAllocator *  value);
+ZObject *  z_object_get_closure_marshal(Self *self);
+void z_object_set_closure_marshal(Self *self, ZObject *  value);
 
 #undef Self
 

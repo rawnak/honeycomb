@@ -21,7 +21,7 @@
 #ifndef _ZCO_TEST_H_
 #define _ZCO_TEST_H_
 
-#include <zco-type.h>
+#include <zco-app-context.h>
 
 #ifndef _SYS_CDEFS_H
 #include <sys/cdefs.h>

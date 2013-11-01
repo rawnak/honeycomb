@@ -286,7 +286,6 @@ class ZBind : ZObject
         private ZClosure * create_closure(Self *self, ZBindData *data, struct zco_context_t *ctx)
         {
                 ZClosure *closure = z_closure_new(ctx, ctx->flex_allocator);
-                z_closure_set_marshal(closure, ctx->marshal);
                 z_closure_set_target(closure, Z_OBJECT(self));
                 z_closure_set_handler(closure, (ZObjectSignalHandler) data->handler);
 

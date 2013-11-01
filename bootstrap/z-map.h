@@ -31,7 +31,7 @@ typedef int(*ZMapCompareFunc)(struct ZMap *, const void *, const void *);
 typedef void(*ZMapItemCallback)(void *item, void *userdata);
 
 
-#include <zco-type.h>
+#include <zco-context.h>
 #define Self ZMap
 #define Z_MAP(s) ((ZMap *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_map_type_id]))
 

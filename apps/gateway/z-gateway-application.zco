@@ -22,6 +22,7 @@
 #include <z-object.h>
 #include <z-vector.h>
 #include <z-c-closure-marshal.h>
+#include <z-framework-events.h>
 #include <fcgi_config.h>
 #include <fcgiapp.h>
 #include <time.h>
@@ -37,8 +38,7 @@ union guid_t
 %}
 
 %{
-#include <zco-type.h>
-#include <z-framework-events.h>
+#include <zco-app-context.h>
 #include <z-window.h>
 %}
 
@@ -49,16 +49,13 @@ class ZGatewayApplication : ZObject
 	private time_t last_wakeup;
 	private ZVector *toplevels;
 	private ZCClosureMarshal *marshal;
+        private ZFrameworkEvents *framework_events;
 
 	init(Self *self)
 	{
 		selfp->remote_address = NULL;
 		selfp->is_expired = 0;
 		selfp->last_wakeup = 0;
-
-		/* set a default marshaller for the current context */
-		selfp->marshal = z_c_closure_marshal_new(CTX_FROM_OBJECT(self), NULL);
-		zco_context_set_marshal(CTX_FROM_OBJECT(self), selfp->marshal);
 
 		/* create a vector to hold on to the top level windows */
 		selfp->toplevels = z_vector_new(CTX_FROM_OBJECT(self), NULL);
@@ -67,11 +64,16 @@ class ZGatewayApplication : ZObject
 
 		/* create the main window */
 		ZWindow *main_window = z_window_new(CTX_FROM_OBJECT(self), NULL);
+
+                ZCClosureMarshal *marshal = z_c_closure_marshal_new(CTX_FROM_OBJECT(self), NULL);
+                z_object_set_closure_marshal(Z_OBJECT(main_window), Z_OBJECT(marshal));
+                z_object_unref(Z_OBJECT(marshal));
+
 		z_vector_push_back(selfp->toplevels, main_window);
 
 		/* connect the framework draw_event signal to the window's draw method */
-		ZFrameworkEvents *framework_events = (ZFrameworkEvents *) zco_context_get_framework_events(CTX_FROM_OBJECT(self));
-		z_object_connect(Z_OBJECT(framework_events), "draw_event", Z_OBJECT(main_window), "draw", NULL);
+                selfp->framework_events = z_framework_events_new(CTX_FROM_OBJECT(self), NULL);
+		z_object_connect(Z_OBJECT(selfp->framework_events), "draw_event", Z_OBJECT(main_window), "draw", NULL);
 	}
 
 	public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
@@ -88,7 +90,6 @@ class ZGatewayApplication : ZObject
 			free(selfp->remote_address);
 
 		z_object_unref(Z_OBJECT(selfp->toplevels));
-		z_object_unref(Z_OBJECT(selfp->marshal));
 
 		PARENT_HANDLER(object);
 	}
@@ -153,8 +154,7 @@ class ZGatewayApplication : ZObject
 
 		/* Raise the 'draw_event' signal */
 		ZString *message = z_string_new(CTX_FROM_OBJECT(self), NULL);
-		ZFrameworkEvents *framework_events = (ZFrameworkEvents *) zco_context_get_framework_events(CTX_FROM_OBJECT(self));
-		z_framework_events_draw_event(framework_events, message);
+		z_framework_events_draw_event(selfp->framework_events, message);
 
 		/* Send message to the client */
 		char *msg = z_string_get_cstring(message, Z_STRING_ENCODING_UTF8);

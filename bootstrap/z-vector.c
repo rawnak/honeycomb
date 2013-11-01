@@ -30,7 +30,7 @@
 #include <string.h>
 #include <z-memory-allocator.h>
 #include <z-vector-protected.h>
-#include <zco-type.h>
+#include <zco-context.h>
 #include <stdlib.h>
 #define Self ZVector
 #define selfp (&self->_priv)

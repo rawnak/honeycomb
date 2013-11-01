@@ -31,14 +31,12 @@
    
 class ZClosure : ZObject
 {
-   private ZClosureMarshal *marshal;
    private ZObjectSignalHandler handler;
    private ZObject *target;
    private void *userdata;
 
    init(Self *self)
    {
-           selfp->marshal = 0;
            selfp->handler = 0;
            selfp->target = 0;
            selfp->userdata = 0;
@@ -48,13 +46,9 @@ class ZClosure : ZObject
    {
 	ZClosure *self = (ZClosure *) object;
 	
-	if (selfp->marshal)
-		z_object_unref(Z_OBJECT(selfp->marshal));
-
 	if (selfp->target)
 		z_object_unref(Z_OBJECT(selfp->target));
 
-        selfp->marshal = 0;
         selfp->handler = 0;
         selfp->target = 0;
         selfp->userdata = 0;
@@ -66,11 +60,6 @@ class ZClosure : ZObject
    {
 	ZClosure *self = (ZClosure *) object;
 	
-	if (selfp->marshal) {
-		z_object_unref(Z_OBJECT(selfp->marshal));
-		selfp->marshal = 0;
-	}
-
 	if (selfp->target) {
 		z_object_unref(Z_OBJECT(selfp->target));
 		selfp->target = 0;
@@ -115,18 +104,6 @@ class ZClosure : ZObject
 	   }
    }
 
-   public ZClosureMarshal * marshal
-   {
-	   set
-	   {
-		   if (selfp->marshal)
-			   z_object_unref(Z_OBJECT(selfp->marshal));
-
-		   selfp->marshal = value;
-		   z_object_ref(Z_OBJECT(selfp->marshal));
-	   }
-   }
-
    public ZObject * target
    {
 	   set
@@ -141,7 +118,12 @@ class ZClosure : ZObject
 
    public int invoke(Self *self, ZVector *args, ZVector *vargs)
    {
-           return z_closure_marshal_invoke(selfp->marshal, selfp->target, selfp->handler, args, vargs, selfp->userdata);
+           ZObject *marshal = z_object_get_closure_marshal(selfp->target);
+           assert(marshal);
+           int rc = z_closure_marshal_invoke((ZClosureMarshal *) marshal, selfp->target, selfp->handler, args, vargs, selfp->userdata);
+           z_object_unref(marshal);
+
+           return rc;
    }
 }
 

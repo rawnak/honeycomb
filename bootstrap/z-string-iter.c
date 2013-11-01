@@ -26,7 +26,7 @@
 #include <string.h>
 #include <z-memory-allocator.h>
 #include <z-string-iter-protected.h>
-#include <zco-type.h>
+#include <zco-context.h>
 #include <stdlib.h>
 #define Self ZStringIter
 #define selfp (&self->_priv)

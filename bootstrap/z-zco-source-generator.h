@@ -56,7 +56,7 @@ typedef enum access_mode_t access_mode_t;
 typedef enum modifier_mode_t modifier_mode_t;
 
 
-#include <zco-type.h>
+#include <zco-context.h>
 #define Self ZZcoSourceGenerator
 #define Z_ZCO_SOURCE_GENERATOR(s) ((ZZcoSourceGenerator *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_zco_source_generator_type_id]))
 

@@ -27,7 +27,7 @@
 
 typedef void(*ZVectorItemCallback)(void *item, void *userdata);
 
-#include <zco-type.h>
+#include <zco-context.h>
 #define Self ZVector
 #define Z_VECTOR(s) ((ZVector *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_vector_type_id]))
 

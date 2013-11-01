@@ -1,7 +1,7 @@
 /* ZCO - Cross-platform Application Framework
- * Copyright (C) 2014  Syeda Sultana
+ * Copyright (C) 2014  Rawnak Jahan Syeda
  *
- * z-closure-protected.h: Bootstrap file for z-closure.zco
+ * zco-app-context.h: Application level context management
  * This file is part of ZCO.
  *
  * This library is free software: you can redistribute it and/or modify
@@ -18,9 +18,18 @@
  * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _Z_CLOSURE_PROTECTED_H_
-#define _Z_CLOSURE_PROTECTED_H_
-#include <z-closure.h>
 
+#ifndef _ZCO_APP_CONTEXT_H_
+#define _ZCO_APP_CONTEXT_H_
+
+#include <zco-context.h>
+#include <z-object.h>
+#include <z-event-loop.h>
+
+void zco_app_context_init(struct zco_context_t *ctx);
+void zco_app_context_destroy(struct zco_context_t *ctx);
+
+ZEventLoop * zco_app_context_get_event_loop(struct zco_context_t *ctx);
 
 #endif
+

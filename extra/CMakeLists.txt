@@ -7,6 +7,7 @@ find_package(FLEX)
 include_directories(
       ${CMAKE_SOURCE_DIR}/core	       # core header files
       ${CMAKE_BINARY_DIR}/core	       # generated core header files
+      ${CMAKE_SOURCE_DIR}/extra	       # extra header files
       ${CMAKE_CURRENT_BINARY_DIR}      # generated widget header files
       /usr/lib/libffi-3.0.13/include   # libffi
       )
@@ -20,9 +21,11 @@ macro(parse_zco OBJECT_NAME)
 	      )
 endmacro(parse_zco OBJECT_NAME)
 
+parse_zco(z-event-loop)
 parse_zco(z-event-loop-linux)
 parse_zco(z-event-loop-posix)
 parse_zco(z-worker-group)
+parse_zco(z-framework-events)
 parse_zco(z-guid)
 parse_zco(z-application)
 parse_zco(z-session-manager)
@@ -30,12 +33,18 @@ parse_zco(z-server)
 parse_zco(z-stream)
 parse_zco(z-net-stream)
 parse_zco(z-socket)
+parse_zco(z-log)
+parse_zco(z-c-closure-marshal)
+parse_zco(z-bind)
 
 add_library(
    zclib-extra SHARED
+   zco-app-context.c
+   z-event-loop.c
    z-event-loop-linux.c
    z-event-loop-posix.c
    z-worker-group.c
+   z-framework-events.c
    z-guid.c
    z-application.c
    z-session-manager.c
@@ -43,5 +52,8 @@ add_library(
    z-stream.c
    z-net-stream.c
    z-socket.c
+   z-log.c
+   z-c-closure-marshal.c
+   z-bind.c
    )
 

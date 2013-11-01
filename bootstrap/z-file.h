@@ -24,7 +24,7 @@
 #include <z-object.h>
 #include <stdio.h>
 
-#include <zco-type.h>
+#include <zco-context.h>
 #define Self ZFile
 #define Z_FILE(s) ((ZFile *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_file_type_id]))
 

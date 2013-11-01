@@ -38,7 +38,7 @@ enum ZStringEncoding
 };
 
 
-#include <zco-type.h>
+#include <zco-context.h>
 #define Self ZString
 #define Z_STRING(s) ((ZString *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_string_type_id]))
 

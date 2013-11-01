@@ -220,7 +220,7 @@ static void session_destroy(ZGatewayApplication *app)
 	z_object_unref(Z_OBJECT(app));
 
 	/* destroy the context */
-	zco_context_destroy(context);
+	zco_app_context_destroy(context);
 	free(context);
 }
 
@@ -238,7 +238,7 @@ int main(int argc, char **argv)
 	seed_randomizer();
 
 	/* prepare the root context */
-	zco_context_init(&root_context);
+	zco_app_context_init(&root_context);
 	sessions = z_map_new(&root_context, NULL);
 	
 	z_map_set_key_destruct(sessions, (ZMapItemCallback) free);
@@ -284,7 +284,7 @@ int main(int argc, char **argv)
 		} else {
 			/* create a new context */
 			struct zco_context_t *context = malloc(sizeof(struct zco_context_t));
-			zco_context_init(context);
+			zco_app_context_init(context);
 
 			/* create a new ZGatewayApplication */
 			app = z_gateway_application_new(context, NULL);
@@ -319,7 +319,7 @@ int main(int argc, char **argv)
 	}
 
 	z_object_unref(Z_OBJECT(sessions));
-	zco_context_destroy(&root_context);
+	zco_app_context_destroy(&root_context);
 
 	return 0;
 }

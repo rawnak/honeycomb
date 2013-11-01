@@ -26,6 +26,7 @@
 %}
 
 %{
+#include <zco-app-context.h>
 #include <z-string.h>
 #include <stdio.h>
 #include <z-event-loop-linux.h>
@@ -48,6 +49,11 @@
 #define INT_TO_PTR(x) ((void *) ((unsigned long) (x)))
 #define PTR_TO_INT(x) ((int64_t) ((long) (x)))
 
+struct worker_t
+{
+        struct zco_context_t ctx;
+        ZEventLoop *event_loop;
+};
 
 %}
 
@@ -63,7 +69,7 @@ class ZWorkerGroup : ZObject
 
                 /* Create the workers list */
                 selfp->workers = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
-                z_vector_set_item_size(selfp->workers, sizeof(struct zco_context_t));
+                z_vector_set_item_size(selfp->workers, sizeof(struct worker_t));
                 z_vector_set_item_construct(selfp->workers, (ZVectorItemCallback) add_worker);
                 z_vector_set_item_destruct(selfp->workers, (ZVectorItemCallback) remove_worker);
 
@@ -110,31 +116,27 @@ class ZWorkerGroup : ZObject
                 PARENT_HANDLER(object);
         }
 
-        private void add_worker(struct zco_context_t *ctx, void *userdata)
+        private void add_worker(struct worker_t *worker, void *userdata)
         {
-                zco_context_init(ctx);
-                ZCClosureMarshal *marshal = z_c_closure_marshal_new(ctx, ctx->flex_allocator);
-                zco_context_set_marshal(ctx, marshal);
-                z_object_unref(Z_OBJECT(marshal));
+                struct zco_context_t *ctx = &worker->ctx;
+                zco_app_context_init(ctx);
 
                 ZString *app_name = z_string_new(ctx, ctx->flex_allocator);
                 z_string_append_format(app_name, "Worker %p", ctx);
                 char *temp = z_string_get_cstring(app_name, Z_STRING_ENCODING_UTF8);
                 z_object_unref(Z_OBJECT(app_name));
 
-                ZEventLoop *ev = Z_EVENT_LOOP(z_event_loop_linux_new(ctx, NULL));
-                zco_context_set_event_loop(ctx, ev);
+                worker->event_loop = zco_app_context_get_event_loop(ctx);
 
-                z_event_loop_set_name(ev, temp);
-                z_event_loop_run(ev);
-                z_object_unref(Z_OBJECT(ev));
+                z_event_loop_set_name(worker->event_loop, temp);
+                z_event_loop_run(worker->event_loop);
 
                 free(temp);
         }
 
-        private void remove_worker(struct zco_context_t *ctx, void *userdata)
+        private void remove_worker(struct worker_t *worker, void *userdata)
         {
-                zco_context_destroy(ctx);
+                zco_app_context_destroy(&worker->ctx);
         }
 
         private int map_compare(ZMap *self, const void *a, const void *b)
@@ -147,7 +149,6 @@ class ZWorkerGroup : ZObject
                 if (response_bind)
                         z_object_unref(Z_OBJECT(response_bind));
         }
-
 
         public int worker_count
         {
@@ -168,12 +169,8 @@ class ZWorkerGroup : ZObject
 
                                 while (!z_vector_iter_is_equal(it, end))
                                 {
-                                        struct zco_context_t *ctx = z_vector_get_item(selfp->workers, it);
-
-                                        ZEventLoop *ev = zco_context_get_event_loop(ctx);
-                                        z_event_loop_quit(ev);
-                                        z_object_unref(Z_OBJECT(ev));
-
+                                        struct worker_t *worker = z_vector_get_item(selfp->workers, it);
+                                        z_event_loop_quit(worker->event_loop);
                                         z_vector_iter_increment(it);
                                 }
 
@@ -185,15 +182,15 @@ class ZWorkerGroup : ZObject
                 }
         }
 
-        private struct zco_context_t *get_next_worker(Self *self)
+        private struct worker_t *get_next_worker(Self *self)
         {
                 int worker_count = get_worker_count(self);
                 ZVectorIter *it = z_vector_get_begin(selfp->workers);
                 z_vector_iter_advance(it, selfp->count % worker_count);
-                struct zco_context_t *ctx = z_vector_get_item(selfp->workers, it);
+                struct worker_t *worker = z_vector_get_item(selfp->workers, it);
                 z_object_unref(Z_OBJECT(it));
 
-                return ctx;
+                return worker;
         }
 
         private void proxy_function(ZBind *proxy_bind, Self *self, ZBind *response_bind, uint32_t count)
@@ -232,7 +229,7 @@ class ZWorkerGroup : ZObject
 
         public int post_task(Self *self, ZBind *bind, ZBind *response_bind, int in_order)
         {
-                struct zco_context_t *ctx = get_next_worker(self);
+                struct worker_t *worker = get_next_worker(self);
                 int rc;
 
                 if (in_order) {
@@ -240,15 +237,16 @@ class ZWorkerGroup : ZObject
                            of the response bind that is specified by the caller. The handler for the proxy
                            bind will ensure that the responses are invoked in order */
                         ZBind *proxy_bind = z_bind_new(CTX_FROM_OBJECT(bind), ALLOCATOR_FROM_OBJECT(bind));
+                        ZClosureMarshal *marshal = (ZClosureMarshal *) z_c_closure_marshal_new(CTX_FROM_OBJECT(bind), NULL);
+                        z_object_set_closure_marshal(Z_OBJECT(proxy_bind), Z_OBJECT(marshal));
+                        z_object_unref(Z_OBJECT(marshal));
                         z_bind_set_handler(proxy_bind, (ZBindHandler) proxy_function);
                         z_bind_append_ptr(proxy_bind, self);
                         z_bind_append_ptr(proxy_bind, response_bind);
                         z_bind_append_uint32(proxy_bind, selfp->count);
 
                         /* Post the task to the target worker */
-                        ZEventLoop *ev = zco_context_get_event_loop(ctx);
-                        rc = z_event_loop_post_task(ev, bind, proxy_bind, 0, 0);
-                        z_object_unref(Z_OBJECT(ev));
+                        rc = z_event_loop_post_task(worker->event_loop, bind, proxy_bind, 0, 0);
 
                         if (rc == 0) {
                                 /* We need to hold a reference to self so it can stay alive until the proxy function
@@ -271,9 +269,7 @@ class ZWorkerGroup : ZObject
 
                 } else {
                         /* Post the task to the target worker */
-                        ZEventLoop *ev = zco_context_get_event_loop(ctx);
-                        rc = z_event_loop_post_task(ev, bind, response_bind, 0, 0);
-                        z_object_unref(Z_OBJECT(ev));
+                        rc = z_event_loop_post_task(worker->event_loop, bind, response_bind, 0, 0);
                 }
 
                 if (rc == 0) {

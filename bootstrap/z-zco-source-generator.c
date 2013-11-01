@@ -33,7 +33,7 @@ typedef void(*CallbackFunc)(struct ZZcoSourceGenerator *self, int is_first, ZStr
 #include <string.h>
 #include <z-memory-allocator.h>
 #include <z-zco-source-generator-protected.h>
-#include <zco-type.h>
+#include <zco-context.h>
 #include <stdlib.h>
 #define Self ZZcoSourceGenerator
 #define selfp (&self->_priv)
@@ -1584,7 +1584,7 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
 
  /* includes in header file */
  z_file_write(selfp->header_file,
- "#include <zco-type.h>\n");
+ "#include <zco-context.h>\n");
 
  z_file_write_format(selfp->protected_header_file,
  "#include <%s>\n",
@@ -1688,7 +1688,7 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
  /* includes in source file */
  z_file_write_format(selfp->source_file,
  "#include <%s>\n"
- "#include <zco-type.h>\n"
+ "#include <zco-context.h>\n"
  "#include <stdlib.h>\n",
  selfp->protected_header_filename);
 
@@ -1894,7 +1894,7 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
  selfp->current_class_name_pascal);
 
  /* It's important to return global inside the if-block because the value of *global_ptr can become invalid
-                   due to memory reallocation inside zco-type.c. Since we cannot dereference global_ptr if the if-block
+                   due to memory reallocation inside zco-context.c. Since we cannot dereference global_ptr if the if-block
                    runs, we might as well just return the previously dereferenced value */
  z_file_write_format(selfp->source_file,
  "\t\treturn global;\n"

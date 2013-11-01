@@ -25,6 +25,7 @@
 #include <z-event-loop-linux.h>
 #include <z-string.h>
 #include <z-worker-group.h>
+#include <zco-context.h>
 
 #include <stdio.h>
 #include <unistd.h>
@@ -101,13 +102,17 @@ static void application_main(ZBind *bind, int test_set_number, int test_case_num
         struct zco_context_t *ctx = CTX_FROM_OBJECT(bind);
         ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(bind);
         int capacity;
+        ZCClosureMarshal *marshal = z_c_closure_marshal_new(ctx, NULL);
 
         is_printing = 0;
 
         for (capacity = 500; capacity >= 1; --capacity) {
                 ZBind *task = z_bind_new(ctx, allocator);
-                ZBind *completion_task = z_bind_new(ctx, allocator);
+                z_object_set_closure_marshal(Z_OBJECT(task), Z_OBJECT(marshal));
 
+                ZBind *completion_task = z_bind_new(ctx, allocator);
+                z_object_set_closure_marshal(Z_OBJECT(completion_task), Z_OBJECT(marshal));
+                
                 if (is_printing) {
                         printf("Testing with minimum vector capacity of %d bytes\n"
                                         "================================================", capacity);
@@ -137,6 +142,8 @@ static void application_main(ZBind *bind, int test_set_number, int test_case_num
                 z_object_unref(Z_OBJECT(completion_task));
                 z_object_unref(Z_OBJECT(task));
         }
+
+        z_object_unref(Z_OBJECT(marshal));
 }
 
 int main(int argc, char **argv)
@@ -229,24 +236,16 @@ int main(int argc, char **argv)
 
         /* Initialize the main context */
         struct zco_context_t main_ctx;
-        zco_context_init(&main_ctx);
-        ZCClosureMarshal *main_marshal = z_c_closure_marshal_new(&main_ctx, main_ctx.flex_allocator);
-        zco_context_set_marshal(&main_ctx, main_marshal);
-        z_object_unref(Z_OBJECT(main_marshal));
+        zco_app_context_init(&main_ctx);
 
         if (try_segments) {
                 /* Create the application event loop */
                 struct zco_context_t app_ctx;
-                zco_context_init(&app_ctx);
-                ZCClosureMarshal *app_marshal = z_c_closure_marshal_new(&app_ctx, app_ctx.flex_allocator);
-                zco_context_set_marshal(&app_ctx, app_marshal);
-                z_object_unref(Z_OBJECT(app_marshal));
+                zco_app_context_init(&app_ctx);
 
-                ZEventLoop *ev = Z_EVENT_LOOP(z_event_loop_linux_new(&app_ctx, NULL));
-                zco_context_set_event_loop(&app_ctx, ev);
+                ZEventLoop *ev = zco_app_context_get_event_loop(&app_ctx);
                 z_event_loop_set_name(ev, "Application");
                 z_event_loop_run(ev);
-
 
                 /* Create a worker group */
                 ZWorkerGroup *worker_group = z_worker_group_new(&main_ctx, main_ctx.flex_allocator);
@@ -255,8 +254,13 @@ int main(int argc, char **argv)
                 pthread_mutex_t lock;
                 pthread_mutex_init(&lock, NULL);
 
+                /* Create a new C closure marshaller */
+                ZCClosureMarshal *marshal = z_c_closure_marshal_new(&main_ctx, NULL);
+
                 /* Post all the test tasks */
                 ZBind *task = z_bind_new(&main_ctx, main_ctx.flex_allocator);
+                z_object_set_closure_marshal(Z_OBJECT(task), Z_OBJECT(marshal));
+
                 z_bind_set_handler(task, (ZBindHandler) application_main);
                 z_bind_append_uint32(task, test_set_number);
                 z_bind_append_uint32(task, test_case_number);
@@ -264,8 +268,10 @@ int main(int argc, char **argv)
                 z_bind_append_ptr(task, &lock);
 
                 assert(z_event_loop_post_task(ev, task, NULL, 0, 0) == 0);
-                z_object_unref(Z_OBJECT(ev));
                 z_object_unref(Z_OBJECT(task));
+
+                /* Release the C closure marshaller */
+                z_object_unref(Z_OBJECT(marshal));
 
                 /* Wait for all tests to be completed */
                 pthread_mutex_lock(&lock);
@@ -274,7 +280,7 @@ int main(int argc, char **argv)
                 z_object_unref(Z_OBJECT(worker_group));
 
                 /* Destroy the application context */
-                zco_context_destroy(&app_ctx);
+                zco_app_context_destroy(&app_ctx);
 
         } else {
                 int i;
@@ -287,7 +293,7 @@ int main(int argc, char **argv)
         }
 
         /* Destroy the main context */
-        zco_context_destroy(&main_ctx);
+        zco_app_context_destroy(&main_ctx);
 }
 
 

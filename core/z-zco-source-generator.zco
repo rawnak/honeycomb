@@ -1497,7 +1497,7 @@ class ZZcoSourceGenerator : ZObject
 
                 /* includes in header file */
                 z_file_write(selfp->header_file,
-                                "#include <zco-type.h>\n");
+                                "#include <zco-context.h>\n");
 
                 z_file_write_format(selfp->protected_header_file,
                                 "#include <%s>\n",
@@ -1601,7 +1601,7 @@ class ZZcoSourceGenerator : ZObject
                 /* includes in source file */
                 z_file_write_format(selfp->source_file,
                                 "#include <%s>\n"
-                                "#include <zco-type.h>\n"
+                                "#include <zco-context.h>\n"
                                 "#include <stdlib.h>\n",
                                 selfp->protected_header_filename);
 
@@ -1807,7 +1807,7 @@ class ZZcoSourceGenerator : ZObject
                                 selfp->current_class_name_pascal);
 
                 /* It's important to return global inside the if-block because the value of *global_ptr can become invalid
-                   due to memory reallocation inside zco-type.c. Since we cannot dereference global_ptr if the if-block
+                   due to memory reallocation inside zco-context.c. Since we cannot dereference global_ptr if the if-block
                    runs, we might as well just return the previously dereferenced value */
                 z_file_write_format(selfp->source_file,
                                 "\t\treturn global;\n"

@@ -7,6 +7,7 @@ find_package(FLEX)
 include_directories(
       ${CMAKE_SOURCE_DIR}/core	       # core header files
       ${CMAKE_BINARY_DIR}/core	       # generated core header files
+      ${CMAKE_SOURCE_DIR}/extra	       # extra header files
       ${CMAKE_BINARY_DIR}/extra        # generated extra header files
       ${CMAKE_CURRENT_SOURCE_DIR}      # application header files
       ${CMAKE_CURRENT_BINARY_DIR}      # generated application header files

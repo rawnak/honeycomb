@@ -21,7 +21,7 @@
 
 #ifndef _ZCO_CONFIG_H_
 #define _ZCO_CONFIG_H_
-
+ 
 #define FILL_USABLE_SPACE
 #define USE_CUSTOM_ALLOCATORS
 #define USE_GARBAGE_COLLECTION

@@ -58,13 +58,10 @@ parse_zco(z-string-iter)
 parse_zco(z-string)
 parse_zco(z-map-iter)
 parse_zco(z-map)
-parse_zco(z-log)
 parse_zco(z-value)
 parse_zco(z-closure)
 parse_zco(z-closure-marshal)
-parse_zco(z-c-closure-marshal)
 parse_zco(z-file)
-parse_zco(z-framework-events)
 parse_zco(z-object-tracker)
 parse_zco(z-default-object-tracker)
 parse_zco(z-memory-allocator)
@@ -72,12 +69,10 @@ parse_zco(z-sys-memory-allocator)
 parse_zco(z-simple-memory-allocator)
 parse_zco(z-buddy-memory-allocator)
 parse_zco(z-thread-simple-memory-allocator)
-parse_zco(z-bind)
-parse_zco(z-event-loop)
 
 add_library(
       zclib-core SHARED
-      zco-type.c
+      zco-context.c
       z-object.c
       z-vector-iter.c
       z-vector-segment.c
@@ -86,21 +81,16 @@ add_library(
       z-string.c
       z-map-iter.c
       z-map.c
-      z-log.c
       z-value.c
       z-closure.c
       z-closure-marshal.c
-      z-c-closure-marshal.c
       z-file.c
-      z-framework-events.c
       z-object-tracker.c
-      z-default-object-tracker.c
       z-memory-allocator.c
       z-sys-memory-allocator.c
       z-simple-memory-allocator.c
       z-buddy-memory-allocator.c
       z-thread-simple-memory-allocator.c
-      z-bind.c
-      z-event-loop.c
+      z-default-object-tracker.c
       )
 

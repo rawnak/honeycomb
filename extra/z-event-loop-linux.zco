@@ -77,7 +77,6 @@ class ZEventLoopLinux : ZEventLoop
                 event.data.ptr = NULL;
                 event.events = EPOLLIN | EPOLLRDHUP | EPOLLPRI | EPOLLET;
                 assert(epoll_ctl(selfp->ep_fd, EPOLL_CTL_ADD, selfp->pipe_out, &event) == 0);
-
 	}
 
         override(ZObject) void dispose(ZObject *object)

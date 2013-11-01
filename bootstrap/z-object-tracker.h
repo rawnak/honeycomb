@@ -23,7 +23,7 @@
 
 #include <z-object.h>
 
-#include <zco-type.h>
+#include <zco-context.h>
 #define Self ZObjectTracker
 #define Z_OBJECT_TRACKER(s) ((ZObjectTracker *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_object_tracker_type_id]))
 

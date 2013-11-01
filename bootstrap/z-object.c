@@ -24,17 +24,20 @@
 #include <z-map.h>
 #include <z-vector.h>
 #include <z-vector-iter.h>
-#include <z-closure.h>
-#include <z-closure-marshal.h>
 #include <z-object-tracker.h>
 #include <z-string.h>
+
+#if !defined(BOOTSTRAP)
+#include <z-closure.h>
+#include <z-closure-marshal.h>
+#endif
 
 #include <z-object-tracker.h>
 #include <z-map.h>
 #include <string.h>
 #include <z-memory-allocator.h>
 #include <z-object-protected.h>
-#include <zco-type.h>
+#include <zco-context.h>
 #include <stdlib.h>
 #define Self ZObject
 #define selfp (&self->_priv)
@@ -57,6 +60,8 @@
 #define map_compare z_object_map_compare
 #define get_allocator_ptr z_object_get_allocator_ptr
 #define set_allocator_ptr z_object_set_allocator_ptr
+#define get_closure_marshal z_object_get_closure_marshal
+#define set_closure_marshal z_object_set_closure_marshal
 
 int z_object_type_id = -1;
 
@@ -174,8 +179,9 @@ void __z_object_init(struct zco_context_t *ctx, Self *self)
 static void z_object_init(Self *self)
 {
  selfp->ref_count = 1;
- selfp->attached_properties = 0;
- selfp->signal_map = 0;
+ selfp->attached_properties = NULL;
+ selfp->signal_map = NULL;
+ selfp->closure_marshal = NULL;
  }
 void  z_object_class_destroy(ZObjectGlobal *gbl)
 {
@@ -189,7 +195,7 @@ static void  z_object_virtual_class_destroy(ZObjectGlobal *gbl)
  }
 static void  z_object_cleanup_attached_properties(Self *self)
 {
- ZVector *attached_properties = selfp->attached_properties;
+ ZVector *attached_properties = (ZVector *) selfp->attached_properties;
 
  if (attached_properties) {
  ZVectorIter *it, *end;
@@ -263,9 +269,10 @@ void  z_object_dispose(Self *self)
 }
 static void  z_object_virtual_dispose(Self *self)
 {
+ set_closure_marshal(self, NULL);
  cleanup_attached_properties(self);
 
- ZMap *signal_map = selfp->signal_map;
+ ZMap *signal_map = (ZMap *) selfp->signal_map;
  if (signal_map) {
  unref(Z_OBJECT(signal_map));
  selfp->signal_map = NULL;
@@ -329,6 +336,7 @@ static ZObjectSignalHandler  z_object_lookup_method(Self *self,char *method_name
  }
 void *  z_object_connect(Self *self,char *name,ZObject *target,char *method_name,void *userdata)
 {
+#if !defined(BOOTSTRAP)
  ZClosure *closure;
  ZObjectSignalHandler handler;
 
@@ -345,30 +353,34 @@ void *  z_object_connect(Self *self,char *name,ZObject *target,char *method_name
  /* create a closure */
  closure = z_closure_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
 
- z_closure_set_marshal(closure, (ZClosureMarshal *) CTX_FROM_OBJECT(self)->marshal);
  z_closure_set_target(closure, target);
  z_closure_set_handler(closure, handler);
  z_closure_set_userdata(closure, userdata);
 
  /* locate signal's closure list by name */
- ZMapIter *it = z_map_find(selfp->signal_map, name);
+ ZMap *signal_map = (ZMap *) selfp->signal_map;
+ ZMapIter *it = z_map_find(signal_map, name);
  assert(it != NULL);
- ZVector *closure_list = z_map_get_value(selfp->signal_map, it);
+ ZVector *closure_list = z_map_get_value(signal_map, it);
  unref(Z_OBJECT(it));
 
  /* add new closure into the signal */
  z_vector_push_back(closure_list, closure);
 
  return closure;
+#else
+ return NULL;
+#endif
  }
 void  z_object_disconnect(Self *self,char *name,void *key)
 {
  assert(selfp->signal_map != NULL);
 
  /* locate signal's closure list by name */
- ZMapIter *map_iter = z_map_find(selfp->signal_map, name);
+ ZMap *signal_map = (ZMap *) selfp->signal_map;
+ ZMapIter *map_iter = z_map_find(signal_map, name);
  assert(map_iter != NULL);
- ZVector *closure_list = z_map_get_value(selfp->signal_map, map_iter);
+ ZVector *closure_list = z_map_get_value(signal_map, map_iter);
  unref(Z_OBJECT(map_iter));
 
  /* remove the closure from the list */
@@ -395,32 +407,37 @@ void  z_object_register_signal(Self *self,char *name)
 {
  /* create signal map (if necessary) */
  if (!selfp->signal_map) {
- selfp->signal_map = z_map_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- z_map_set_compare(selfp->signal_map, map_compare);
- z_map_set_key_destruct(selfp->signal_map, (ZMapItemCallback) free);
- z_map_set_value_destruct(selfp->signal_map, (ZMapItemCallback) unref);
+ ZMap *signal_map = z_map_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ z_map_set_compare(signal_map, map_compare);
+ z_map_set_key_destruct(signal_map, (ZMapItemCallback) free);
+ z_map_set_value_destruct(signal_map, (ZMapItemCallback) unref);
+
+ selfp->signal_map = (ZObject *) signal_map;
  }
 
  /* locate signal's closure list by name */
- ZMapIter *it = z_map_find(selfp->signal_map, name);
+ ZMap *signal_map = (ZMap *) selfp->signal_map;
+ ZMapIter *it = z_map_find(signal_map, name);
 
  if (!it) {
  ZVector *closure_list = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  z_vector_set_item_size(closure_list, 0);
  z_vector_set_item_destruct(closure_list, (ZVectorItemCallback) unref);
- z_map_insert(selfp->signal_map, strdup(name), closure_list);
+ z_map_insert(signal_map, strdup(name), closure_list);
  } else {
  z_object_unref(Z_OBJECT(it));
  }
  }
 int  z_object_emit_signal(Self *self,char *name,void *argv)
 {
+#if !defined(BOOTSTRAP)
  assert(selfp->signal_map != NULL);
 
  /* locate signal's closure list by name */
- ZMapIter *map_iter = z_map_find(selfp->signal_map, name);
+ ZMap *signal_map = (ZMap *) selfp->signal_map;
+ ZMapIter *map_iter = z_map_find(signal_map, name);
  assert(map_iter != NULL);
- ZVector *closure_list = z_map_get_value(selfp->signal_map, map_iter);
+ ZVector *closure_list = z_map_get_value(signal_map, map_iter);
  unref(Z_OBJECT(map_iter));
 
  /* remove the closure from the list */
@@ -441,12 +458,17 @@ int  z_object_emit_signal(Self *self,char *name,void *argv)
  unref(Z_OBJECT(end));
  unref(Z_OBJECT(it));
  return rc;
+#else
+ return -1;
+#endif
  }
 void  z_object_add_attached_property_map(Self *self,void *map)
 {
  if (selfp->attached_properties == 0) {
- selfp->attached_properties = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- z_vector_set_item_size(selfp->attached_properties, sizeof(void *));
+ ZVector *attached_properties = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ z_vector_set_item_size(attached_properties, sizeof(void *));
+
+ selfp->attached_properties = (ZObject *) attached_properties;
  }
 
  /* keep note of the maps that has a pointer to 'self' */
@@ -463,6 +485,23 @@ ZMemoryAllocator *  z_object_get_allocator_ptr(Self *self)
 void z_object_set_allocator_ptr(Self *self, ZMemoryAllocator *  value)
 {
  selfp->allocator = value;
+ }
+ZObject *  z_object_get_closure_marshal(Self *self)
+{
+ if (selfp->closure_marshal)
+ z_object_ref(selfp->closure_marshal);
+
+ return selfp->closure_marshal;
+ }
+void z_object_set_closure_marshal(Self *self, ZObject *  value)
+{
+ if (selfp->closure_marshal)
+ z_object_unref(selfp->closure_marshal);
+
+ selfp->closure_marshal = value;
+
+ if (selfp->closure_marshal)
+ z_object_ref(selfp->closure_marshal);
  }
 
 

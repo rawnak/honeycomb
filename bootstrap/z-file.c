@@ -27,7 +27,7 @@
 #include <string.h>
 #include <z-memory-allocator.h>
 #include <z-file-protected.h>
-#include <zco-type.h>
+#include <zco-context.h>
 #include <stdlib.h>
 #define Self ZFile
 #define selfp (&self->_priv)

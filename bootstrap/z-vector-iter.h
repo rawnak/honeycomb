@@ -26,7 +26,7 @@
 struct ZVectorSegment;
 typedef struct ZVectorSegment ZVectorSegment;
 
-#include <zco-type.h>
+#include <zco-context.h>
 #define Self ZVectorIter
 #define Z_VECTOR_ITER(s) ((ZVectorIter *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_vector_iter_type_id]))
 

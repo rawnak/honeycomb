@@ -23,7 +23,7 @@
 
 #include <z-object.h>
 
-#include <zco-type.h>
+#include <zco-context.h>
 #define Self ZMapIter
 #define Z_MAP_ITER(s) ((ZMapIter *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_map_iter_type_id]))
 

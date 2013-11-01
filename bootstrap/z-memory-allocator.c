@@ -26,7 +26,7 @@
 #include <string.h>
 #include <z-memory-allocator.h>
 #include <z-memory-allocator-protected.h>
-#include <zco-type.h>
+#include <zco-context.h>
 #include <stdlib.h>
 #define Self ZMemoryAllocator
 #define selfp (&self->_priv)

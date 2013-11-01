@@ -33,7 +33,7 @@
 #include <string.h>
 #include <z-memory-allocator.h>
 #include <z-map-protected.h>
-#include <zco-type.h>
+#include <zco-context.h>
 #include <stdlib.h>
 #define Self ZMap
 #define selfp (&self->_priv)
