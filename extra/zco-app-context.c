@@ -35,7 +35,7 @@ void zco_app_context_init(struct zco_context_t *ctx)
 void zco_app_context_destroy(struct zco_context_t *ctx)
 {
         /* Release the event loop. */
-        ZEventLoop *event_loop = z_event_loop_get_instance(ctx);
+        ZEventLoop *event_loop = z_event_loop_get_instance_ptr(ctx);
         if (event_loop)
                 z_object_unref(Z_OBJECT(event_loop));
 
@@ -45,9 +45,9 @@ void zco_app_context_destroy(struct zco_context_t *ctx)
         zco_context_destroy(ctx);
 }
 
-ZEventLoop * zco_app_context_get_event_loop(struct zco_context_t *ctx)
+ZEventLoop * zco_app_context_get_event_loop_ptr(struct zco_context_t *ctx)
 {
-        ZEventLoop *event_loop = z_event_loop_get_instance(ctx);
+        ZEventLoop *event_loop = z_event_loop_get_instance_ptr(ctx);
         if (event_loop)
                 return event_loop;
 

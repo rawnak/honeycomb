@@ -238,7 +238,7 @@ class ZServer : ZObject
                 assert(selfp->target_context);
 
                 /* TODO: This assertion needs to be handled gracefully */
-                ZEventLoop *ev = zco_app_context_get_event_loop(selfp->target_context);
+                ZEventLoop *ev = zco_app_context_get_event_loop_ptr(selfp->target_context);
                 assert(z_event_loop_post_task(ev, selfp->cb_open_connection, NULL, 0, 0) == 0);
 
                 z_object_unref(Z_OBJECT(selfp->cb_open_connection));
@@ -264,7 +264,7 @@ class ZServer : ZObject
                 assert(selfp->target_context);
 
                 /* TODO: This assertion needs to be handled gracefully */
-                ZEventLoop *ev = zco_app_context_get_event_loop(selfp->target_context);
+                ZEventLoop *ev = zco_app_context_get_event_loop_ptr(selfp->target_context);
                 assert(z_event_loop_post_task(ev, selfp->cb_process_message, NULL, 0, 0) == 0);
 
                 /* Restore the original bind */

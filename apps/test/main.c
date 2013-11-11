@@ -102,7 +102,7 @@ static void application_main(ZBind *bind, int test_set_number, int test_case_num
         struct zco_context_t *ctx = CTX_FROM_OBJECT(bind);
         ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(bind);
         int capacity;
-        ZCClosureMarshal *marshal = z_c_closure_marshal_new(ctx, NULL);
+        ZCClosureMarshal *marshal = z_c_closure_marshal_get_instance(ctx);
 
         is_printing = 0;
 
@@ -243,7 +243,7 @@ int main(int argc, char **argv)
                 struct zco_context_t app_ctx;
                 zco_app_context_init(&app_ctx);
 
-                ZEventLoop *ev = zco_app_context_get_event_loop(&app_ctx);
+                ZEventLoop *ev = zco_app_context_get_event_loop_ptr(&app_ctx);
                 z_event_loop_set_name(ev, "Application");
                 z_event_loop_run(ev);
 
@@ -254,8 +254,8 @@ int main(int argc, char **argv)
                 pthread_mutex_t lock;
                 pthread_mutex_init(&lock, NULL);
 
-                /* Create a new C closure marshaller */
-                ZCClosureMarshal *marshal = z_c_closure_marshal_new(&main_ctx, NULL);
+                /* Get the C closure marshaller */
+                ZCClosureMarshal *marshal = z_c_closure_marshal_get_instance(&main_ctx);
 
                 /* Post all the test tasks */
                 ZBind *task = z_bind_new(&main_ctx, main_ctx.flex_allocator);

@@ -33,15 +33,46 @@
 
 class ZCClosureMarshal : ZObject,ZClosureMarshal
 {
+        global Self *instance;
+
+        global_init(ZCClosureMarshalGlobal *_global)
+        {
+                _global->_instance = NULL;
+        }
+
+	global_destroy(ZCClosureMarshalGlobal *_global)
+        {
+                z_object_unref(Z_OBJECT(_global->_instance));
+        }
+
 	init(Self *self)
 	{
+                assert(instance == NULL);
+                instance = self;
 	}
 
-	public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
+	override(ZObject) void dispose(ZObject *object)
 	{
-		Self *self = GET_NEW(ctx, allocator);
-		return self;
+		Self *self = (Self *) object;
+                instance = NULL;
+		PARENT_HANDLER(object);
 	}
+
+        public Self *get_instance(struct zco_context_t *ctx)
+        {
+                if (z_c_closure_marshal_type_id != -1) {
+                        ZCClosureMarshalGlobal *_global = *((ZCClosureMarshalGlobal **) zco_get_ctx_type(ctx, z_c_closure_marshal_type_id));
+                        if (_global) {
+                                Self *self = _global->_instance;
+                                z_object_ref(Z_OBJECT(self));
+                                return self;
+                        }
+                }
+
+                Self *self = GET_NEW(ctx, NULL);
+                z_object_ref(Z_OBJECT(self));
+                return self;
+        }
 
 	override(ZClosureMarshal)
 	int invoke(ZClosureMarshal *self, ZObject *target, ZObjectSignalHandler handler, ZVector *args, ZVector *vargs, void *userdata)

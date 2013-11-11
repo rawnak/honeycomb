@@ -126,7 +126,7 @@ class ZWorkerGroup : ZObject
                 char *temp = z_string_get_cstring(app_name, Z_STRING_ENCODING_UTF8);
                 z_object_unref(Z_OBJECT(app_name));
 
-                worker->event_loop = zco_app_context_get_event_loop(ctx);
+                worker->event_loop = zco_app_context_get_event_loop_ptr(ctx);
 
                 z_event_loop_set_name(worker->event_loop, temp);
                 z_event_loop_run(worker->event_loop);
@@ -237,7 +237,7 @@ class ZWorkerGroup : ZObject
                            of the response bind that is specified by the caller. The handler for the proxy
                            bind will ensure that the responses are invoked in order */
                         ZBind *proxy_bind = z_bind_new(CTX_FROM_OBJECT(bind), ALLOCATOR_FROM_OBJECT(bind));
-                        ZClosureMarshal *marshal = (ZClosureMarshal *) z_c_closure_marshal_new(CTX_FROM_OBJECT(bind), NULL);
+                        ZClosureMarshal *marshal = (ZClosureMarshal *) z_c_closure_marshal_get_instance(CTX_FROM_OBJECT(bind));
                         z_object_set_closure_marshal(Z_OBJECT(proxy_bind), Z_OBJECT(marshal));
                         z_object_unref(Z_OBJECT(marshal));
                         z_bind_set_handler(proxy_bind, (ZBindHandler) proxy_function);

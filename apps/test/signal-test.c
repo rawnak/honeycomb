@@ -35,7 +35,7 @@ static void case1(struct zco_context_t *context)
 	ZTestDerivedObject *test_object = z_test_derived_object_new(context, NULL);
 
         ZCClosureMarshal *marshal;
-	marshal = z_c_closure_marshal_new(context, NULL);
+	marshal = z_c_closure_marshal_get_instance(context);
         z_object_set_closure_marshal(Z_OBJECT(test_object), Z_OBJECT(marshal));
 	z_object_unref(Z_OBJECT(marshal));
 

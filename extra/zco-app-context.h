@@ -29,7 +29,7 @@
 void zco_app_context_init(struct zco_context_t *ctx);
 void zco_app_context_destroy(struct zco_context_t *ctx);
 
-ZEventLoop * zco_app_context_get_event_loop(struct zco_context_t *ctx);
+ZEventLoop * zco_app_context_get_event_loop_ptr(struct zco_context_t *ctx);
 
 #endif
 

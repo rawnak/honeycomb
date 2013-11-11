@@ -65,7 +65,7 @@ class ZGatewayApplication : ZObject
 		/* create the main window */
 		ZWindow *main_window = z_window_new(CTX_FROM_OBJECT(self), NULL);
 
-                ZCClosureMarshal *marshal = z_c_closure_marshal_new(CTX_FROM_OBJECT(self), NULL);
+                ZCClosureMarshal *marshal = z_c_closure_marshal_get_instance(CTX_FROM_OBJECT(self));
                 z_object_set_closure_marshal(Z_OBJECT(main_window), Z_OBJECT(marshal));
                 z_object_unref(Z_OBJECT(marshal));
 

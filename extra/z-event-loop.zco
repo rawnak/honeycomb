@@ -135,7 +135,7 @@ class ZEventLoop : ZObject
                 _global->_instance = NULL;
         }
 
-        public Self *get_instance(struct zco_context_t *ctx)
+        public Self *get_instance_ptr(struct zco_context_t *ctx)
         {
                 /* Return NULL if a type id hasn't even been allocated for ZEventLoop. This means that no instance of
                    the object exists in any context in the process */
@@ -193,7 +193,7 @@ class ZEventLoop : ZObject
                 /* Create a bind closure for the quit task */
                 selfp->quit_task = z_bind_new(ctx, allocator);
 
-                ZCClosureMarshal *marshal = z_c_closure_marshal_new(ctx, NULL);
+                ZCClosureMarshal *marshal = z_c_closure_marshal_get_instance(ctx);
                 z_object_set_closure_marshal(Z_OBJECT(selfp->quit_task), Z_OBJECT(marshal));
                 z_object_unref(Z_OBJECT(marshal));
 
@@ -293,7 +293,7 @@ class ZEventLoop : ZObject
         {
                 struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
                 ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
-                ZCClosureMarshal *marshal = z_c_closure_marshal_new(ctx, NULL);
+                ZCClosureMarshal *marshal = z_c_closure_marshal_get_instance(ctx);
 
                 /* Iterate through the run queue and execute the tasks that
                    are scheduled to run now */
