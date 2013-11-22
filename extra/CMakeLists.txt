@@ -21,6 +21,8 @@ macro(parse_zco OBJECT_NAME)
 	      )
 endmacro(parse_zco OBJECT_NAME)
 
+parse_zco(z-set)
+parse_zco(z-set-iter)
 parse_zco(z-event-loop)
 parse_zco(z-event-loop-linux)
 parse_zco(z-event-loop-posix)
@@ -40,6 +42,8 @@ parse_zco(z-bind)
 add_library(
    zclib-extra SHARED
    zco-app-context.c
+   z-set.c
+   z-set-iter.c
    z-event-loop.c
    z-event-loop-linux.c
    z-event-loop-posix.c

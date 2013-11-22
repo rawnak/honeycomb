@@ -36,6 +36,7 @@ add_executable(
    z-vector-test.c
    z-string-test.c
    z-map-test.c
+   z-set-test.c
    )
 
 target_link_libraries(zco-test zclib-core zclib-extra m ffi pthread)

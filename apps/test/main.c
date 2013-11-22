@@ -40,6 +40,7 @@ enum TestSet {
 	TestSetVector = 1,
 	TestSetString,
 	TestSetMap,
+	TestSetSet,
 	TestSetSignal,
 	TestSetEnd
 };
@@ -48,6 +49,7 @@ void (*TestDriverSet[]) (struct zco_context_t *, int) = {
 	[TestSetVector] = z_vector_test,
 	[TestSetString] = z_string_test,
 	[TestSetMap] = z_map_test,
+        [TestSetSet] = z_set_test,
 	[TestSetSignal] = signal_test
 };
 
@@ -220,6 +222,9 @@ int main(int argc, char **argv)
 
                 } else if (!strcmp(test_set, "map")) {
                         test_set_number = TestSetMap;
+
+                } else if (!strcmp(test_set, "set")) {
+                        test_set_number = TestSetSet;
 
                 } else if (!strcmp(test_set, "signal")) {
                         test_set_number = TestSetSignal;

@@ -1,7 +1,7 @@
 /* ZCO - Cross-platform Application Framework
- * Copyright (C) 2014  Syeda Sultana
+ * Copyright (C) 2014  Rawnak Jahan Syeda
  *
- * z-map.zco: Map class
+ * z-set.zco: Class that manages a set of values
  * This file is part of ZCO.
  *
  * This library is free software: you can redistribute it and/or modify
@@ -22,11 +22,11 @@
 #include <stdint.h>
 #include <z-object.h>
 #include <z-vector.h>
-#include <z-map-iter.h>
+#include <z-set-iter.h>
 
-struct ZMap;
-typedef int(*ZMapCompareFunc)(struct ZMap *, const void *, const void *);
-typedef void(*ZMapItemCallback)(void *item, void *userdata);
+struct ZSet;
+typedef int(*ZSetCompareFunc)(struct ZSet *, const void *, const void *);
+typedef void(*ZSetItemCallback)(void *item, void *userdata);
 
 %}
 
@@ -40,22 +40,20 @@ typedef void(*ZMapItemCallback)(void *item, void *userdata);
 
 %}
 
-class ZMap : ZObject
+class ZSet : ZObject
 {
 	private ZVector *data;
-	private ZMapCompareFunc compare;
-	private ZMapItemCallback key_destruct;
-	private ZMapItemCallback value_destruct;
+	private ZSetCompareFunc compare;
+	private ZSetItemCallback key_destruct;
 	private void *userdata;
 
 	init(Self *self)
 	{
 		selfp->data = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
-                z_vector_set_item_size(selfp->data, 2 * sizeof(void *));
+                z_vector_set_item_size(selfp->data, sizeof(void *));
 
 		selfp->compare = NULL;
 		selfp->key_destruct = NULL;
-		selfp->value_destruct = NULL;
 		selfp->userdata = NULL;
 
 		z_vector_set_userdata(selfp->data, self);
@@ -70,7 +68,6 @@ class ZMap : ZObject
 
 		selfp->compare = NULL;
 		selfp->key_destruct = NULL;
-		selfp->value_destruct = NULL;
 		selfp->userdata = NULL;
 
                 PARENT_HANDLER(object);
@@ -82,7 +79,7 @@ class ZMap : ZObject
 
                 /* Make sure internal vector is clear. We don't want to rely
                    on the garbage collector to lazily destroy the items whose
-                   destructor depends on this map to be available. Making the
+                   destructor depends on this set to be available. Making the
                    items hold a reference to self will result in a circular
                    reference so it's not a feasible approach */
                 z_vector_clear(selfp->data);
@@ -108,7 +105,7 @@ class ZMap : ZObject
 		}
 	}
 
-	public ZMapItemCallback key_destruct
+	public ZSetItemCallback key_destruct
 	{
 		set
 		{
@@ -116,36 +113,28 @@ class ZMap : ZObject
 		}
 	}
 
-	public ZMapItemCallback value_destruct
-	{
-		set
-		{
-			selfp->value_destruct = value;
-		}
-	}
-
-	public ZMapIter *begin
+	public ZSetIter *begin
 	{
 		get
 		{
 			ZVectorIter *ptr = z_vector_get_begin(selfp->data);
-			ZMapIter *it = z_map_iter_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+			ZSetIter *it = z_set_iter_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
 
-			z_map_iter_set_index(it, z_vector_iter_get_absolute_index(ptr));
+			z_set_iter_set_index(it, z_vector_iter_get_absolute_index(ptr));
 			z_object_unref(Z_OBJECT(ptr));
 
 			return it;
 		}
 	}
 
-	public ZMapIter *end
+	public ZSetIter *end
 	{
 		get
 		{
 			ZVectorIter *ptr = z_vector_get_end(selfp->data);
-			ZMapIter *it = z_map_iter_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+			ZSetIter *it = z_set_iter_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
 
-			z_map_iter_set_index(it, z_vector_iter_get_absolute_index(ptr));
+			z_set_iter_set_index(it, z_vector_iter_get_absolute_index(ptr));
 			z_object_unref(Z_OBJECT(ptr));
 
 			return it;
@@ -203,7 +192,7 @@ class ZMap : ZObject
 		z_vector_iter_advance(pivot, begin_idx + offset);
 	}
 
-	private void *find_item(Self *self, const void *key, int *bound, ZMapIter *pivot)
+	private int find_item(Self *self, const void *key, int *bound, ZSetIter *pivot)
 	{
 		ZVectorIter *first, *last, *pivot_ptr;
 
@@ -226,7 +215,7 @@ class ZMap : ZObject
 					if (bound)
 						*bound = 1;
 
-					z_map_iter_set_index(pivot, z_vector_iter_get_absolute_index(pivot_ptr));
+					z_set_iter_set_index(pivot, z_vector_iter_get_absolute_index(pivot_ptr));
 					z_object_unref(Z_OBJECT(pivot_ptr));
 					z_object_unref(Z_OBJECT(last));
 					z_object_unref(Z_OBJECT(first));
@@ -241,7 +230,7 @@ class ZMap : ZObject
 					if (bound)
 						*bound = -1;
 
-					z_map_iter_set_index(pivot, z_vector_iter_get_absolute_index(pivot_ptr));
+					z_set_iter_set_index(pivot, z_vector_iter_get_absolute_index(pivot_ptr));
 					z_object_unref(Z_OBJECT(pivot_ptr));
 					z_object_unref(Z_OBJECT(last));
 					z_object_unref(Z_OBJECT(first));
@@ -257,7 +246,7 @@ class ZMap : ZObject
 					if (bound)
 						*bound = -1;
 
-					z_map_iter_set_index(pivot, z_vector_iter_get_absolute_index(pivot_ptr));
+					z_set_iter_set_index(pivot, z_vector_iter_get_absolute_index(pivot_ptr));
 					z_object_unref(Z_OBJECT(pivot_ptr));
 					z_object_unref(Z_OBJECT(last));
 					z_object_unref(Z_OBJECT(first));
@@ -270,27 +259,27 @@ class ZMap : ZObject
 				if (bound)
 					*bound = 0;
 
-				z_map_iter_set_index(pivot, z_vector_iter_get_absolute_index(pivot_ptr));
+				z_set_iter_set_index(pivot, z_vector_iter_get_absolute_index(pivot_ptr));
 				z_object_unref(Z_OBJECT(pivot_ptr));
 				z_object_unref(Z_OBJECT(last));
 				z_object_unref(Z_OBJECT(first));
-				return get_value_internal(item);
+                                return 1;
 			}
 
                         z_object_unref(Z_OBJECT(pivot_ptr));
 		}
 	}
 
-	public ZMapIter *find(Self *self, const void *key)
+	public ZSetIter *find(Self *self, const void *key)
 	{
-		ZMapIter *it;
+		ZSetIter *it;
 		int bound;
 
 		if (get_is_empty(self)) {
 			return NULL;
 
 		} else {
-			it = z_map_iter_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+			it = z_set_iter_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
 			find_item(self, key, &bound, it);
 
 			if (bound == 0) {
@@ -307,82 +296,45 @@ class ZMap : ZObject
 		return (void *)((unsigned long *)item)[0];
 	}
 
-	private void *get_value_internal(void *item)
-	{
-		return (void *)((unsigned long *)item)[1];
-	}
-
 	private void set_key_internal(void *item, void *key)
 	{
 		((unsigned long *)item)[0] = (unsigned long)key;
 	}
 
-	private void set_value_internal(void *item, void *value)
-	{
-		((unsigned long *)item)[1] = (unsigned long)value;
-	}
-
-	public void *get_key(Self *self, ZMapIter *it)
+	public void *get_key(Self *self, ZSetIter *it)
 	{
 		ZVectorIter *ptr = z_vector_get_begin(selfp->data);
 
-                z_vector_iter_advance(ptr, z_map_iter_get_index(it));
+                z_vector_iter_advance(ptr, z_set_iter_get_index(it));
 		void *item = z_vector_get_item(selfp->data, ptr);
 		z_object_unref(Z_OBJECT(ptr));
 
 		return get_key_internal(item);
 	}
 
-	public void *get_value(Self *self, ZMapIter *it)
-	{
-		ZVectorIter *ptr = z_vector_get_begin(selfp->data);
-
-		z_vector_iter_advance(ptr, z_map_iter_get_index(it));
-		void *item = z_vector_get_item(selfp->data, ptr);
-		z_object_unref(Z_OBJECT(ptr));
-
-		return get_value_internal(item);
-	}
-
-        public void set_value(Self *self, ZMapIter *it, void *value)
-        {
-		ZVectorIter *ptr = z_vector_get_begin(selfp->data);
-
-		z_vector_iter_advance(ptr, z_map_iter_get_index(it));
-		void *item = z_vector_get_item(selfp->data, ptr);
-		z_object_unref(Z_OBJECT(ptr));
-
-                set_value_internal(item, value);
-        }
-
 	private void item_destroy(void *item, void *userdata)
 	{
-		ZMap *self = (ZMap *) userdata;
-		void *key, *value;
+		ZSet *self = (ZSet *) userdata;
+		void *key;
 
 		key = get_key_internal(item);
-		value = get_value_internal(item);
 
 		if (selfp->key_destruct)
 			selfp->key_destruct(key, selfp->userdata);
-
-		if (selfp->value_destruct) 
-			selfp->value_destruct(value, selfp->userdata);
 	}
 
-	private int add_item(Self *self, void *key, void *value, int allow_replace)
+	private int add_item(Self *self, void *key, int allow_replace)
 	{
-		ZMapIter *it, *prev;
-		unsigned long key_value[2];
+		ZSetIter *it, *prev;
 		void *item;
 
 		if (!get_is_empty(self) && (it = upper_bound(self, key))) {
 
-			prev = z_map_iter_dup(it);
-			z_map_iter_decrement(prev);
+			prev = z_set_iter_dup(it);
+			z_set_iter_decrement(prev);
 
 			ZVectorIter *prev_ptr = z_vector_get_begin(selfp->data);
-			z_vector_iter_advance(prev_ptr, z_map_iter_get_index(prev));
+			z_vector_iter_advance(prev_ptr, z_set_iter_get_index(prev));
 			z_object_unref(Z_OBJECT(prev));
 
 			if (z_vector_iter_is_in_bound(prev_ptr)) {
@@ -397,7 +349,6 @@ class ZMap : ZObject
 
 						/* add the new item */
 						set_key_internal(item, key);
-						set_value_internal(item, value);
 					}
 
 					z_object_unref(Z_OBJECT(prev_ptr));
@@ -407,38 +358,31 @@ class ZMap : ZObject
 			}
 			z_object_unref(Z_OBJECT(prev_ptr));
 
-			key_value[0] = (unsigned long)key;
-			key_value[1] = (unsigned long)value;
-
 			ZVectorIter *it_ptr = z_vector_get_begin(selfp->data);
-			z_vector_iter_advance(it_ptr, z_map_iter_get_index(it));
-			z_vector_insert(selfp->data, it_ptr, 1, key_value);
+			z_vector_iter_advance(it_ptr, z_set_iter_get_index(it));
+			z_vector_insert(selfp->data, it_ptr, 1, &key);
 			z_object_unref(Z_OBJECT(it));
 			z_object_unref(Z_OBJECT(it_ptr));
 
 
 		} else {
-
-			key_value[0] = (unsigned long)key;
-			key_value[1] = (unsigned long)value;
-
-			z_vector_push_back(selfp->data, key_value);
+			z_vector_push_back(selfp->data, &key);
 		}
 
 		return 0;
 	}
 
-	public int assign(Self *self, void *key, void *value)
+	public int assign(Self *self, void *key)
 	{
-		return add_item(self, key, value, 1);
+		return add_item(self, key, 1);
 	}
 
-	public int insert(Self *self, void *key, void *value)
+	public int insert(Self *self, void *key)
 	{
-		return add_item(self, key, value, 0);
+		return add_item(self, key, 0);
 	}
 
-	public void erase(Self *self, ZMapIter *first, ZMapIter *last)
+	public void erase(Self *self, ZSetIter *first, ZSetIter *last)
 	{
 		ZVectorIter *p1, *p2;
 
@@ -456,8 +400,8 @@ class ZMap : ZObject
 		p1 = z_vector_get_begin(selfp->data);
 		p2 = z_vector_get_begin(selfp->data);
 
-		z_vector_iter_advance(p1, z_map_iter_get_index(first));
-		z_vector_iter_advance(p2, z_map_iter_get_index(last));
+		z_vector_iter_advance(p1, z_set_iter_get_index(first));
+		z_vector_iter_advance(p2, z_set_iter_get_index(last));
 
 		z_vector_erase(selfp->data, p1, p2);
 
@@ -468,39 +412,39 @@ class ZMap : ZObject
 		z_object_unref(Z_OBJECT(first));
 	}
 
-	public void erase1(Self *self, ZMapIter *it)
+	public void erase1(Self *self, ZSetIter *it)
 	{
-		ZMapIter *end;
+		ZSetIter *end;
 
-		end = z_map_iter_dup(it);
-		z_map_iter_increment(end);
+		end = z_set_iter_dup(it);
+		z_set_iter_increment(end);
 		erase(self, it, end);
 		z_object_unref(Z_OBJECT(end));
 	}
 
-	public void erase1_inc(Self *self, ZMapIter **it)
+	public void erase1_inc(Self *self, ZSetIter **it)
 	{
-		ZMapIter *temp;
+		ZSetIter *temp;
 
 		temp = get_begin(self);
 
-		if (z_map_iter_is_equal(*it, temp)) {
-			/* iterator is pointing to the first element in the map */
+		if (z_set_iter_is_equal(*it, temp)) {
+			/* iterator is pointing to the first element in the set */
 			erase1(self, *it);
 			z_object_unref(Z_OBJECT(*it));
 			*it = get_begin(self);
 		} else {
 			z_object_unref(Z_OBJECT(temp));
-			temp = z_map_iter_dup(*it);
-			z_map_iter_decrement(*it);
+			temp = z_set_iter_dup(*it);
+			z_set_iter_decrement(*it);
 			erase1(self, temp);
-			z_map_iter_increment(*it);
+			z_set_iter_increment(*it);
 		}
 	}
 
-	public ZMapIter *lower_bound(Self *self, void *key)
+	public ZSetIter *lower_bound(Self *self, void *key)
 	{
-		ZMapIter *it;
+		ZSetIter *it;
 		int bound;
 
 		if (get_is_empty(self))
@@ -511,14 +455,14 @@ class ZMap : ZObject
 
 		if (bound > 0)
 			/* 'it' is the upper bound, move one step back */
-			z_map_iter_decrement(it);
+			z_set_iter_decrement(it);
 
 		return it;
 	}
 
-	public ZMapIter *upper_bound(Self *self, void *key)
+	public ZSetIter *upper_bound(Self *self, void *key)
 	{
-		ZMapIter *it;
+		ZSetIter *it;
 		int bound;
 
 		if (get_is_empty(self))
@@ -547,12 +491,12 @@ class ZMap : ZObject
 		   the iterator only by 1.  */
 
 		if (bound <= 0)
-			z_map_iter_increment(it);
+			z_set_iter_increment(it);
 
 		return it;
 	}
 
-	public ZMapCompareFunc compare
+	public ZSetCompareFunc compare
 	{
 		set
 		{

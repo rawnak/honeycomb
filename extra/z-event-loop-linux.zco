@@ -165,7 +165,6 @@ class ZEventLoopLinux : ZEventLoop
                 wait_for_signal_with_timeout(self, timeout);
         }
 
-
         override(ZEventLoop) int add_to_task_queue(ZEventLoop *ev, ZTask *task)
         {
                 Self *self = (Self *) ev;

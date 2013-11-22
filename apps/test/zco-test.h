@@ -35,6 +35,7 @@ void trace(const char *fmt, ...);
 void z_vector_test(struct zco_context_t *, int);
 void z_string_test(struct zco_context_t *, int);
 void z_map_test(struct zco_context_t *, int);
+void z_set_test(struct zco_context_t *, int);
 void signal_test(struct zco_context_t *, int);
 
 #endif

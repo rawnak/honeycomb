@@ -1,0 +1,105 @@
+/* ZCO - Cross-platform Application Framework
+ * Copyright (C) 2014  Rawnak Jahan Syeda
+ *
+ * z-set-iter.zco: ZSet iterator
+ * This file is part of ZCO.
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZCO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+%h{
+#include <z-object.h>
+%}
+
+%{
+%}
+
+class ZSetIter : ZObject
+{
+	private int index;
+
+	init(Self *self)
+	{
+		selfp->index = 0;
+	}
+
+        override(ZObject) void reset(ZObject *object)
+        {
+                Self *self = (Self *) object;
+                selfp->index = 0;
+                PARENT_HANDLER(object);
+        }
+
+	public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
+	{
+		Self *self = GET_NEW(ctx, allocator);
+		return self;
+	}
+
+	public Self *dup(ZSetIter *src)
+	{
+		Self *self = GET_NEW(CTX_FROM_OBJECT(src), ALLOCATOR_FROM_OBJECT(src));
+
+		set_index(self, get_index(src));
+		return self;
+	}
+
+        public void assign(Self *self, ZSetIter *src)
+        {
+                set_index(self, get_index(src)); 
+        }
+
+	public int index
+	{
+		get
+		{
+			return selfp->index;
+		}
+		set
+		{
+			selfp->index = value;
+		}
+	}
+
+	public void advance(Self *self, int steps)
+	{
+		selfp->index += steps;
+	}
+
+	public void increment(Self *self)
+	{
+		++selfp->index;
+	}
+
+	public void decrement(Self *self)
+	{
+		--selfp->index;
+	}
+
+	public int is_equal(Self *self, Self *other)
+	{
+		return selfp->index == get_index(other);
+	}
+
+	public int is_lte(Self *self, Self *other)
+	{
+		return selfp->index <= get_index(other);
+	}
+
+	public int is_gte(Self *self, Self *other)
+	{
+		return selfp->index >= get_index(other);
+	}
+}
+
