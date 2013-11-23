@@ -40,12 +40,17 @@ typedef struct ZSocketSerialized ZSocketSerialized;
 
 %}
 %{
+
+#define _GNU_SOURCE
+
 #include <z-socket.h>
 #include <z-vector-segment.h>
 #include <sys/sendfile.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
+#include <fcntl.h>
 
 struct socket_serialized {
         union sock_address info;
@@ -56,9 +61,6 @@ struct socket_serialized {
 
 class ZSocket : ZObject
 {
-        /* sockaddr_in6 is chosen here because it is the larger than sockaddr_in.
-           We don't know which address family we will use so we want to reserve
-           enough space for either IPv4 or IPv6 */
         private union sock_address info;
         private int fd;
 
@@ -97,6 +99,21 @@ class ZSocket : ZObject
         {
                 selfp->info = data->info;
                 selfp->fd = data->fd;
+        }
+
+        public void shutdown_incoming(Self *self)
+        {
+                shutdown(selfp->fd, SHUT_RD);
+        }
+
+        public void shutdown_outgoing(Self *self)
+        {
+                shutdown(selfp->fd, SHUT_WR);
+        }
+
+        public void shutdown_both(Self *self)
+        {
+                shutdown(selfp->fd, SHUT_RDWR);
         }
 
         public int is_ipv4
@@ -247,8 +264,17 @@ class ZSocket : ZObject
                         return -1;
                 }
 
+                /* Set socket to non-blocking mode */
+                set_fd_flags(selfp->fd, O_NONBLOCK);
+
                 selfp->info.common.sa_family = family;
                 return 0;
+        }
+
+        private void set_fd_flags(int fd, int flags)
+        {
+                int old_flags = fcntl(fd, F_GETFL, 0);
+                fcntl(fd, F_SETFL, old_flags | flags);
         }
 
         private int bind_to_fd(Self *self)
@@ -256,7 +282,7 @@ class ZSocket : ZObject
                 socklen_t address_len;
 
                 if (selfp->fd == -1)
-                        return -1;
+                        return -EBADF;
 
                 switch (selfp->info.common.sa_family) {
                 case AF_INET6:
@@ -272,8 +298,9 @@ class ZSocket : ZObject
 
                 /* Bind the socket */
                 if (bind(selfp->fd, &selfp->info.common, address_len) == -1) {
+                        int rc = -errno;
                         perror("Failed to bind the socket");
-                        return -1;
+                        return rc;
                 }
 
                 return 0;
@@ -281,16 +308,17 @@ class ZSocket : ZObject
 
         public int enable_passive_mode(Self *self, int backlog)
         {
-                if (bind_to_fd(self) == -1) {
-                        return -1;
-                }
+                int rc = bind_to_fd(self);
+
+                if (rc != 0)
+                        return rc;
 
                 if (listen(selfp->fd, backlog) == -1) {
+                        rc = -errno;
                         perror("Failed to listen on server socket");
-                        return -1;
                 }
 
-                return 0;
+                return rc;
         }
 
         public ZSocket * accept_connection(Self *self)
@@ -303,7 +331,7 @@ class ZSocket : ZObject
                 switch (selfp->info.common.sa_family) {
                 case AF_INET6:
                         client_address_len = sizeof(struct sockaddr_in6);
-                        client_fd = accept(selfp->fd, &client_address.common, &client_address_len);
+                        client_fd = accept4(selfp->fd, &client_address.common, &client_address_len, SOCK_NONBLOCK | SOCK_CLOEXEC);
 
                         declare_family(socket, AF_INET6);
                         set_fd(socket, client_fd);
@@ -315,7 +343,7 @@ class ZSocket : ZObject
                         break;
                 case AF_INET:
                         client_address_len = sizeof(struct sockaddr_in);
-                        client_fd = accept(selfp->fd, &client_address.common, &client_address_len);
+                        client_fd = accept4(selfp->fd, &client_address.common, &client_address_len, SOCK_NONBLOCK | SOCK_CLOEXEC);
 
                         declare_family(socket, AF_INET);
                         set_fd(socket, client_fd);
