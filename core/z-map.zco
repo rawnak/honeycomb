@@ -485,7 +485,8 @@ class ZMap : ZObject
 		temp = get_begin(self);
 
 		if (z_map_iter_is_equal(*it, temp)) {
-			/* iterator is pointing to the first element in the map */
+			/* Iterator is pointing to the first element in the map */
+			z_object_unref(Z_OBJECT(temp));
 			erase1(self, *it);
 			z_object_unref(Z_OBJECT(*it));
 			*it = get_begin(self);

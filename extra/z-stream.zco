@@ -21,6 +21,7 @@
 %h{
 #include <z-object.h>
 #include <z-string.h>
+#include <z-in-out.h>
 #include <sys/sendfile.h>
 
 %}
@@ -33,15 +34,15 @@
 
 class ZStream : ZObject
 {
-        private int in_fd;
-        private int out_fd;
+        private ZInOut *input;
+        private ZInOut *output;
         private void *temp_buf;
         private int temp_buf_size;
 
 	init(Self *self)
 	{
-                selfp->in_fd = -1;
-                selfp->out_fd = -1;
+                selfp->input = NULL;
+                selfp->output = NULL;
                 selfp->temp_buf = NULL;
                 selfp->temp_buf_size = 0;
 	}
@@ -72,33 +73,45 @@ class ZStream : ZObject
 		return self;
 	}
 
-        public int input_fd
+        public ZInOut * input
         {
                 get
                 {
-                        return selfp->in_fd;
+                        if (selfp->input)
+                                z_object_ref(Z_OBJECT(selfp->input));
+
+                        return selfp->input;
                 }
                 set
                 {
-                        if (selfp->in_fd != -1)
-                                close(selfp->in_fd);
+                        if (selfp->input)
+                                z_object_unref(Z_OBJECT(selfp->input));
 
-                        selfp->in_fd = value;
+                        selfp->input = value;
+
+                        if (selfp->input)
+                                z_object_ref(Z_OBJECT(selfp->input));
                 }
         }
 
-        public int output_fd
+        public ZInOut * output
         {
                 get
                 {
-                        return selfp->out_fd;
+                        if (selfp->output)
+                                z_object_ref(Z_OBJECT(selfp->output));
+
+                        return selfp->output;
                 }
                 set
                 {
-                        if (selfp->out_fd != -1)
-                                close(selfp->out_fd);
+                        if (selfp->output)
+                                z_object_unref(Z_OBJECT(selfp->output));
 
-                        selfp->out_fd = value;
+                        selfp->output = value;
+
+                        if (selfp->output)
+                                z_object_ref(Z_OBJECT(selfp->output));
                 }
         }
 
@@ -115,14 +128,14 @@ class ZStream : ZObject
 
         public int write_text(Self *self, ZString *str)
         {
-                assert(selfp->out_fd != -1);
+                assert(selfp->output);
 
                 char *s = z_string_get_cstring(str, Z_STRING_ENCODING_UTF8);
-                if (write(selfp->out_fd, s, z_string_get_size(str)) == -1) {
+                if (z_in_out_write_buffer(selfp->output, s, z_string_get_size(str)) == -1) {
                         int errcode = errno;
 
                         if (errno == EPIPE)
-                                set_output_fd(self, -1);
+                                set_output(self, NULL);
 
                         errno = errcode;
                         free(s);
@@ -162,7 +175,7 @@ class ZStream : ZObject
 
         public int write_binary(Self *self, ZVector *data)
         {
-                assert(selfp->out_fd != -1);
+                assert(selfp->output);
 
                 ZVectorIter *it = z_vector_get_begin(data);
                 int size = z_vector_get_size(data);
@@ -206,11 +219,12 @@ class ZStream : ZObject
                 }
 
                 z_object_unref(Z_OBJECT(it));
-                if (write(selfp->out_fd, buffer, size * item_size) == -1) {
+
+                if (z_in_out_write_buffer(selfp->output, buffer, size * item_size) == -1) {
                         int errcode = errno;
 
                         if (errno == EPIPE)
-                                set_output_fd(self, -1);
+                                set_output(self, NULL);
 
                         errno = errcode;
                         return -1;
@@ -221,17 +235,17 @@ class ZStream : ZObject
 
         public ZString * read_text(Self *self)
         {
-                assert(selfp->in_fd != -1);
+                assert(selfp->input);
 
                 ZString *str = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
                 void *buffer = request_buffer(self, 4097);
 
-                int size = read(selfp->in_fd, buffer, 4096);
+                int size = z_in_out_read_buffer(selfp->input, buffer, 4096);
                 if (size == -1) {
                         int errcode = errno;
 
                         if (errno == EPIPE)
-                                set_input_fd(self, -1);
+                                set_input(self, NULL);
 
                         errno = errcode;
                         return NULL;
@@ -245,19 +259,19 @@ class ZStream : ZObject
 
         public ZVector * read_binary(Self *self, int item_size)
         {
-                assert(selfp->in_fd != -1);
+                assert(selfp->input);
 
                 ZVector *data = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
                 z_vector_set_item_size(data, item_size);
 
                 void *buffer = request_buffer(self, 4096);
-                int size = read(selfp->in_fd, buffer, 4096);
+                int size = z_in_out_read_buffer(selfp->input, buffer, 4096);
 
                 if (size == -1) {
                         int errcode = errno;
 
                         if (errno == EPIPE)
-                                set_input_fd(self, -1);
+                                set_input(self, NULL);
 
                         errno = errcode;
                         return NULL;
@@ -299,19 +313,25 @@ class ZStream : ZObject
                 return data;
         }
 
-        public ssize_t send_file(Self *self, int input_fd, off_t *offset, ssize_t size)
+        public ssize_t send_file(Self *self, ZStream *in_stream, off_t *offset, ssize_t size)
         {
-                int output_fd = get_output_fd(self);
-                assert(output_fd != -1);
+                ZInOut *output = get_output(self);
+                ZInOut *input = get_input(in_stream);
 
-                size = sendfile(output_fd, input_fd, offset, size);
-                return size;
+                assert(output != NULL);
+                assert(input != NULL);
+
+                int rc = z_in_out_send_file(output, input, offset, size);
+
+                z_object_unref(Z_OBJECT(input));
+                z_object_unref(Z_OBJECT(output));
+                return rc;
         }
 
         public void terminate(Self *self)
         {
-                set_input_fd(self, -1);
-                set_output_fd(self, -1);
+                set_input(self, NULL);
+                set_output(self, NULL);
         }
 }
 

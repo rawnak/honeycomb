@@ -22,6 +22,7 @@
 #include <z-stream.h>
 #include <z-object.h>
 #include <z-string.h>
+#include <z-in-out.h>
 #include <netinet/in.h>
 
 union sock_address {
@@ -43,6 +44,9 @@ typedef struct ZSocketSerialized ZSocketSerialized;
 
 #define _GNU_SOURCE
 
+#include <z-bind-util.h>
+#include <z-in-out-multiplexer.h>
+#include <zco-app-context.h>
 #include <z-socket.h>
 #include <z-vector-segment.h>
 #include <sys/sendfile.h>
@@ -62,18 +66,43 @@ struct socket_serialized {
 class ZSocket : ZObject
 {
         private union sock_address info;
-        private int fd;
+        private int is_ready;
+        private ZInOut *inout;
+        private ZBind *dispatcher_task;
+        private ZBind *cb_ready;
+        private ZBind *cb_disconnect;
+        private ZBind *cb_hangup;
+        private ZBind *cb_error;
+        private ZBind *cb_readable;
+        private ZBind *cb_writable;
 
 	init(Self *self)
 	{
-                memset(&selfp->info, 0, sizeof(union sock_address));
-                selfp->fd = -1;
+                selfp->dispatcher_task = NULL;
+                selfp->cb_ready = NULL;
+                selfp->cb_disconnect = NULL;
+                selfp->cb_hangup = NULL;
+                selfp->cb_error = NULL;
+                selfp->cb_readable = NULL;
+                selfp->cb_writable = NULL;
+                selfp->inout = NULL;
+
+                clear(self);
 	}
 
         override(ZObject) void reset(ZObject *object)
         {
                 Self *self = (Self *) object;
                 clear(self);
+                PARENT_HANDLER(object);
+        }
+
+        override(ZObject) void dispose(ZObject *object)
+        {
+                Self *self = (Self *) object;
+
+                clear(self);
+                ZEventLoop *ev = zco_app_context_get_event_loop_ptr(CTX_FROM_OBJECT(self));
                 PARENT_HANDLER(object);
         }
 
@@ -85,35 +114,47 @@ class ZSocket : ZObject
 
         public void clear(Self *self)
         {
-                memset(&selfp->info, 0, sizeof(union sock_address));
-                selfp->fd = -1;
-        }
+                set_on_ready(self, NULL);
+                set_on_disconnect(self, NULL);
+                set_on_hangup(self, NULL);
+                set_on_error(self, NULL);
+                set_on_readable(self, NULL);
+                set_on_writable(self, NULL);
 
-        public void get_serialized_data(Self *self, ZSocketSerialized *data)
-        {
-                data->info = selfp->info;
-                data->fd = selfp->fd;
-        }
-        
-        public void set_serialized_data(Self *self, ZSocketSerialized *data)
-        {
-                selfp->info = data->info;
-                selfp->fd = data->fd;
+                memset(&selfp->info, 0, sizeof(union sock_address));
+
+                set_inout(self, NULL);
+                selfp->is_ready = 0;
         }
 
         public void shutdown_incoming(Self *self)
         {
-                shutdown(selfp->fd, SHUT_RD);
+                set_on_readable(self, NULL);
+                z_in_out_socket_shutdown(selfp->inout, SHUT_RD);
         }
 
         public void shutdown_outgoing(Self *self)
         {
-                shutdown(selfp->fd, SHUT_WR);
+                set_on_writable(self, NULL);
+                z_in_out_socket_shutdown(selfp->inout, SHUT_WR);
         }
 
         public void shutdown_both(Self *self)
         {
-                shutdown(selfp->fd, SHUT_RDWR);
+                set_on_readable(self, NULL);
+                set_on_writable(self, NULL);
+                z_in_out_socket_shutdown(selfp->inout, SHUT_RDWR);
+        }
+
+        public int status
+        {
+                get
+                {
+                        int value;
+                        socklen_t size = sizeof(value);
+                        z_in_out_get_socket_options(selfp->inout, SOL_SOCKET, SO_ERROR, &value, &size);
+                        return value;
+                }
         }
 
         public int is_ipv4
@@ -220,37 +261,27 @@ class ZSocket : ZObject
 
         public int connect_stream(Self *self, ZStream *stream)
         {
-                if (selfp->fd == -1)
+                if (selfp->inout == NULL)
                         return -1;
 
-                z_stream_set_input_fd(stream, selfp->fd);
-                z_stream_set_output_fd(stream, selfp->fd);
+                z_stream_set_input(stream, selfp->inout);
+                z_stream_set_output(stream, selfp->inout);
 
                 return 0;
         }
 
-        public int get_fd(Self *self)
+        public int initiate_connection(Self *self)
         {
-                return selfp->fd;
-        }
-
-        private void set_fd(Self *self, int fd)
-        {
-                selfp->fd = fd;
-        }
-
-        public int declare_family(Self *self, int family)
-        {
-                int domain;
                 socklen_t address_len;
 
-                switch (family) {
+                if (selfp->inout == NULL)
+                        return -EBADF;
+
+                switch (selfp->info.common.sa_family) {
                 case AF_INET6:
-                        domain = PF_INET6;
                         address_len = sizeof(struct sockaddr_in6);
                         break;
                 case AF_INET:
-                        domain = PF_INET;
                         address_len = sizeof(struct sockaddr_in);
                         break;
                 default:
@@ -258,30 +289,126 @@ class ZSocket : ZObject
                         abort();
                 }
 
-                /* Create TCP socket */
-                if ((selfp->fd = socket(domain, SOCK_STREAM, 0)) == -1) {
-                        perror("Failed to create socket");
-                        return -1;
+                if (z_in_out_socket_connect(selfp->inout, &selfp->info.common, address_len) != 0) {
+                        return -errno;
                 }
 
-                /* Set socket to non-blocking mode */
-                set_fd_flags(selfp->fd, O_NONBLOCK);
-
-                selfp->info.common.sa_family = family;
                 return 0;
         }
 
-        private void set_fd_flags(int fd, int flags)
+        public ZInOut * inout
         {
-                int old_flags = fcntl(fd, F_GETFL, 0);
-                fcntl(fd, F_SETFL, old_flags | flags);
+                get
+                {
+                        if (selfp->inout)
+                                z_object_ref(Z_OBJECT(selfp->inout));
+
+                        return selfp->inout;
+                }
+        }
+
+        private void set_inout(Self *self, ZInOut * inout)
+        {
+                ZEventLoop *ev = zco_app_context_get_event_loop_ptr(CTX_FROM_OBJECT(self));
+
+                if (selfp->inout != NULL) {
+                        assert(z_in_out_multiplexer_unsubscribe_fd((ZObject *) ev, selfp->inout, selfp->dispatcher_task) == 0);
+                        z_object_unref(Z_OBJECT(selfp->dispatcher_task));
+                        z_object_unref(Z_OBJECT(selfp->inout));
+                }
+
+                selfp->inout = inout;
+
+                if (selfp->inout != NULL) {
+                        z_object_ref(Z_OBJECT(inout));
+                        selfp->dispatcher_task = create_c_bind(Z_OBJECT(self), (ZBindHandler) dispatcher);
+                        z_bind_append_ptr(selfp->dispatcher_task, self);
+                        assert(z_in_out_multiplexer_subscribe_fd((ZObject *) ev, selfp->inout, selfp->dispatcher_task) == 0);
+                }
+        }
+
+        private void dispatcher(ZBind *task, Self *self, uint32_t event_flags)
+        {
+                z_object_ref(Z_OBJECT(self));
+
+                if (event_flags & IO_MULTIPLEXER_OUT) {
+                        if (!selfp->is_ready && get_status(self) == 0) {
+                                selfp->is_ready = 1;
+
+                                if (selfp->cb_ready)
+                                        z_bind_invoke(selfp->cb_ready);
+                        }
+
+                        if (selfp->cb_writable)
+                                z_bind_invoke(selfp->cb_writable);
+                }
+
+                if (selfp->cb_readable && event_flags & IO_MULTIPLEXER_IN)
+                        z_bind_invoke(selfp->cb_readable);
+
+                if (selfp->cb_error && event_flags & IO_MULTIPLEXER_ERR)
+                        z_bind_invoke(selfp->cb_error);
+
+                if (selfp->cb_disconnect && event_flags & IO_MULTIPLEXER_RDHUP) {
+                        /* There should not be any more 'read' events after this since the remote
+                           peer closed its write part of the socket */
+                        set_on_readable(self, NULL);
+
+                        /* The disconnect callback is a one-shot callback */
+                        z_bind_invoke(selfp->cb_disconnect);
+                        set_on_disconnect(self, NULL);
+                }
+
+                if (selfp->cb_hangup && event_flags & IO_MULTIPLEXER_HUP) {
+                        /* The hangup callback is a one-shot callback */
+                        z_bind_invoke(selfp->cb_hangup);
+                        set_on_hangup(self, NULL);
+                }
+
+                z_object_unref(Z_OBJECT(self));
+        }
+
+        public int declare_family(Self *self, int family)
+        {
+                int domain;
+                int rc;
+
+                switch (family) {
+                case AF_INET6:
+                        domain = PF_INET6;
+                        break;
+                case AF_INET:
+                        domain = PF_INET;
+                        break;
+                default:
+                        /* Unsupported address family */
+                        abort();
+                }
+
+                /* Create TCP socket */
+                int fd;
+                if ((fd = socket(domain, SOCK_STREAM, 0)) == -1) {
+                        rc = -errno;
+                        perror("socket");
+                        return rc;
+                }
+
+                ZInOut *inout = z_in_out_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                z_in_out_set_fd(inout, fd);
+                z_in_out_set_flags(inout, O_NONBLOCK);
+
+                set_inout(self, inout);
+                z_object_unref(Z_OBJECT(inout));
+
+                selfp->info.common.sa_family = family;
+                return 0;
         }
 
         private int bind_to_fd(Self *self)
         {
                 socklen_t address_len;
 
-                if (selfp->fd == -1)
+                if (selfp->inout == NULL)
                         return -EBADF;
 
                 switch (selfp->info.common.sa_family) {
@@ -297,7 +424,7 @@ class ZSocket : ZObject
                 }
 
                 /* Bind the socket */
-                if (bind(selfp->fd, &selfp->info.common, address_len) == -1) {
+                if (z_in_out_socket_bind(selfp->inout, &selfp->info.common, address_len) == -1) {
                         int rc = -errno;
                         perror("Failed to bind the socket");
                         return rc;
@@ -309,11 +436,10 @@ class ZSocket : ZObject
         public int enable_passive_mode(Self *self, int backlog)
         {
                 int rc = bind_to_fd(self);
-
                 if (rc != 0)
                         return rc;
 
-                if (listen(selfp->fd, backlog) == -1) {
+                if (z_in_out_socket_listen(selfp->inout, backlog) == -1) {
                         rc = -errno;
                         perror("Failed to listen on server socket");
                 }
@@ -330,26 +456,39 @@ class ZSocket : ZObject
 
                 switch (selfp->info.common.sa_family) {
                 case AF_INET6:
-                        client_address_len = sizeof(struct sockaddr_in6);
-                        client_fd = accept4(selfp->fd, &client_address.common, &client_address_len, SOCK_NONBLOCK | SOCK_CLOEXEC);
+                        {
+                                client_address_len = sizeof(struct sockaddr_in6);
+                                client_fd = z_in_out_socket_accept(selfp->inout, &client_address.common, &client_address_len, SOCK_NONBLOCK | SOCK_CLOEXEC);
 
-                        declare_family(socket, AF_INET6);
-                        set_fd(socket, client_fd);
-                        set_port(socket, ntohs(client_address.ipv6.sin6_port));
-                        set_flowinfo(socket, client_address.ipv6.sin6_flowinfo);
-                        set_ipv6_address(socket, client_address.ipv6.sin6_addr);
-                        set_scope_id(socket, client_address.ipv6.sin6_scope_id);
+                                assert(declare_family(socket, AF_INET6) == 0);
+
+                                ZInOut *inout = z_in_out_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                                z_in_out_set_fd(inout, client_fd);
+                                set_inout(socket, inout);
+                                z_object_unref(Z_OBJECT(inout));
+
+                                set_port(socket, ntohs(client_address.ipv6.sin6_port));
+                                set_flowinfo(socket, client_address.ipv6.sin6_flowinfo);
+                                set_ipv6_address(socket, client_address.ipv6.sin6_addr);
+                                set_scope_id(socket, client_address.ipv6.sin6_scope_id);
+                        }
 
                         break;
                 case AF_INET:
-                        client_address_len = sizeof(struct sockaddr_in);
-                        client_fd = accept4(selfp->fd, &client_address.common, &client_address_len, SOCK_NONBLOCK | SOCK_CLOEXEC);
+                        {
+                                client_address_len = sizeof(struct sockaddr_in);
+                                client_fd = z_in_out_socket_accept(selfp->inout, &client_address.common, &client_address_len, SOCK_NONBLOCK | SOCK_CLOEXEC);
 
-                        declare_family(socket, AF_INET);
-                        set_fd(socket, client_fd);
-                        set_port(socket, ntohs(client_address.ipv4.sin_port));
-                        set_ipv4_address(socket, client_address.ipv4.sin_addr.s_addr);
+                                assert(declare_family(socket, AF_INET) == 0);
 
+                                ZInOut *inout = z_in_out_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                                z_in_out_set_fd(inout, client_fd);
+                                set_inout(socket, inout);
+                                z_object_unref(Z_OBJECT(inout));
+
+                                set_port(socket, ntohs(client_address.ipv4.sin_port));
+                                set_ipv4_address(socket, client_address.ipv4.sin_addr.s_addr);
+                        }
                         break;
                 default:
                         /* Unsupported address family */
@@ -357,6 +496,90 @@ class ZSocket : ZObject
                 }
 
                 return socket;
+        }
+
+        public ZBind * on_ready
+        {
+                set
+                {
+                        if (selfp->cb_ready)
+                                z_object_unref(Z_OBJECT(selfp->cb_ready));
+
+                        selfp->cb_ready = value;
+
+                        if (selfp->cb_ready)
+                                z_object_ref(Z_OBJECT(selfp->cb_ready));
+                }
+        }
+
+        public ZBind * on_disconnect
+        {
+                set
+                {
+                        if (selfp->cb_disconnect)
+                                z_object_unref(Z_OBJECT(selfp->cb_disconnect));
+
+                        selfp->cb_disconnect = value;
+
+                        if (selfp->cb_disconnect)
+                                z_object_ref(Z_OBJECT(selfp->cb_disconnect));
+                }
+        }
+
+        public ZBind * on_hangup
+        {
+                set
+                {
+                        if (selfp->cb_hangup)
+                                z_object_unref(Z_OBJECT(selfp->cb_hangup));
+
+                        selfp->cb_hangup = value;
+
+                        if (selfp->cb_hangup)
+                                z_object_ref(Z_OBJECT(selfp->cb_hangup));
+                }
+        }
+
+        public ZBind * on_error
+        {
+                set
+                {
+                        if (selfp->cb_error)
+                                z_object_unref(Z_OBJECT(selfp->cb_error));
+
+                        selfp->cb_error = value;
+
+                        if (selfp->cb_error)
+                                z_object_ref(Z_OBJECT(selfp->cb_error));
+                }
+        }
+
+        public ZBind * on_readable
+        {
+                set
+                {
+                        if (selfp->cb_readable)
+                                z_object_unref(Z_OBJECT(selfp->cb_readable));
+
+                        selfp->cb_readable = value;
+
+                        if (selfp->cb_readable)
+                                z_object_ref(Z_OBJECT(selfp->cb_readable));
+                }
+        }
+
+        public ZBind * on_writable
+        {
+                set
+                {
+                        if (selfp->cb_writable)
+                                z_object_unref(Z_OBJECT(selfp->cb_writable));
+
+                        selfp->cb_writable = value;
+
+                        if (selfp->cb_writable)
+                                z_object_ref(Z_OBJECT(selfp->cb_writable));
+                }
         }
 }
 

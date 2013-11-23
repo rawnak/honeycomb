@@ -28,7 +28,7 @@
 #endif
 
 /* convenience macro */
-#define DEFINE_TEST(id_num,callback)  if(id==0 || id==id_num) { callback(context); }
+#define DEFINE_TEST(id_num,callback,arg...)  if(id==0 || id==id_num) { callback(arg); }
 
 void trace(const char *fmt, ...);
 
@@ -37,5 +37,6 @@ void z_string_test(struct zco_context_t *, int);
 void z_map_test(struct zco_context_t *, int);
 void z_set_test(struct zco_context_t *, int);
 void signal_test(struct zco_context_t *, int);
+void network_test(struct zco_context_t *, int);
 
 #endif

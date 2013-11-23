@@ -1,0 +1,151 @@
+/* ZCO - Cross-platform Application Framework
+ * Copyright (C) 2014  Rawnak Jahan Syeda
+ *
+ * z-in-out.zco: Wrapper on file descriptor
+ * This file is part of ZCO.
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZCO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+%h{
+#include <z-object.h>
+#include <sys/socket.h>
+#include <sys/epoll.h>
+%}
+
+%{
+#define _GNU_SOURCE
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/sendfile.h>
+%}
+
+class ZInOut : ZObject
+{
+        private int fd;
+        private int flags;
+
+	init(Self *self)
+	{
+                selfp->fd = -1;
+                selfp->flags = 0;
+	}
+
+	public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
+	{
+		Self *self = GET_NEW(ctx, allocator);
+		return self;
+	}
+
+        override(ZObject) void reset(ZObject *object)
+        {
+                Self *self = (Self *) object;
+                set_fd(self, -1);
+                PARENT_HANDLER(object);
+        }
+
+	override(ZObject) void dispose(ZObject *object)
+	{
+		Self *self = (Self *) object;
+                set_fd(self, -1);
+		PARENT_HANDLER(object);
+	}
+
+        public int fd
+        {
+                set
+                {
+                        if (selfp->fd != -1)
+                                close(selfp->fd);
+
+                        selfp->fd = value;
+                        selfp->flags = (selfp->fd != -1)? fcntl(selfp->fd, F_GETFL, 0) : 0;
+                }
+        }
+
+        private int get_fd(Self *self)
+        {
+                return selfp->fd;
+        }
+
+        public int set_flags(Self *self, int flags)
+        {
+                selfp->flags |= flags;
+                return fcntl(selfp->fd, F_SETFL, selfp->flags);
+        }
+
+        public int clear_flags(Self *self, int flags)
+        {
+                selfp->flags &= ~flags;
+                return fcntl(selfp->fd, F_SETFL, selfp->flags);
+        }
+
+        public int socket_shutdown(Self *self, int how)
+        {
+                return shutdown(selfp->fd, how);
+        }
+
+        public int get_socket_options(Self *self, int level, int optname, void *optval, socklen_t *optlen)
+        {
+                return getsockopt(selfp->fd, level, optname, optval, optlen);
+        }
+
+        public int socket_connect(Self *self, const struct sockaddr *addr, socklen_t addrlen)
+        {
+                return connect(selfp->fd, addr, addrlen);
+        }
+
+        public int socket_bind(Self *self, const struct sockaddr *addr, socklen_t addrlen)
+        {
+                return bind(selfp->fd, addr, addrlen);
+        }
+
+        public int socket_listen(Self *self, int backlog)
+        {
+                return listen(selfp->fd, backlog);
+        }
+
+        public int socket_accept(Self *self, struct sockaddr *addr, socklen_t *addrlen, int flags)
+        {
+                return accept4(selfp->fd, addr, addrlen, flags);
+        }
+
+        public size_t write_buffer(Self *self, const void *buf, size_t count)
+        {
+                return write(selfp->fd, buf, count);
+        }
+
+        public size_t read_buffer(Self *self, void *buf, size_t count)
+        {
+                return read(selfp->fd, buf, count);
+        }
+
+        public size_t send_file(Self *self, ZInOut *input, off_t *offset, size_t count)
+        {
+                int input_fd = get_fd(input);
+                return sendfile(selfp->fd, input_fd, offset, count);
+        }
+
+        public int epoll_control(Self *self, int op, ZInOut *inout, struct epoll_event *event)
+        {
+                int fd = get_fd(inout);
+                return epoll_ctl(selfp->fd, op, fd, event);
+        }
+
+        public int epoll_pwait_event(Self *self, struct epoll_event *events, int maxevents, int timeout, const sigset_t *sigmask)
+        {
+                return epoll_pwait(selfp->fd, events, maxevents, timeout, sigmask); 
+        }
+}
+

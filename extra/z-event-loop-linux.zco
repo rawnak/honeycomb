@@ -21,7 +21,7 @@
 %h{
 #include <z-object.h>
 #include <z-event-loop-protected.h>
-#include <z-i-o-multiplexer.h>
+#include <z-in-out-multiplexer.h>
 #include <z-set.h>
 #include <sys/epoll.h>
 
@@ -35,6 +35,8 @@ typedef struct epoll_event events_t[Z_EVENT_LOOP_MAX_EVENTS];
 %}
 
 %{
+#include <z-bind.h>
+
 #define _GNU_SOURCE
 #include <unistd.h>
 
@@ -46,15 +48,22 @@ typedef struct epoll_event events_t[Z_EVENT_LOOP_MAX_EVENTS];
 #define INT_TO_PTR(x) ((void *) ((unsigned long) (x)))
 #define PTR_TO_INT(x) ((int64_t) ((long) (x)))
 
+struct ZEventBind
+{
+        ZBind *bind;
+        int is_active;
+};
+typedef struct ZEventBind ZEventBind;
+
 %}
 
-class ZEventLoopLinux : ZEventLoop, ZIOMultiplexer
+class ZEventLoopLinux : ZEventLoop, ZInOutMultiplexer
 {
         private ZMap *fd_map;
-        private ZSet *self_pipe_listeners;
-        private int ep_fd;
-        private int pipe_in;
-        private int pipe_out;
+        private ZMap *self_pipe_listeners;
+        private ZInOut *ep_handle;
+        private ZInOut *pipe_in;
+        private ZInOut *pipe_out;
 
 	public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
 	{
@@ -62,10 +71,16 @@ class ZEventLoopLinux : ZEventLoop, ZIOMultiplexer
 		return self;
 	}
 
-        private ZSet * get_listeners(Self *self, int fd, int no_create)
+        private void event_task_destroy(void *event_task, Self *self)
         {
-                ZMapIter *it = z_map_find(selfp->fd_map, INT_TO_PTR(fd));
-                ZSet *list;
+                ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
+                z_memory_allocator_deallocate_by_size(allocator, event_task, sizeof(ZEventBind));
+        }
+
+        private ZMap * get_listeners(Self *self, ZInOut *inout, int no_create)
+        {
+                ZMapIter *it = z_map_find(selfp->fd_map, inout);
+                ZMap *list;
 
                 if (it) {
                         list = z_map_get_value(selfp->fd_map, it);
@@ -77,24 +92,25 @@ class ZEventLoopLinux : ZEventLoop, ZIOMultiplexer
                 if (no_create)
                         return NULL;
 
-                list = z_set_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
-                z_map_assign(selfp->fd_map, INT_TO_PTR(fd), list);
+                list = z_map_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                z_map_assign(selfp->fd_map, inout, list);
 
-                z_set_set_compare(list, list_compare);
-                z_set_set_key_destruct(list, (ZSetItemCallback) z_object_unref);
+                z_map_set_compare(list, map_compare);
+                z_map_set_key_destruct(list, (ZMapItemCallback) z_object_unref);
+                z_map_set_value_destruct(list, (ZMapItemCallback) event_task_destroy);
+                z_map_set_userdata(list, self);
 
                 struct epoll_event event;
                 event.data.ptr = list;
-                event.events = EPOLLIN | EPOLLRDHUP | EPOLLPRI | EPOLLET;
-                assert(epoll_ctl(selfp->ep_fd, EPOLL_CTL_ADD, fd, &event) == 0);
+                event.events = EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLPRI | EPOLLET;
+
+                if (z_in_out_epoll_control(selfp->ep_handle, EPOLL_CTL_ADD, inout, &event) == -1) {
+                        perror("epoll_ctl");
+                        abort();
+                }
 
                 z_object_ref(Z_OBJECT(list));
                 return list;
-        }
-
-        private int list_compare(ZSet *list, const void *a, const void *b)
-        {
-                return PTR_TO_INT(a) - PTR_TO_INT(b);
         }
 
         private int map_compare(ZMap *map, const void *a, const void *b)
@@ -105,17 +121,23 @@ class ZEventLoopLinux : ZEventLoop, ZIOMultiplexer
 	init(Self *self)
 	{
                 /* Create an epoll file descriptor */
-                assert((selfp->ep_fd = epoll_create1(0)) >= 0);
+                selfp->ep_handle = z_in_out_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                int ep_fd = epoll_create1(0);
+                assert(ep_fd >= 0);
+                z_in_out_set_fd(selfp->ep_handle, ep_fd);
 
                 /* Create a pipe to send tasks into guest thread */
                 int pipe_fds[2];
                 assert(pipe(pipe_fds) == 0);
 
-                selfp->pipe_out = pipe_fds[0];
-                selfp->pipe_in = pipe_fds[1];
+                selfp->pipe_out = z_in_out_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                z_in_out_set_fd(selfp->pipe_out, pipe_fds[0]);
+
+                selfp->pipe_in = z_in_out_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                z_in_out_set_fd(selfp->pipe_in, pipe_fds[1]);
 
                 /* Set file descriptors to non-blocking mode */
-                set_fd_flags(selfp->pipe_out, O_NONBLOCK);
+                z_in_out_set_flags(selfp->pipe_out, O_NONBLOCK);
 
                 selfp->fd_map = z_map_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
                 z_map_set_compare(selfp->fd_map, map_compare);
@@ -134,21 +156,20 @@ class ZEventLoopLinux : ZEventLoop, ZIOMultiplexer
                 z_event_loop_join(Z_EVENT_LOOP(self));
 
                 z_object_unref(Z_OBJECT(selfp->self_pipe_listeners));
+
+                /* Clear the fd_map. It's not enough to release the reference to the map because it's possible
+                   for the garbage collector to lazily remove the items. Given that the item destructor requires
+                   the presence of 'self', we must clear the map now */
+                z_map_clear(selfp->fd_map);
                 z_object_unref(Z_OBJECT(selfp->fd_map));
 
-                epoll_ctl(selfp->ep_fd, EPOLL_CTL_DEL, selfp->pipe_out, NULL);
+                /* pipe_out will be unsubscribed from epoll once the file descriptor is closed */
+                z_object_unref(Z_OBJECT(selfp->pipe_in));
+                z_object_unref(Z_OBJECT(selfp->pipe_out));
 
-                close(selfp->pipe_in);
-                close(selfp->pipe_out);
-                close(selfp->ep_fd);
+                z_object_unref(Z_OBJECT(selfp->ep_handle));
 
                 PARENT_HANDLER(object);
-        }
-
-        private void set_fd_flags(int fd, int flags)
-        {
-                int old_flags = fcntl(fd, F_GETFL, 0);
-                fcntl(fd, F_SETFL, old_flags | flags);
         }
 
         override(ZEventLoop) void reload_runqueue(ZEventLoop *ev)
@@ -160,7 +181,7 @@ class ZEventLoopLinux : ZEventLoop, ZIOMultiplexer
                 ssize_t nbytes;
 
                 while(1) {
-                        nbytes = read(selfp->pipe_out, &tasks[0], sizeof(tasks));
+                        nbytes = z_in_out_read_buffer(selfp->pipe_out, &tasks[0], sizeof(tasks));
 
                         if (nbytes == -1) {
                                 if (errno == EAGAIN)
@@ -218,29 +239,59 @@ class ZEventLoopLinux : ZEventLoop, ZIOMultiplexer
                         sigemptyset(&sigmask);
 
                         self_pipe_found = 0;
-                        int nfds = epoll_pwait(selfp->ep_fd, ep_events, Z_EVENT_LOOP_MAX_EVENTS, timeout_ms, &sigmask);
+                        int nfds = z_in_out_epoll_pwait_event(selfp->ep_handle, ep_events, Z_EVENT_LOOP_MAX_EVENTS, timeout_ms, &sigmask);
                         int i;
 
                         for (i=0; i<nfds; ++i) {
                                 struct epoll_event *ev = ep_events + i;
-                                ZSet *list = (ZSet *) ev->data.ptr;
+                                ZMap *list = (ZMap *) ev->data.ptr;
 
                                 if (list == selfp->self_pipe_listeners) {
                                         self_pipe_found = 1;
 
                                 } else {
-                                        ZSetIter *it = z_set_get_begin(list);
-                                        ZSetIter *end = z_set_get_end(list);
+                                        /* Invoke the tasks that are not scheduled for removal. If the task is scheduled
+                                           to be removed, it is removed and we continue with the rest of the subscription list */
+                                        ZMapIter *it = z_map_get_begin(list);
+                                        ZMapIter *end = z_map_get_end(list);
 
-                                        while (!z_set_iter_is_equal(it, end)) {
-                                                ZBind *task = (ZBind *) z_set_get_key(list, it);
-                                                z_set_iter_increment(it);
+                                        while (!z_map_iter_is_equal(it, end)) {
+                                                ZEventBind *event_bind = (ZEventBind *) z_map_get_value(list, it);
 
+                                                if (event_bind->is_active) {
+                                                        z_map_iter_increment(it);
+                                                } else {
+                                                        z_map_erase1_inc(list, &it);
+                                                        z_object_unref(Z_OBJECT(end));
+                                                        end = z_map_get_end(list);
+                                                        continue;
+                                                }
+
+                                                /* Invoke the task */
                                                 ZBind *new_task = z_bind_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
-                                                z_bind_assign(new_task, task);
+                                                z_bind_assign(new_task, event_bind->bind);
                                                 z_bind_append_uint32(new_task, convert_flags(ev->events));
                                                 z_bind_invoke(new_task);
                                                 z_object_unref(Z_OBJECT(new_task));
+                                        }
+
+                                        z_object_unref(Z_OBJECT(end));
+                                        z_object_unref(Z_OBJECT(it));
+
+                                        /* Second pass through the subscription list to remove what we missed */
+                                        it = z_map_get_begin(list);
+                                        end = z_map_get_end(list);
+
+                                        while (!z_map_iter_is_equal(it, end)) {
+                                                ZEventBind *event_bind = (ZEventBind *) z_map_get_value(list, it);
+
+                                                if (event_bind->is_active) {
+                                                        z_map_iter_increment(it);
+                                                } else {
+                                                        z_map_erase1_inc(list, &it);
+                                                        z_object_unref(Z_OBJECT(end));
+                                                        end = z_map_get_end(list);
+                                                }
                                         }
 
                                         z_object_unref(Z_OBJECT(end));
@@ -255,50 +306,83 @@ class ZEventLoopLinux : ZEventLoop, ZIOMultiplexer
         {
                 uint32_t new_flag = 0;
 
+                /* EPOLLIN is fired when data is available for reading */
                 if (flag & EPOLLIN)           new_flag |= IO_MULTIPLEXER_IN;
+
+                /* EPOLLPRI is fired when there is a high priority data
+                   available for reading. This data will skip ahead of the
+                   incoming queue */
                 if (flag & EPOLLPRI)          new_flag |= IO_MULTIPLEXER_PRI;
+
+                /* EPOLLOUT is fired when the file descriptor is ready to
+                   accept write operations */
                 if (flag & EPOLLOUT)          new_flag |= IO_MULTIPLEXER_OUT;
+
+                /* TODO: Please document the following flags */
                 if (flag & EPOLLRDNORM)       new_flag |= IO_MULTIPLEXER_RDNORM;
                 if (flag & EPOLLRDBAND)       new_flag |= IO_MULTIPLEXER_RDBAND;
                 if (flag & EPOLLWRNORM)       new_flag |= IO_MULTIPLEXER_WRNORM;
                 if (flag & EPOLLWRBAND)       new_flag |= IO_MULTIPLEXER_WRBAND;
                 if (flag & EPOLLMSG)          new_flag |= IO_MULTIPLEXER_MSG;
-                if (flag & EPOLLERR)          new_flag |= IO_MULTIPLEXER_ERR;
-                if (flag & EPOLLHUP)          new_flag |= IO_MULTIPLEXER_HUP;
-                if (flag & EPOLLRDHUP)        new_flag |= IO_MULTIPLEXER_RDHUP;
                 if (flag & EPOLLWAKEUP)       new_flag |= IO_MULTIPLEXER_WAKEUP;
+
+                /* EPOLLERR is fired when an error occurs */
+                if (flag & EPOLLERR)          new_flag |= IO_MULTIPLEXER_ERR;
+
+                /* EPOLLHUP is fired when the file descriptor is released.
+                   Note that a hang up is not an error unless it happens before
+                   EPOLLRDHUP.
+
+                   Please see fs/eventfd.c in the Linux kernel 3.0 source tree
+                   for details */
+                if (flag & EPOLLHUP)          new_flag |= IO_MULTIPLEXER_HUP;
+
+                /* EPOLLRDHUP is fired for a socket file descriptor when the
+                   remote peer half-closes its TCP connection */
+                if (flag & EPOLLRDHUP)        new_flag |= IO_MULTIPLEXER_RDHUP;
 
                 return new_flag;
         }
 
-	override(ZIOMultiplexer)
-        int subscribe_fd(ZObject *io_multiplexer, int fd, ZBind *task)
+	override(ZInOutMultiplexer)
+        int subscribe_fd(ZObject *io_multiplexer, ZInOut *inout, ZBind *task)
         {
                 Self *self = (Self *) io_multiplexer;
-                ZSet *listeners = get_listeners(self, fd, 0);
-                int rc = z_set_insert(listeners, task);
+
+                /* Wrap the task with a ZEventBind object */
+                ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
+                ZEventBind *event_bind = (ZEventBind *) z_memory_allocator_allocate(allocator, sizeof(ZEventBind));
+                event_bind->bind = task;
+                event_bind->is_active = 1;
+
+                /* Insert the ZEventBind object into the listeners map */
+                ZMap *listeners = get_listeners(self, inout, 0);
+                int rc = z_map_insert(listeners, task, event_bind);
                 z_object_unref(Z_OBJECT(listeners));
 
                 if (rc == 0)
                         z_object_ref(Z_OBJECT(task));
+                else
+                        z_memory_allocator_deallocate_by_size(allocator, event_bind, sizeof(ZEventBind));
 
                 return rc;
         }
 
-	override(ZIOMultiplexer)
-        int unsubscribe_fd(ZObject *io_multiplexer, int fd, ZBind *task)
+	override(ZInOutMultiplexer)
+        int unsubscribe_fd(ZObject *io_multiplexer, ZInOut *inout, ZBind *task)
         {
                 Self *self = (Self *) io_multiplexer;
-                ZSet *listeners = get_listeners(self, fd, 1);
+                ZMap *listeners = get_listeners(self, inout, 1);
 
                 if (!listeners)
                         return -EINVAL;
 
-                ZSetIter *it = z_set_find(listeners, task);
+                ZMapIter *it = z_map_find(listeners, task);
                 z_object_unref(Z_OBJECT(listeners));
 
                 if (it) {
-                        z_set_erase1(listeners, it);
+                        ZEventBind *event_bind = (ZEventBind *) z_map_get_value(listeners, it);
+                        event_bind->is_active = 0;
                         z_object_unref(Z_OBJECT(it));
                         return 0;
                 }
@@ -309,9 +393,11 @@ class ZEventLoopLinux : ZEventLoop, ZIOMultiplexer
         override(ZEventLoop) int add_to_task_queue(ZEventLoop *ev, ZTask *task)
         {
                 Self *self = (Self *) ev;
+
                 /* Send the address of the task to the guest thread through the pipe */
-                int rc = write(selfp->pipe_in, &task, sizeof(ZTask *));
+                int rc = z_in_out_write_buffer(selfp->pipe_in, &task, sizeof(ZTask *));
                 return (rc < 0)? -errno : 0;
         }
+
 }
 

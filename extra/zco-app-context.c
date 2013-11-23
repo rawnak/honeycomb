@@ -27,9 +27,6 @@
 void zco_app_context_init(struct zco_context_t *ctx)
 {
         zco_context_init(ctx);
-
-        /* Create an object to manage framework events */
-	//ctx->framework_events = z_framework_events_new(ctx, NULL);
 }
 
 void zco_app_context_destroy(struct zco_context_t *ctx)
@@ -38,9 +35,6 @@ void zco_app_context_destroy(struct zco_context_t *ctx)
         ZEventLoop *event_loop = z_event_loop_get_instance_ptr(ctx);
         if (event_loop)
                 z_object_unref(Z_OBJECT(event_loop));
-
-        /* Release framework events */
-	//z_object_unref((ZObject *) ctx->framework_events);
 
         zco_context_destroy(ctx);
 }

@@ -42,6 +42,7 @@ enum TestSet {
 	TestSetMap,
 	TestSetSet,
 	TestSetSignal,
+        TestSetNetwork,
 	TestSetEnd
 };
 
@@ -50,7 +51,8 @@ void (*TestDriverSet[]) (struct zco_context_t *, int) = {
 	[TestSetString] = z_string_test,
 	[TestSetMap] = z_map_test,
         [TestSetSet] = z_set_test,
-	[TestSetSignal] = signal_test
+	[TestSetSignal] = signal_test,
+        [TestSetNetwork] = network_test
 };
 
 int is_printing;
@@ -228,6 +230,9 @@ int main(int argc, char **argv)
 
                 } else if (!strcmp(test_set, "signal")) {
                         test_set_number = TestSetSignal;
+
+                } else if (!strcmp(test_set, "network")) {
+                        test_set_number = TestSetNetwork;
 
 		} else {
 			fprintf(stderr, "Unknown test set '%s'\n", test_set);

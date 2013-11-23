@@ -974,23 +974,23 @@ static void case17(struct zco_context_t *context)
 
 void z_string_test(struct zco_context_t *context, int id)
 {
-	DEFINE_TEST(1, case1);
-	DEFINE_TEST(2, case2);
-	DEFINE_TEST(3, case3);
-	DEFINE_TEST(4, case4);
-	DEFINE_TEST(5, case5);
-	DEFINE_TEST(6, case6);
-	DEFINE_TEST(7, case7);
-	DEFINE_TEST(8, case8);
-	DEFINE_TEST(9, case9);
-	DEFINE_TEST(10, case10);
-	DEFINE_TEST(11, case11);
-	DEFINE_TEST(12, case12);
-	DEFINE_TEST(13, case13);
-	DEFINE_TEST(14, case14);
-	DEFINE_TEST(15, case15);
-	DEFINE_TEST(16, case16);
-	DEFINE_TEST(17, case17);
+	DEFINE_TEST(1, case1, context);
+	DEFINE_TEST(2, case2, context);
+	DEFINE_TEST(3, case3, context);
+	DEFINE_TEST(4, case4, context);
+	DEFINE_TEST(5, case5, context);
+	DEFINE_TEST(6, case6, context);
+	DEFINE_TEST(7, case7, context);
+	DEFINE_TEST(8, case8, context);
+	DEFINE_TEST(9, case9, context);
+	DEFINE_TEST(10, case10, context);
+	DEFINE_TEST(11, case11, context);
+	DEFINE_TEST(12, case12, context);
+	DEFINE_TEST(13, case13, context);
+	DEFINE_TEST(14, case14, context);
+	DEFINE_TEST(15, case15, context);
+	DEFINE_TEST(16, case16, context);
+	DEFINE_TEST(17, case17, context);
 }
 
 

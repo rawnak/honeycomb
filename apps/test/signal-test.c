@@ -52,5 +52,5 @@ static void case1(struct zco_context_t *context)
 
 void signal_test(struct zco_context_t *context, int id)
 {
-	DEFINE_TEST(1, case1);
+	DEFINE_TEST(1, case1, context);
 }

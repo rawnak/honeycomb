@@ -20,6 +20,7 @@
 
 %h{
 #include <z-object.h>
+#include <z-in-out.h>
 
 enum IO_MULTIPLEXER_EVENTS
 {
@@ -42,14 +43,14 @@ enum IO_MULTIPLEXER_EVENTS
 %{
 %}
 
-interface ZIOMultiplexer 
+interface ZInOutMultiplexer 
 {
-        public virtual int subscribe_fd(ZObject *self, int fd, ZBind *task)
+        public virtual int subscribe_fd(ZObject *self, ZInOut *fd, ZBind *task)
         {
                 return -1; /* not handled */
         }
 
-        public virtual int unsubscribe_fd(ZObject *self, int fd, ZBind *task)
+        public virtual int unsubscribe_fd(ZObject *self, ZInOut *fd, ZBind *task)
         {
                 return -1; /* not handled */
         }

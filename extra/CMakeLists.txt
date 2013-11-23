@@ -26,7 +26,7 @@ parse_zco(z-set-iter)
 parse_zco(z-event-loop)
 parse_zco(z-event-loop-linux)
 parse_zco(z-event-loop-posix)
-parse_zco(z-i-o-multiplexer)
+parse_zco(z-in-out-multiplexer)
 parse_zco(z-worker-group)
 parse_zco(z-framework-events)
 parse_zco(z-guid)
@@ -39,6 +39,7 @@ parse_zco(z-socket)
 parse_zco(z-log)
 parse_zco(z-c-closure-marshal)
 parse_zco(z-bind)
+parse_zco(z-in-out)
 
 add_library(
    zclib-extra SHARED
@@ -48,7 +49,7 @@ add_library(
    z-event-loop.c
    z-event-loop-linux.c
    z-event-loop-posix.c
-   z-i-o-multiplexer.c
+   z-in-out-multiplexer.c
    z-worker-group.c
    z-framework-events.c
    z-guid.c
@@ -62,5 +63,6 @@ add_library(
    z-c-closure-marshal.c
    z-bind.c
    z-bind-util.c
+   z-in-out.c
    )
 

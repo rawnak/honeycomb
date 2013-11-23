@@ -32,6 +32,7 @@ add_executable(
    z-test-object.c
    z-test-derived-object.c
    signal-test.c
+   network-test.c
    main.c
    z-vector-test.c
    z-string-test.c

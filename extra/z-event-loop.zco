@@ -545,6 +545,9 @@ class ZEventLoop : ZObject
         /* An external thread may call join() to block itself until this event loop is terminated */
         public void join(Self *self)
         {
+                if (!selfp->is_running)
+                        return;
+
                 pthread_join(selfp->thread, NULL);
         }
 

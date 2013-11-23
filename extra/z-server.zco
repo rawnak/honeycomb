@@ -31,63 +31,52 @@
 #include <errno.h>
 #include <stdio.h>
 
-
 %}
 
 %{
-#include <z-event-loop.h>
-#include <z-bind.h>
-#include <sys/epoll.h>
+#include <z-in-out-multiplexer.h>
+#include <z-bind-util.h>
 #include <unistd.h>
-
-#define MAX_EVENTS 100
-
 %}
 
 class ZServer : ZObject
 {
-        private struct zco_context_t *target_context;
-        private ZBind *cb_open_connection;
-        private ZBind *cb_close_connection;
-        private ZBind *cb_process_message;
+        private ZBind *cb_new_client;
+
+        /* The socket info for the server */
         private ZSocket *server_socket;
-        private struct epoll_event *events;
+
+        /* Internal flags */
+        private int is_running;
 
         init(Self *self)
         {
+                /* Create the ZSocket object for the server socket */
                 selfp->server_socket = z_socket_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
-
                 z_socket_declare_family(selfp->server_socket, AF_INET6);
                 z_socket_set_ipv6_address(selfp->server_socket, in6addr_any);
                 z_socket_set_flowinfo(selfp->server_socket, 0);
 
-                /* Allocate space to hold epoll events */
-                selfp->events = z_memory_allocator_allocate(
-                                CTX_FROM_OBJECT(self)->fixed_allocator,
-                                sizeof(struct epoll_event) * MAX_EVENTS);
-
-                selfp->cb_open_connection = NULL;
-                selfp->cb_close_connection = NULL;
-                selfp->cb_process_message = NULL;
-                selfp->target_context = NULL;
+                selfp->is_running = 0;
+                selfp->cb_new_client = NULL;
         }
 
         override(ZObject) void reset(ZObject *object)
         {
                 Self *self = (Self *) object;
 
+                /* Stop the server */
+                stop(self);
+
                 /* Release references to event handlers */
-                set_open_connection_callback(self, NULL);
-                set_close_connection_callback(self, NULL);
-                set_message_callback(self, NULL);
+                set_on_new_client(self, NULL);
 
                 /* Reset IP address information */
                 z_socket_clear(selfp->server_socket);
-
+                z_socket_declare_family(selfp->server_socket, AF_INET6);
                 z_socket_set_ipv6_address(selfp->server_socket, in6addr_any);
                 z_socket_set_flowinfo(selfp->server_socket, 0);
 
-                selfp->target_context = NULL;
                 PARENT_HANDLER(object);
         }
 
@@ -95,18 +84,14 @@ class ZServer : ZObject
 	{
                 Self *self = (Self *) object;
 
-                z_object_unref(Z_OBJECT(selfp->server_socket));
+                /* Stop the server */
+                stop(self);
 
                 /* Release references to event handlers */
-                set_open_connection_callback(self, NULL);
-                set_close_connection_callback(self, NULL);
-                set_message_callback(self, NULL);
+                set_on_new_client(self, NULL);
 
-                /* Free memory used by epoll to store events */
-                z_memory_allocator_deallocate_by_size(
-                                CTX_FROM_OBJECT(self)->fixed_allocator,
-                                selfp->events,
-                                sizeof(struct epoll_event) * MAX_EVENTS);
+                /* Release the server socket object */
+                z_object_unref(Z_OBJECT(selfp->server_socket));
 
                 PARENT_HANDLER(object);
 	}
@@ -117,215 +102,96 @@ class ZServer : ZObject
 		return self;
 	}
 
-        public int port
+        public ZBind * on_new_client
         {
                 set
                 {
-                        z_socket_set_port(selfp->server_socket, value);
-                }
-                get
-                {
-                        return z_socket_get_port(selfp->server_socket);
-                }
-        }
+                        if (selfp->cb_new_client)
+                                z_object_unref(Z_OBJECT(selfp->cb_new_client));
 
-        public struct zco_context_t * target_context
-        {
-                set
-                {
-                        selfp->target_context = value;
+                        selfp->cb_new_client = value;
+
+                        if (selfp->cb_new_client)
+                                z_object_ref(Z_OBJECT(selfp->cb_new_client));
                 }
         }
 
-        public ZBind * open_connection_callback
+        private void new_connection_callback(ZBind *bind, Self *self, uint32_t event_flags)
         {
-                set
-                {
-                        if (selfp->cb_open_connection)
-                                z_object_unref(Z_OBJECT(selfp->cb_open_connection));
-
-                        selfp->cb_open_connection = value;
-
-                        if (selfp->cb_open_connection)
-                                z_object_ref(Z_OBJECT(selfp->cb_open_connection));
-                }
-        }
-
-        public ZBind * close_connection_callback
-        {
-                set
-                {
-                        if (selfp->cb_close_connection)
-                                z_object_unref(Z_OBJECT(selfp->cb_close_connection));
-
-                        selfp->cb_close_connection = value;
-
-                        if (selfp->cb_close_connection)
-                                z_object_ref(Z_OBJECT(selfp->cb_close_connection));
-                }
-        }
-
-        public ZBind * message_callback
-        {
-                set
-                {
-                        if (selfp->cb_process_message)
-                                z_object_unref(Z_OBJECT(selfp->cb_process_message));
-
-                        selfp->cb_process_message = value;
-
-                        if (selfp->cb_process_message)
-                                z_object_ref(Z_OBJECT(selfp->cb_process_message));
-                }
-        }
-
-        private void epoll_add(Self *self, int epfd, ZSocket *socket)
-        {
-                struct epoll_event event;
-                int fd = z_socket_get_fd(socket);
-
-                memset(&event, 0, sizeof(struct epoll_event));
-                event.data.ptr = socket;
-                event.events = EPOLLIN | EPOLLRDHUP | EPOLLPRI | EPOLLET;
-
-                if (epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &event) != 0) {
-                        perror("epoll_ctl");
-                        abort();
-                }
-        }
-
-        private void epoll_delete(Self *self, int epfd, int fd)
-        {
-                if (epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL) != 0) {
-                        perror("epoll_ctl");
-                        abort();
-                }
-        }
-
-        private void accept_connection(Self *self, int epfd)
-        {
-                struct sockaddr_in6 cin6;
+                z_object_ref(Z_OBJECT(self));
 
                 /* Wait for client connection. This should be instantanous since we
                    are already notified that there is an activity on the server socket. */
                 ZSocket *client_socket = z_socket_accept_connection(selfp->server_socket);
-                int client_fd = z_socket_get_fd(client_socket);
+                post_task_with_socket(self, selfp->cb_new_client, client_socket);
 
-                if (client_fd == -1) {
-                        if (errno == EINTR) {
-                                return;
 
-                        } else {
-                                perror("Failed to accept client connection");
-                                return;
-                        }
-                }
-
-                /* Listen to events on the client socket */
-                epoll_add(self, epfd, client_socket);
-
-                /* Backup the original bind so that we can use it the next time */
-                assert(selfp->cb_open_connection);
-                ZBind *original = z_bind_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
-                z_bind_assign(original, selfp->cb_open_connection);
-
-                /* Append the client socket info */
-                ZSocketSerialized serialized_socket;
-                z_socket_get_serialized_data(client_socket, &serialized_socket);
-                z_bind_append_variable_buffer(selfp->cb_open_connection, &serialized_socket, sizeof(ZSocketSerialized));
-
-                /* We will always post a task to a queue, instead of blockingly invoke it */
-                assert(selfp->target_context);
-
-                /* TODO: This assertion needs to be handled gracefully */
-                ZEventLoop *ev = zco_app_context_get_event_loop_ptr(selfp->target_context);
-                assert(z_event_loop_post_task(ev, selfp->cb_open_connection, NULL, 0, 0) == 0);
-
-                z_object_unref(Z_OBJECT(selfp->cb_open_connection));
-                selfp->cb_open_connection = original;
+                z_object_unref(Z_OBJECT(self));
         }
 
-        private void handle_message(Self *self, ZSocket *client_socket)
+        public int start(Self *self, int port)
         {
-                if (!selfp->cb_process_message)
-                        return;
+                int rc;
 
-                /* Backup the original bind so that we can use it the next time */
-                assert(selfp->cb_process_message);
-                ZBind *original = z_bind_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
-                z_bind_assign(original, selfp->cb_process_message);
+                if (selfp->is_running)
+                        return -EBUSY;
 
-                /* Append the client socket info */
-                ZSocketSerialized serialized_socket;
-                z_socket_get_serialized_data(client_socket, &serialized_socket);
-                z_bind_append_variable_buffer(selfp->cb_process_message, &serialized_socket, sizeof(ZSocketSerialized));
+                /* Set the specified port number into the socket */
+                z_socket_set_port(selfp->server_socket, port);
 
-                /* We will always post a task to a queue, instead of blockingly invoke it */
-                assert(selfp->target_context);
+                /* Set socket to passive mode */
+                if ((rc = z_socket_enable_passive_mode(selfp->server_socket, 5)))
+                        return rc;
 
-                /* TODO: This assertion needs to be handled gracefully */
-                ZEventLoop *ev = zco_app_context_get_event_loop_ptr(selfp->target_context);
-                assert(z_event_loop_post_task(ev, selfp->cb_process_message, NULL, 0, 0) == 0);
+                selfp->is_running = 1;
 
-                /* Restore the original bind */
-                z_object_unref(Z_OBJECT(selfp->cb_process_message));
-                selfp->cb_process_message = original;
-        }
+                /* Create a closure that will be invoked when a new connection is accepted. Note that 'self'
+                   is added to the bind but its reference count is not incremented. This is so we do not have
+                   a circular reference. The destruction of the ZServer object will cause the stop() function
+                   to be called. The stop() function will unregister all IO binds and so it will not have an
+                   undeclared reference to 'self' anymore. */
+                ZBind *task = create_c_bind(Z_OBJECT(self), (ZBindHandler) new_connection_callback);
+                z_bind_append_ptr(task, self);
 
-        public int run(Self *self)
-        {
-                struct epoll_event events[MAX_EVENTS];
-                int epfd;
+                ZEventLoop *ev = zco_app_context_get_event_loop_ptr(CTX_FROM_OBJECT(self));
+                ZInOut *inout = z_socket_get_inout(selfp->server_socket);
+                z_in_out_multiplexer_subscribe_fd((ZObject *) ev, inout, task);
+                z_object_unref(Z_OBJECT(inout));
 
-                if (z_socket_enable_passive_mode(selfp->server_socket, 5) == -1)
-                        return -1;
-
-                /* Open an epoll file descriptor */
-                if ((epfd = epoll_create1(0)) < 0) {
-                        perror("Failed on epoll_create1");
-                        return -1;
-                }
-
-                /* Keep an eye on the server socket so we accept a new connection when there is one */
-                epoll_add(self, epfd, selfp->server_socket);
+                z_object_unref(Z_OBJECT(task));
  
-                while(1) {
-                        sigset_t sigmask;
-                        sigemptyset(&sigmask);
+                return 0;
+        }
 
-                        /* epoll_pwait first calls sigprocmask to set the signal mask to the
-                           specified 'sigmask', calls the standard epoll_wait() function and
-                           then resets the signal mask with another call to sigprocmask, all
-                           atomically. although we are not supposed to use sigprocmask in a
-                           multi-threaded application, we can still get away with it as long
-                           as we don't block the SIGCANCEL and SIGSETXID signals. */
-                        int nfds = epoll_pwait(epfd, events, MAX_EVENTS, -1, &sigmask);
+        public int stop(Self *self)
+        {
+                if (!selfp->is_running)
+                        return -EPERM;
 
-                        if (nfds < 0) {
-                                if (errno != EINTR)
-                                        perror("epoll_pwait");
-                        } else {
-                                for (int i=0; i < nfds; ++i) {
-                                        ZSocket *socket = (ZSocket *) events[i].data.ptr;
-
-                                        if (socket == selfp->server_socket) {
-                                                /* The activity happened on the server socket
-                                                   so there may be a new connection. */
-                                                accept_connection(self, epfd);
-
-                                        } else {
-                                                /* The activity happend on a client socket,
-                                                   probably a message from a client */
-                                                handle_message(self, socket);
-                                        }
-                                }
-                        }
-                }
-
-                /* Close the epoll file descriptor */
-                close(epfd);
+                selfp->is_running = 0;
 
                 return 0;
+        }
+
+        private void post_task_with_socket(Self *self, ZBind *task, ZSocket *socket)
+        {
+                if (!task)
+                        return;
+
+                /* Clone the bind so we can append additional arguments */
+                ZBind *new_task = z_bind_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                z_bind_assign(new_task, task);
+
+                /* Append a pointer to the socket */
+                z_bind_append_ptr(new_task, socket);
+
+                /* Append a pointer to self */
+                z_bind_append_ptr(new_task, self);
+
+                /* Execute the task */
+                z_bind_invoke(new_task);
+
+                z_object_unref(Z_OBJECT(new_task));
         }
 }
 
