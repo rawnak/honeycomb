@@ -23,11 +23,17 @@
 #define _ZCO_CONFIG_H_
  
 #define FILL_USABLE_SPACE
+
 #define USE_CUSTOM_ALLOCATORS
+
 #define USE_GARBAGE_COLLECTION
+
 #define USE_COPY_ON_WRITE
+
 #define USE_IO_EVENT_LOOP
+
 #define CHECK_THREAD_ACCESS
+
 #define TASK_ARG_SIZE 256
 
 #endif

@@ -37,6 +37,7 @@ struct ZTask {
         int has_request : 1;
         int has_response : 1;
         int no_wait : 1;
+        int self_post : 1;
 };
 
 typedef struct ZTask ZTask;
@@ -166,7 +167,13 @@ class ZEventLoop : ZObject
 
         private void runqueue_value_destroy(ZTask *bind_data, Self *self)
         {
-                ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->ts_fixed_allocator;
+                ZMemoryAllocator *allocator;
+
+                if (bind_data->self_post)
+                        allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
+                else
+                        allocator = CTX_FROM_OBJECT(self)->ts_fixed_allocator;
+
                 z_memory_allocator_deallocate_by_size(allocator, bind_data, sizeof(ZTask));
         }
 
@@ -480,11 +487,19 @@ class ZEventLoop : ZObject
                         return -EPERM;
                 }
 
-                /* Use the thread-safe allocator to allocate memory for the raw closure */
-                ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->ts_fixed_allocator;
-                ZTask *task = z_memory_allocator_allocate(allocator, sizeof(ZTask));
+                ZMemoryAllocator *allocator;
+                int self_post = get_is_current(self);
 
+                /* Use a thread-safe allocator if this is a cross-thread post operation. For self-post
+                   operation, there is no need to be thread safe */
+                if (self_post)
+                        allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
+                else
+                        allocator = CTX_FROM_OBJECT(self)->ts_fixed_allocator;
+
+                ZTask *task = z_memory_allocator_allocate(allocator, sizeof(ZTask));
                 task->origin_ev = get_current();
+                task->self_post = self_post;
 
                 if (request) {
                         task->has_request = 1;

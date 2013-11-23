@@ -176,23 +176,35 @@ class ZEventLoopPosix : ZEventLoop
         override(ZEventLoop) int add_to_task_queue(ZEventLoop *ev, ZTask *task)
         {
                 Self *self = (Self *) ev;
+                int self_post = task->self_post;
 
-                /* Hold the incoming_queue lock */
-                assert(pthread_mutex_lock(&selfp->queue_lock) == 0);
+                if (self_post) {
+                        /* Prepend it into the incoming queue. We don't care
+                           about the order of insertion into the incoming queue; The order of execution
+                           is preserved because each task knows what time it should be executed. As
+                           long as the tasks that are scheduled the earliest are executed first, the
+                           order will be maintained */
+                        task->next = selfp->incoming_queue;
+                        selfp->incoming_queue = task;
 
-                /* Prepend it into the incoming queue. We don't care
-                   about the order of insertion into the incoming queue; The order of execution
-                   is preserved because each task knows what time it should be executed. As
-                   long as the tasks that are scheduled the earliest are executed first, the
-                   order will be maintained */
-                task->next = selfp->incoming_queue;
-                selfp->incoming_queue = task;
+                } else {
+                        /* Hold the incoming_queue lock */
+                        assert(pthread_mutex_lock(&selfp->queue_lock) == 0);
 
-                /* Send a signal that new work has been scheduled */
-                assert(pthread_cond_signal(&selfp->schedule_cond) == 0);
+                        /* Prepend it into the incoming queue. We don't care
+                           about the order of insertion into the incoming queue; The order of execution
+                           is preserved because each task knows what time it should be executed. As
+                           long as the tasks that are scheduled the earliest are executed first, the
+                           order will be maintained */
+                        task->next = selfp->incoming_queue;
+                        selfp->incoming_queue = task;
 
-                /* Release the incoming_queue lock */
-                assert(pthread_mutex_unlock(&selfp->queue_lock) == 0);
+                        /* Send a signal that new work has been scheduled */
+                        assert(pthread_cond_signal(&selfp->schedule_cond) == 0);
+
+                        /* Release the incoming_queue lock */
+                        assert(pthread_mutex_unlock(&selfp->queue_lock) == 0);
+                }
 
                 return 0;
         }
