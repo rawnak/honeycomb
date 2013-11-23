@@ -21,6 +21,8 @@
 %h{
 #include <z-object.h>
 #include <z-event-loop-protected.h>
+#include <z-i-o-multiplexer.h>
+#include <z-set.h>
 #include <sys/epoll.h>
 
 /* We require Linux kernel 2.6.37 or higher. The epoll_wait implementation for prior versions
@@ -41,13 +43,16 @@ typedef struct epoll_event events_t[Z_EVENT_LOOP_MAX_EVENTS];
 #include <fcntl.h>
 #include <errno.h>
 
+#define INT_TO_PTR(x) ((void *) ((unsigned long) (x)))
+#define PTR_TO_INT(x) ((int64_t) ((long) (x)))
+
 %}
 
-class ZEventLoopLinux : ZEventLoop
+class ZEventLoopLinux : ZEventLoop, ZIOMultiplexer
 {
+        private ZMap *fd_map;
+        private ZSet *self_pipe_listeners;
         private int ep_fd;
-        private events_t ep_events;
-        private int ep_nfds;
         private int pipe_in;
         private int pipe_out;
 
@@ -56,6 +61,46 @@ class ZEventLoopLinux : ZEventLoop
 		Self *self = GET_NEW(ctx, allocator);
 		return self;
 	}
+
+        private ZSet * get_listeners(Self *self, int fd, int no_create)
+        {
+                ZMapIter *it = z_map_find(selfp->fd_map, INT_TO_PTR(fd));
+                ZSet *list;
+
+                if (it) {
+                        list = z_map_get_value(selfp->fd_map, it);
+                        z_object_unref(Z_OBJECT(it));
+                        z_object_ref(Z_OBJECT(list));
+                        return list;
+                }
+
+                if (no_create)
+                        return NULL;
+
+                list = z_set_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                z_map_assign(selfp->fd_map, INT_TO_PTR(fd), list);
+
+                z_set_set_compare(list, list_compare);
+                z_set_set_key_destruct(list, (ZSetItemCallback) z_object_unref);
+
+                struct epoll_event event;
+                event.data.ptr = list;
+                event.events = EPOLLIN | EPOLLRDHUP | EPOLLPRI | EPOLLET;
+                assert(epoll_ctl(selfp->ep_fd, EPOLL_CTL_ADD, fd, &event) == 0);
+
+                z_object_ref(Z_OBJECT(list));
+                return list;
+        }
+
+        private int list_compare(ZSet *list, const void *a, const void *b)
+        {
+                return PTR_TO_INT(a) - PTR_TO_INT(b);
+        }
+
+        private int map_compare(ZMap *map, const void *a, const void *b)
+        {
+                return PTR_TO_INT(a) - PTR_TO_INT(b);
+        }
 
 	init(Self *self)
 	{
@@ -72,11 +117,12 @@ class ZEventLoopLinux : ZEventLoop
                 /* Set file descriptors to non-blocking mode */
                 set_fd_flags(selfp->pipe_out, O_NONBLOCK);
 
+                selfp->fd_map = z_map_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                z_map_set_compare(selfp->fd_map, map_compare);
+                z_map_set_value_destruct(selfp->fd_map, (ZMapItemCallback) z_object_unref);
+
                 /* Subscribe the output of the pipe to epoll */
-                struct epoll_event event;
-                event.data.ptr = NULL;
-                event.events = EPOLLIN | EPOLLRDHUP | EPOLLPRI | EPOLLET;
-                assert(epoll_ctl(selfp->ep_fd, EPOLL_CTL_ADD, selfp->pipe_out, &event) == 0);
+                selfp->self_pipe_listeners = get_listeners(self, selfp->pipe_out, 0);
 	}
 
         override(ZObject) void dispose(ZObject *object)
@@ -86,6 +132,11 @@ class ZEventLoopLinux : ZEventLoop
                 /* Wait for thread to complete */
                 z_event_loop_quit(Z_EVENT_LOOP(self));
                 z_event_loop_join(Z_EVENT_LOOP(self));
+
+                z_object_unref(Z_OBJECT(selfp->self_pipe_listeners));
+                z_object_unref(Z_OBJECT(selfp->fd_map));
+
+                epoll_ctl(selfp->ep_fd, EPOLL_CTL_DEL, selfp->pipe_out, NULL);
 
                 close(selfp->pipe_in);
                 close(selfp->pipe_out);
@@ -139,30 +190,120 @@ class ZEventLoopLinux : ZEventLoop
                 return (timeout_ms >= 0)? timeout_ms : 0;
         }
 
-        private void wait_for_signal_with_timeout(Self *self, int timeout_ms)
-        {
-                /* epoll_pwait first calls sigprocmask to set the signal mask to the
-                   specified 'sigmask', calls the standard epoll_wait() function and
-                   then resets the signal mask with another call to sigprocmask, all
-                   atomically. although we are not supposed to use sigprocmask in a
-                   multi-threaded application, we can still get away with it as long
-                   as we don't block the SIGCANCEL and SIGSETXID signals. */
-                sigset_t sigmask;
-                sigemptyset(&sigmask);
-                selfp->ep_nfds = epoll_pwait(selfp->ep_fd, selfp->ep_events, Z_EVENT_LOOP_MAX_EVENTS, timeout_ms, &sigmask);
-        }
-
         override(ZEventLoop) void wait_for_signal(ZEventLoop *ev, uint64_t next_task_time)
         {
                 Self *self = (Self *) ev;
-                int timeout;
+                int timeout_ms;
+                int self_pipe_found;
 
-                if (next_task_time)
-                        timeout = (int) convert_monotonic_to_timeout(self, next_task_time);
-                else
-                        timeout = -1;
+                do {
+                        if (next_task_time)
+                                timeout_ms = (int) convert_monotonic_to_timeout(self, next_task_time);
+                        else
+                                timeout_ms = -1;
 
-                wait_for_signal_with_timeout(self, timeout);
+                        /* No need to call epoll_pwait if we already know that the next scheduled
+                           is ready to be executed. */
+                        if (timeout_ms == 0)
+                                return;
+
+                        /* epoll_pwait first calls sigprocmask to set the signal mask to the
+                           specified 'sigmask', calls the standard epoll_wait() function and
+                           then resets the signal mask with another call to sigprocmask, all
+                           atomically. although we are not supposed to use sigprocmask in a
+                           multi-threaded application, we can still get away with it as long
+                           as we don't block the SIGCANCEL and SIGSETXID signals. */
+                        sigset_t sigmask;
+                        struct epoll_event ep_events[Z_EVENT_LOOP_MAX_EVENTS];
+                        sigemptyset(&sigmask);
+
+                        self_pipe_found = 0;
+                        int nfds = epoll_pwait(selfp->ep_fd, ep_events, Z_EVENT_LOOP_MAX_EVENTS, timeout_ms, &sigmask);
+                        int i;
+
+                        for (i=0; i<nfds; ++i) {
+                                struct epoll_event *ev = ep_events + i;
+                                ZSet *list = (ZSet *) ev->data.ptr;
+
+                                if (list == selfp->self_pipe_listeners) {
+                                        self_pipe_found = 1;
+
+                                } else {
+                                        ZSetIter *it = z_set_get_begin(list);
+                                        ZSetIter *end = z_set_get_end(list);
+
+                                        while (!z_set_iter_is_equal(it, end)) {
+                                                ZBind *task = (ZBind *) z_set_get_key(list, it);
+                                                z_set_iter_increment(it);
+
+                                                ZBind *new_task = z_bind_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                                                z_bind_assign(new_task, task);
+                                                z_bind_append_uint32(new_task, convert_flags(ev->events));
+                                                z_bind_invoke(new_task);
+                                                z_object_unref(Z_OBJECT(new_task));
+                                        }
+
+                                        z_object_unref(Z_OBJECT(end));
+                                        z_object_unref(Z_OBJECT(it));
+                                }
+                        }
+
+                } while (!self_pipe_found);
+        }
+
+        private uint32_t convert_flags(uint32_t flag)
+        {
+                uint32_t new_flag = 0;
+
+                if (flag & EPOLLIN)           new_flag |= IO_MULTIPLEXER_IN;
+                if (flag & EPOLLPRI)          new_flag |= IO_MULTIPLEXER_PRI;
+                if (flag & EPOLLOUT)          new_flag |= IO_MULTIPLEXER_OUT;
+                if (flag & EPOLLRDNORM)       new_flag |= IO_MULTIPLEXER_RDNORM;
+                if (flag & EPOLLRDBAND)       new_flag |= IO_MULTIPLEXER_RDBAND;
+                if (flag & EPOLLWRNORM)       new_flag |= IO_MULTIPLEXER_WRNORM;
+                if (flag & EPOLLWRBAND)       new_flag |= IO_MULTIPLEXER_WRBAND;
+                if (flag & EPOLLMSG)          new_flag |= IO_MULTIPLEXER_MSG;
+                if (flag & EPOLLERR)          new_flag |= IO_MULTIPLEXER_ERR;
+                if (flag & EPOLLHUP)          new_flag |= IO_MULTIPLEXER_HUP;
+                if (flag & EPOLLRDHUP)        new_flag |= IO_MULTIPLEXER_RDHUP;
+                if (flag & EPOLLWAKEUP)       new_flag |= IO_MULTIPLEXER_WAKEUP;
+
+                return new_flag;
+        }
+
+	override(ZIOMultiplexer)
+        int subscribe_fd(ZObject *io_multiplexer, int fd, ZBind *task)
+        {
+                Self *self = (Self *) io_multiplexer;
+                ZSet *listeners = get_listeners(self, fd, 0);
+                int rc = z_set_insert(listeners, task);
+                z_object_unref(Z_OBJECT(listeners));
+
+                if (rc == 0)
+                        z_object_ref(Z_OBJECT(task));
+
+                return rc;
+        }
+
+	override(ZIOMultiplexer)
+        int unsubscribe_fd(ZObject *io_multiplexer, int fd, ZBind *task)
+        {
+                Self *self = (Self *) io_multiplexer;
+                ZSet *listeners = get_listeners(self, fd, 1);
+
+                if (!listeners)
+                        return -EINVAL;
+
+                ZSetIter *it = z_set_find(listeners, task);
+                z_object_unref(Z_OBJECT(listeners));
+
+                if (it) {
+                        z_set_erase1(listeners, it);
+                        z_object_unref(Z_OBJECT(it));
+                        return 0;
+                }
+
+                return -EINVAL;
         }
 
         override(ZEventLoop) int add_to_task_queue(ZEventLoop *ev, ZTask *task)
