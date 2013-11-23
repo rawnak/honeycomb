@@ -59,5 +59,6 @@ add_library(
    z-log.c
    z-c-closure-marshal.c
    z-bind.c
+   z-bind-util.c
    )
 

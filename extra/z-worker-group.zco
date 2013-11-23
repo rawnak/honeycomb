@@ -30,6 +30,7 @@
 #include <z-string.h>
 #include <stdio.h>
 #include <z-event-loop-linux.h>
+#include <z-bind-util.h>
 
 /* In any C application, the process starts with only one thread (the main thread).
    It will almost always be dedicated for UI and its event loop will be tied to the
@@ -236,11 +237,8 @@ class ZWorkerGroup : ZObject
                         /* Create a proxy bind. This bind will be invoked as the response bind instead
                            of the response bind that is specified by the caller. The handler for the proxy
                            bind will ensure that the responses are invoked in order */
-                        ZBind *proxy_bind = z_bind_new(CTX_FROM_OBJECT(bind), ALLOCATOR_FROM_OBJECT(bind));
-                        ZClosureMarshal *marshal = (ZClosureMarshal *) z_c_closure_marshal_get_instance(CTX_FROM_OBJECT(bind));
-                        z_object_set_closure_marshal(Z_OBJECT(proxy_bind), Z_OBJECT(marshal));
-                        z_object_unref(Z_OBJECT(marshal));
-                        z_bind_set_handler(proxy_bind, (ZBindHandler) proxy_function);
+
+                        ZBind *proxy_bind = create_c_bind(Z_OBJECT(bind), (ZBindHandler) proxy_function);
                         z_bind_append_ptr(proxy_bind, self);
                         z_bind_append_ptr(proxy_bind, response_bind);
                         z_bind_append_uint32(proxy_bind, selfp->count);
