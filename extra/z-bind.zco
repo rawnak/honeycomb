@@ -25,7 +25,7 @@
 #include <stdarg.h>
 
 struct ZBind;
-typedef void(*ZBindHandler)(struct ZBind *self, ...);
+typedef void(*ZBindHandler)(struct ZBind *self);
 
 struct ZBindData
 {
@@ -96,6 +96,10 @@ class ZBind : ZObject
 
                 to->vargs_size = from->vargs_size;
                 memcpy(to->vargs, from->vargs, from->vargs_size);
+
+                ZObject *marshal = z_object_get_closure_marshal(Z_OBJECT(other));
+                z_object_set_closure_marshal(Z_OBJECT(self), marshal);
+                z_object_unref(Z_OBJECT(marshal));
         }
 
         private void append_argument(Self *self, void *value, int arg_size)
