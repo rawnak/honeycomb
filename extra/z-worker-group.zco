@@ -238,7 +238,7 @@ class ZWorkerGroup : ZObject
                            of the response bind that is specified by the caller. The handler for the proxy
                            bind will ensure that the responses are invoked in order */
 
-                        ZBind *proxy_bind = create_c_bind(Z_OBJECT(bind), (ZBindHandler) proxy_function);
+                        ZBind *proxy_bind = z_bind_util_create_c_bind(Z_OBJECT(bind), (ZBindHandler) proxy_function);
                         z_bind_append_ptr(proxy_bind, self);
                         z_bind_append_ptr(proxy_bind, response_bind);
                         z_bind_append_uint32(proxy_bind, selfp->count);

@@ -8,7 +8,7 @@ include_directories(
       ${CMAKE_SOURCE_DIR}/core	       # core header files
       ${CMAKE_BINARY_DIR}/core	       # generated core header files
       ${CMAKE_SOURCE_DIR}/base	       # base header files
-      ${CMAKE_CURRENT_BINARY_DIR}      # generated widget header files
+      ${CMAKE_CURRENT_BINARY_DIR}      # generated base header files
       /usr/lib/libffi-3.0.13/include   # libffi
       )
 
@@ -27,6 +27,7 @@ parse_zco(z-event-loop-posix)
 parse_zco(z-in-out-multiplexer)
 parse_zco(z-c-closure-marshal)
 parse_zco(z-bind)
+parse_zco(z-bind-util)
 parse_zco(z-in-out)
 
 add_library(

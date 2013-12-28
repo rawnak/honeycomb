@@ -9,7 +9,7 @@ include_directories(
       ${CMAKE_BINARY_DIR}/core	       # generated core header files
       ${CMAKE_SOURCE_DIR}/base	       # base header files
       ${CMAKE_BINARY_DIR}/base         # generated base header files
-      ${CMAKE_SOURCE_DIR}/extra	       # extra header files
+      ${CMAKE_BINARY_DIR}/net          # generated net header files
       ${CMAKE_BINARY_DIR}/extra        # generated extra header files
       ${CMAKE_CURRENT_SOURCE_DIR}      # application header files
       ${CMAKE_CURRENT_BINARY_DIR}      # generated application header files
@@ -42,6 +42,6 @@ add_executable(
    z-set-test.c
    )
 
-target_link_libraries(zco-test zclib-core zclib-base zclib-extra m ffi pthread)
+target_link_libraries(zco-test zclib-core zclib-base zclib-net zclib-extra m ffi pthread)
 
 

@@ -7,7 +7,9 @@ find_package(FLEX)
 include_directories(
       ${CMAKE_SOURCE_DIR}/core	       # core header files
       ${CMAKE_BINARY_DIR}/core	       # generated core header files
-      ${CMAKE_SOURCE_DIR}/extra	       # extra header files
+      ${CMAKE_SOURCE_DIR}/base	       # base header files
+      ${CMAKE_BINARY_DIR}/base         # generated base header files
+      ${CMAKE_BINARY_DIR}/net          # generated net header files
       ${CMAKE_BINARY_DIR}/extra	       # generated extra header files
       ${CMAKE_BINARY_DIR}/widgets      # generated widget header files
       ${CMAKE_CURRENT_BINARY_DIR}      # generated application header files
@@ -32,5 +34,5 @@ add_executable(
    main.c
    )
 
-target_link_libraries(zco-gateway zclib-core zclib-extra zclib-widgets m ffi fcgi)
+target_link_libraries(zco-gateway zclib-core zclib-base zclib-net zclib-extra zclib-widgets m ffi fcgi)
 

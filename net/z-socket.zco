@@ -321,7 +321,7 @@ class ZSocket : ZObject
 
                 if (selfp->inout != NULL) {
                         z_object_ref(Z_OBJECT(inout));
-                        selfp->dispatcher_task = create_c_bind(Z_OBJECT(self), (ZBindHandler) dispatcher);
+                        selfp->dispatcher_task = z_bind_util_create_c_bind(Z_OBJECT(self), (ZBindHandler) dispatcher);
                         z_bind_append_ptr(selfp->dispatcher_task, self);
                         assert(z_in_out_multiplexer_subscribe_fd((ZObject *) ev, selfp->inout, selfp->dispatcher_task) == 0);
                 }

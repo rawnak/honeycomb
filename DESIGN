@@ -133,6 +133,8 @@ core: This library is similar to bootstrap except it contains the original .zco 
 
 base: This library builds on top of the core library and adds support for closures, event loop, I/O multiplexing.
 
+net: This library interfaces with socket API for network connectivity.
+
 extra: This library contains all uncategoriezed classes.
 
 Why Git?

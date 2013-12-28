@@ -39,7 +39,7 @@ static ZServer * run_server(struct zco_context_t *context, ZBindHandler on_new_c
         ZServer *server = z_server_new(context, NULL);
         ZBind *task;
 
-        task = create_c_bind(Z_OBJECT(server), on_new_client);
+        task = z_bind_util_create_c_bind(Z_OBJECT(server), on_new_client);
         z_bind_append_ptr(task, stage);
         z_server_set_on_new_client(server, task);
         z_object_unref(Z_OBJECT(task));
@@ -60,7 +60,7 @@ static ZSocket * run_client(struct zco_context_t *context, ZBindHandler on_ready
         z_socket_set_flowinfo(client, 0);
 
         ZBind *task;
-        task = create_c_bind(Z_OBJECT(client), on_ready);
+        task = z_bind_util_create_c_bind(Z_OBJECT(client), on_ready);
         z_bind_append_ptr(task, client);
         z_bind_append_ptr(task, stage);
         z_socket_set_on_ready(client, task);
@@ -195,25 +195,25 @@ static void on_new_client1(ZBind *task, int *stage, ZSocket *socket, ZServer *se
         assert(*stage == 1);
         ++(*stage);
 
-        task = create_c_bind(Z_OBJECT(socket), (ZBindHandler) server_message_handler1);
+        task = z_bind_util_create_c_bind(Z_OBJECT(socket), (ZBindHandler) server_message_handler1);
         z_bind_append_ptr(task, socket);
         z_bind_append_ptr(task, stage);
         z_socket_set_on_readable(socket, task);
         z_object_unref(Z_OBJECT(task));
 
-        task = create_c_bind(Z_OBJECT(socket), (ZBindHandler) server_close_connection1);
+        task = z_bind_util_create_c_bind(Z_OBJECT(socket), (ZBindHandler) server_close_connection1);
         z_bind_append_ptr(task, socket);
         z_bind_append_ptr(task, stage);
         z_socket_set_on_disconnect(socket, task);
         z_object_unref(Z_OBJECT(task));
 
-        task = create_c_bind(Z_OBJECT(socket), (ZBindHandler) server_hangup_connection1);
+        task = z_bind_util_create_c_bind(Z_OBJECT(socket), (ZBindHandler) server_hangup_connection1);
         z_bind_append_ptr(task, socket);
         z_bind_append_ptr(task, stage);
         z_socket_set_on_hangup(socket, task);
         z_object_unref(Z_OBJECT(task));
 
-        task = create_c_bind(Z_OBJECT(socket), (ZBindHandler) server_error_connection1);
+        task = z_bind_util_create_c_bind(Z_OBJECT(socket), (ZBindHandler) server_error_connection1);
         z_bind_append_ptr(task, socket);
         z_bind_append_ptr(task, stage);
         z_socket_set_on_error(socket, task);
@@ -229,25 +229,25 @@ static void on_client_ready1(ZBind *task, ZSocket *socket, int *stage)
         assert(*stage == 2);
         ++(*stage);
 
-        task = create_c_bind(Z_OBJECT(socket), (ZBindHandler) client_close_connection1);
+        task = z_bind_util_create_c_bind(Z_OBJECT(socket), (ZBindHandler) client_close_connection1);
         z_bind_append_ptr(task, socket);
         z_bind_append_ptr(task, stage);
         z_socket_set_on_disconnect(socket, task);
         z_object_unref(Z_OBJECT(task));
 
-        task = create_c_bind(Z_OBJECT(socket), (ZBindHandler) client_hangup_connection1);
+        task = z_bind_util_create_c_bind(Z_OBJECT(socket), (ZBindHandler) client_hangup_connection1);
         z_bind_append_ptr(task, socket);
         z_bind_append_ptr(task, stage);
         z_socket_set_on_hangup(socket, task);
         z_object_unref(Z_OBJECT(task));
 
-        task = create_c_bind(Z_OBJECT(socket), (ZBindHandler) client_error_connection1);
+        task = z_bind_util_create_c_bind(Z_OBJECT(socket), (ZBindHandler) client_error_connection1);
         z_bind_append_ptr(task, socket);
         z_bind_append_ptr(task, stage);
         z_socket_set_on_error(socket, task);
         z_object_unref(Z_OBJECT(task));
 
-        task = create_c_bind(Z_OBJECT(socket), (ZBindHandler) client_message_handler1);
+        task = z_bind_util_create_c_bind(Z_OBJECT(socket), (ZBindHandler) client_message_handler1);
         z_bind_append_ptr(task, socket);
         z_bind_append_ptr(task, stage);
         z_socket_set_on_readable(socket, task);
