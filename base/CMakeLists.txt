@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 set(CMAKE_VERBOSE_MAKEFILE OFF)
-project(test)
+project(base)
 
 find_package(BISON)
 find_package(FLEX)
@@ -8,11 +8,7 @@ include_directories(
       ${CMAKE_SOURCE_DIR}/core	       # core header files
       ${CMAKE_BINARY_DIR}/core	       # generated core header files
       ${CMAKE_SOURCE_DIR}/base	       # base header files
-      ${CMAKE_BINARY_DIR}/base         # generated base header files
-      ${CMAKE_SOURCE_DIR}/extra	       # extra header files
-      ${CMAKE_BINARY_DIR}/extra        # generated extra header files
-      ${CMAKE_CURRENT_SOURCE_DIR}      # application header files
-      ${CMAKE_CURRENT_BINARY_DIR}      # generated application header files
+      ${CMAKE_CURRENT_BINARY_DIR}      # generated widget header files
       /usr/lib/libffi-3.0.13/include   # libffi
       )
 
@@ -25,23 +21,24 @@ macro(parse_zco OBJECT_NAME)
 	      )
 endmacro(parse_zco OBJECT_NAME)
 
-parse_zco(z-test-object)
-parse_zco(z-test-derived-object)
+parse_zco(z-event-loop)
+parse_zco(z-event-loop-linux)
+parse_zco(z-event-loop-posix)
+parse_zco(z-in-out-multiplexer)
+parse_zco(z-c-closure-marshal)
+parse_zco(z-bind)
+parse_zco(z-in-out)
 
-# test driver
-add_executable(
-   zco-test
-   z-test-object.c
-   z-test-derived-object.c
-   signal-test.c
-   network-test.c
-   main.c
-   z-vector-test.c
-   z-string-test.c
-   z-map-test.c
-   z-set-test.c
+add_library(
+   zclib-base SHARED
+   zco-app-context.c
+   z-event-loop.c
+   z-event-loop-linux.c
+   z-event-loop-posix.c
+   z-in-out-multiplexer.c
+   z-c-closure-marshal.c
+   z-bind.c
+   z-bind-util.c
+   z-in-out.c
    )
-
-target_link_libraries(zco-test zclib-core zclib-base zclib-extra m ffi pthread)
-
 

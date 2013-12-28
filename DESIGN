@@ -119,6 +119,22 @@ allows us to dynamically generate code for remote execution. The developer does 
 special macros or functions to ensure the type inheritance is properly established in the generated code; It will be
 automatically handled by the glue code that is facilitated by the preprocessor.
 
+Library names
+--------------
+The codebase in zclib is broken down into multiple libraries
+
+bootstrap: This library contains the bare minimum to build a zco preprocessor. Given that its build process cannot
+    depend on the existance of the zco preprocessor, it contains preprocessed .c and .h files for corresponding
+    .zco files.
+
+core: This library is similar to bootstrap except it contains the original .zco files. The core library contains
+    more features compared to the bootstrap library because some of the features that are not necessary to make
+    the zco preprocessor is removed in the bootstrap library.
+
+base: This library builds on top of the core library and adds support for closures, event loop, I/O multiplexing.
+
+extra: This library contains all uncategoriezed classes.
+
 Why Git?
 --------------
 Git is a distributed SCM and it offers many advantages over a centralized SCM like CVS and SVN. Every single developer

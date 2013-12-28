@@ -22,7 +22,6 @@
 #include <z-object.h>
 #include <z-event-loop-protected.h>
 #include <z-in-out-multiplexer.h>
-#include <z-set.h>
 #include <sys/epoll.h>
 
 /* We require Linux kernel 2.6.37 or higher. The epoll_wait implementation for prior versions
