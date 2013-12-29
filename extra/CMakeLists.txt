@@ -31,7 +31,6 @@ parse_zco(z-framework-events)
 parse_zco(z-guid)
 parse_zco(z-application)
 parse_zco(z-session-manager)
-parse_zco(z-net-stream)
 parse_zco(z-log)
 
 add_library(
@@ -43,7 +42,6 @@ add_library(
    z-guid.c
    z-application.c
    z-session-manager.c
-   z-net-stream.c
    z-log.c
    )
 
