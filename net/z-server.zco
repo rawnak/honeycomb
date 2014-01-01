@@ -152,12 +152,7 @@ class ZServer : ZObject
                    undeclared reference to 'self' anymore. */
                 ZBind *task = z_bind_util_create_c_bind(Z_OBJECT(self), (ZBindHandler) new_connection_callback);
                 z_bind_append_ptr(task, self);
-
-                ZEventLoop *ev = zco_app_context_get_event_loop_ptr(CTX_FROM_OBJECT(self));
-                ZInOut *inout = z_socket_get_inout(selfp->server_socket);
-                z_in_out_multiplexer_subscribe_fd((ZObject *) ev, inout, task);
-                z_object_unref(Z_OBJECT(inout));
-
+                z_socket_set_on_readable(selfp->server_socket, task);
                 z_object_unref(Z_OBJECT(task));
  
                 return 0;

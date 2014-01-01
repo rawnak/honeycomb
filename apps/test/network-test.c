@@ -73,33 +73,47 @@ static ZSocket * run_client(struct zco_context_t *context, ZBindHandler on_ready
         return client;
 }
 
-static void send_message(ZSocket *socket, char *sender, char *message)
+static void send_message(ZSocket *socket, char *sender, char *msg)
 {
-        ZInOut *inout = z_socket_get_inout(socket);
-        z_in_out_write_buffer(inout, message, strlen(message));
-        z_object_unref(Z_OBJECT(inout));
+        ZStream *stream = z_stream_new(CTX_FROM_OBJECT(socket), ALLOCATOR_FROM_OBJECT(socket));
+        z_socket_connect_stream(socket, stream);
 
-        trace("%s says: %s\n", sender, message);
+        ZString *message = z_string_new(CTX_FROM_OBJECT(socket), ALLOCATOR_FROM_OBJECT(socket));
+        z_string_append_cstring(message, msg, Z_STRING_ENCODING_UTF8);
+        z_stream_write_text(stream, message);
+        z_object_unref(Z_OBJECT(message));
+
+        z_object_unref(Z_OBJECT(stream));
+
+        trace("%s says: %s\n", sender, msg);
 }
 
 
 static char * receive_message(ZSocket *socket, char *sender)
 {
-        char *buffer = malloc(256);
+        char *buffer;
 
-        ZInOut *inout = z_socket_get_inout(socket);
-        int len = z_in_out_read_buffer(inout, buffer, 255);
-        z_object_unref(Z_OBJECT(inout));
+        ZStream *stream = z_stream_new(CTX_FROM_OBJECT(socket), ALLOCATOR_FROM_OBJECT(socket));
+        z_socket_connect_stream(socket, stream);
 
-        if (len < 0) {
+        ZString *text = z_stream_read_text(stream);
+        z_object_unref(Z_OBJECT(stream));
+
+        if (!text || z_string_get_length(text) == 0) {
                 perror("read");
+                buffer = malloc(1);
                 buffer[0] = 0;
+
+                if (text)
+                        z_object_unref(Z_OBJECT(text));
+
                 return buffer;
         }
 
-        buffer[len] = 0;
+        buffer = z_string_get_cstring(text, Z_STRING_ENCODING_UTF8);
 
-        trace("== %s received '%s' (len=%d)\n", sender, buffer, len);
+        trace("== %s received '%s' (len=%d)\n", sender, buffer, z_string_get_length(text));
+        z_object_unref(Z_OBJECT(text));
 
         return buffer;
 }

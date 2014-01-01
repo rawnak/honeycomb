@@ -251,7 +251,7 @@ class ZStream : ZObject
                         return NULL;
                 }
 
-                *((uint8_t *) buffer + 4096) = 0;
+                *((uint8_t *) buffer + size) = 0;
                 z_string_set_cstring(str, buffer, Z_STRING_ENCODING_UTF8);
 
                 return str;
