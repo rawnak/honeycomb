@@ -33,6 +33,175 @@
 #define CTX_FROM_OBJECT(o)       CTX_FROM_GLOBAL(GLOBAL_FROM_OBJECT(o))
 #define ALLOCATOR_FROM_OBJECT(o) z_object_get_allocator_ptr(Z_OBJECT(o))
 
+/* Forward declares structs for the class and also typedefs them so the
+   'struct' keyword is not required */
+#define ZCO_TYPEDEF_FWD_DECL_CLASS(c) \
+        struct c##Private; typedef struct c##Private c##Private; \
+        struct c##Protected; typedef struct c##Protected c##Protected; \
+        struct c##Global; typedef struct c##Global c##Global; \
+        struct c##Class; typedef struct c##Class c##Class; \
+        struct c; typedef struct c c;
+
+/* Required to be at the top of the global struct. It creates some struct
+   fields that are expected to be there */
+#define ZCO_CLASS_GLOBAL_HEAD(c) \
+	struct ZCommonGlobal common; \
+	struct c##Class *_class;
+
+/* Required to be at the top of the instance struct. It creates some struct
+   fields that are expected to be there */
+#define ZCO_CLASS_PUBLIC_HEAD(c) \
+        struct c##Global *_global; \
+        struct c##Private _priv; \
+        struct c##Protected _prot
+
+/* Allocates space to store the class id */
+#define ZCO_DEFINE_CLASS_TYPE(c) \
+        int c##_type_id = -1; \
+        static Self *__##c##_new(struct zco_context_t *ctx, ZMemoryAllocator *allocator) \
+        { \
+                Self *self = NULL; \
+                if (allocator) { \
+                        ZObjectTracker *object_tracker = z_memory_allocator_get_object_tracker(allocator); \
+                        if (object_tracker) { \
+                                self = (Self *) z_object_tracker_create(object_tracker, c##_type_id); \
+                                z_object_unref(Z_OBJECT(object_tracker)); \
+                        } \
+                } \
+                if (!self) { \
+                        ZMemoryAllocator *obj_allocator = ctx->fixed_allocator; \
+                        if (obj_allocator) \
+                                self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self)); \
+                        else \
+                                self = (Self *) malloc(sizeof(Self)); \
+                        z_object_set_allocator_ptr((ZObject *) self, allocator); \
+                        __##c##_init(ctx, self); \
+                } \
+                return self; \
+        } \
+        static int __map_compare(ZMap *map, const void *a, const void *b) \
+        { \
+                return strcmp(a, b); \
+        } 
+
+/* Defines the internal getter of the attached property */
+#define ZCO_DEFINE_ATTACHED_PROP_GETTER(cu,c,p,t) \
+        int  c##_get_attached_##p(ZObject *object) \
+        { \
+                struct cu##Global *_global = c##_get_type(GLOBAL_FROM_OBJECT(object)->common.ctx); \
+                ZMap *map = (ZMap *) _global->_attached_##p; \
+                ZMapIter *it = z_map_find(map, object); \
+                void *value = z_map_get_value(map, it); \
+                z_object_unref(Z_OBJECT(it)); \
+                return (t) (unsigned long) value; \
+        }
+
+/* Defines the internal setter of the attached property */
+#define ZCO_DEFINE_ATTACHED_PROP_SETTER(cu,c,p) \
+        void c##_set_attached_##p(ZObject *object, int  value) \
+        { \
+                struct cu##Global *_global = c##_get_type(GLOBAL_FROM_OBJECT(object)->common.ctx); \
+                ZMap *map = (ZMap *) _global->_attached_##p; \
+                if (z_map_assign(map, object, (void *) (unsigned long) value) == 0) \
+                        z_object_add_attached_property_map(object, map); \
+        }
+
+/* Allocate memory for class specific data */
+#define ZCO_CREATE_CLASS(global,b,a,c) \
+	ZCommonGlobal **global_ptr = (a##_type_id != -1)? zco_get_ctx_type(ctx, a##_type_id) : NULL; \
+        if (global_ptr && *global_ptr) \
+                return (b##Global *) *global_ptr; \
+        struct b##Global *global = (b##Global *) malloc(sizeof(struct b##Global)); \
+        global->common.ctx = ctx; \
+        global->_class = malloc(sizeof(struct b##Class)); \
+        memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct b##Class)); \
+        global->common.name = #b; \
+        global->common.vtable_off_list = NULL; \
+        global->common.vtable_off_size = 0; \
+        global->common.svtable_off_list = NULL; \
+        global->common.svtable_off_size = 0; \
+        global->common.is_object = c;
+
+/* Clone the vtable of the parent class/interface */
+#define ZCO_INHERIT_CLASS(b,a,c) \
+        { \
+                struct c temp; \
+                struct c##Class temp_class; \
+                struct b##Global *p_global = a##_get_type(ctx); \
+                zco_inherit_vtable( \
+                        &global->common.vtable_off_list, \
+                        &global->common.vtable_off_size, \
+                        p_global->common.vtable_off_list, \
+                        p_global->common.vtable_off_size, \
+                        &temp, \
+                        &temp.parent_##a); \
+                zco_inherit_vtable( \
+                        &global->common.svtable_off_list, \
+                        &global->common.svtable_off_size, \
+                        p_global->common.svtable_off_list, \
+                        p_global->common.svtable_off_size, \
+                        &temp_class, \
+                        &temp_class.parent_##a); \
+                b##Class *p1_class = CLASS_FROM_GLOBAL(p_global); \
+                b##Class *p2_class = (b##Class *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[a##_type_id]); \
+                memcpy(p2_class, p1_class, sizeof(struct b##Class)); \
+        }
+
+
+/* Override a virtual method of a parent class */
+#define ZCO_OVERRIDE_VIRTUAL_METHOD(a,b,d,c) \
+        { \
+                a##Class *p_class = (a##Class *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[b##_type_id]); \
+                global->__parent_##c = p_class->__##c; \
+                p_class->__##c = d##_##c; \
+        } 
+
+/* Required to be called in the beginning of a signal method */
+#define ZCO_SIGNAL_START(args) \
+	ZVector *args = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self)); \
+	z_vector_set_item_size(args, 0); \
+	z_vector_set_item_destruct(args, (ZVectorItemCallback) z_object_unref);
+
+/* Required to be called in the end of a signal method */
+#define ZCO_SIGNAL_END(args,a) \
+	z_object_emit_signal(Z_OBJECT(self), #a, args); \
+	z_object_unref(Z_OBJECT(args));
+
+
+/* Register class with the type system */
+#define ZCO_REGISTER_TYPE(a) \
+        if (a##_type_id == -1) \
+                a##_type_id = zco_allocate_type_id(); \
+        global->common.id = a##_type_id; \
+        zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, a##_type_id); \
+        zco_add_to_vtable(&global->common.svtable_off_list, &global->common.svtable_off_size, a##_type_id); \
+        global_ptr = zco_get_ctx_type(ctx, a##_type_id); \
+        *global_ptr = (ZCommonGlobal *) global;
+
+/* Register a method as a virtual method */
+#define ZCO_CREATE_VIRTUAL_METHOD(b,a) CLASS_FROM_GLOBAL(global)->__##a = b##_virtual_##a
+
+/* Create a method map so methods can be looked up by string */
+#define ZCO_CREATE_METHOD_MAP(b,a) \
+        __##a##_class_init(ctx, (b##Class *) CLASS_FROM_GLOBAL(global)); \
+        global->common.method_map = z_map_new(ctx, NULL); \
+        z_map_set_compare(global->common.method_map, __map_compare); \
+        z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free)
+
+/* Register a method in the method map */
+#define ZCO_REGISTER_METHOD(a) z_map_insert((ZMap *) global->common.method_map, strdup(#a), (ZObjectSignalHandler) a);
+
+/* Required to be called in the beginning of the init method */
+#define ZCO_INIT_START(a,b) \
+	{ \
+		struct a##Global *_global = b##_get_type(ctx); \
+		self->_global = _global; \
+	}
+
+/* Seal this class as the final class in the inheritance. Any previous seals for the object will be replaced */
+#define ZCO_SEAL_CLASS() \
+        ((ZObject *) self)->class_base = (void *) CLASS_FROM_GLOBAL(self->_global); \
+        ((ZObjectClass *) CLASS_FROM_GLOBAL(self->_global))->real_global = (ZCommonGlobal *) self->_global
 
 struct ZCommonGlobal {
         /* vtable for object instance.
