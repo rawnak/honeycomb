@@ -70,34 +70,8 @@
 #define upper_bound z_map_upper_bound
 #define set_compare z_map_set_compare
 
-int z_map_type_id = -1;
+ZCO_DEFINE_CLASS_TYPE(z_map);
 
-static Self *__z_map_new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
-{
-	Self *self = NULL;
-	if (allocator) {
-		ZObjectTracker *object_tracker = z_memory_allocator_get_object_tracker(allocator);
-		if (object_tracker) {
-			self = (Self *) z_object_tracker_create(object_tracker, z_map_type_id);
-			z_object_unref(Z_OBJECT(object_tracker));
-		}
-	}
-	if (!self) {
-		ZMemoryAllocator *obj_allocator = ctx->fixed_allocator;
-		if (obj_allocator)
-			self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));
-		else
-			self = (Self *) malloc(sizeof(Self));
-		z_object_set_allocator_ptr((ZObject *) self, allocator);
-		__z_map_init(ctx, self);
-	}
-	return self;
-}
-
-static int __map_compare(ZMap *map, const void *a, const void *b)
-{
-	return strcmp(a, b);
-}
 static void z_map_init(Self *self);
 static void  z_map_reset(ZObject *object);
 static void  z_map_dispose(ZObject *object);
@@ -119,96 +93,31 @@ static void cleanup_signal_arg(void *item, void *userdata)
 }
 ZMapGlobal * z_map_get_type(struct zco_context_t *ctx)
 {
-	ZCommonGlobal **global_ptr = NULL;
-	if (z_map_type_id != -1) {
-		global_ptr = zco_get_ctx_type(ctx, z_map_type_id);
-	}
-	if (!global_ptr || !*global_ptr) {
-		struct ZMapGlobal *global = (ZMapGlobal *) malloc(sizeof(struct ZMapGlobal));
-		global->common.ctx = ctx;
-		global->_class = malloc(sizeof(struct ZMapClass));
-		memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct ZMapClass));
-		global->common.name = "ZMap";
-		global->common.vtable_off_list = NULL;
-		global->common.vtable_off_size = 0;
-		global->common.svtable_off_list = NULL;
-		global->common.svtable_off_size = 0;
-		global->common.is_object = 1;
-
-		struct ZMap temp;
-		struct ZMapClass temp_class;
-
-		{
-			struct ZObjectGlobal *p_global = z_object_get_type(ctx);
-			zco_inherit_vtable(
-				&global->common.vtable_off_list,
-				&global->common.vtable_off_size,
-				p_global->common.vtable_off_list,
-				p_global->common.vtable_off_size,
-				&temp,
-				&temp.parent_z_object);
-			zco_inherit_vtable(
-				&global->common.svtable_off_list,
-				&global->common.svtable_off_size,
-				p_global->common.svtable_off_list,
-				p_global->common.svtable_off_size,
-				&temp_class,
-				&temp_class.parent_z_object);
-			ZObjectClass *p1_class = CLASS_FROM_GLOBAL(p_global);
-			ZObjectClass *p2_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
-			memcpy(p2_class, p1_class, sizeof(struct ZObjectClass));
-		}
-		if (z_map_type_id == -1)
-			z_map_type_id = zco_allocate_type_id();
-		global->common.id = z_map_type_id;
-		zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, z_map_type_id);
-		zco_add_to_vtable(&global->common.svtable_off_list, &global->common.svtable_off_size, z_map_type_id);
-		global_ptr = zco_get_ctx_type(ctx, z_map_type_id);
-		*global_ptr = (ZCommonGlobal *) global;
-		
-		{
-			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
-			global->__parent_reset = p_class->__reset;
-			p_class->__reset = z_map_reset;
-		}
-		{
-			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
-			global->__parent_dispose = p_class->__dispose;
-			p_class->__dispose = z_map_dispose;
-		}
-		{
-			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
-			global->__parent_class_destroy = p_class->__class_destroy;
-			p_class->__class_destroy = z_map_class_destroy;
-		}
-		{
-			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
-			global->__parent___delete = p_class->____delete;
-			p_class->____delete = z_map___delete;
-		}
-		__z_map_class_init(ctx, (ZMapClass *) CLASS_FROM_GLOBAL(global));
-		global->common.method_map = z_map_new(ctx, NULL);
-		z_map_set_compare(global->common.method_map, __map_compare);
-		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
-		z_map_insert((ZMap *) global->common.method_map, strdup("new"), (ZObjectSignalHandler) new);
-		z_map_insert((ZMap *) global->common.method_map, strdup("clear"), (ZObjectSignalHandler) clear);
-		z_map_insert((ZMap *) global->common.method_map, strdup("find"), (ZObjectSignalHandler) find);
-		z_map_insert((ZMap *) global->common.method_map, strdup("get_key"), (ZObjectSignalHandler) get_key);
-		z_map_insert((ZMap *) global->common.method_map, strdup("get_value"), (ZObjectSignalHandler) get_value);
-		z_map_insert((ZMap *) global->common.method_map, strdup("set_value"), (ZObjectSignalHandler) set_value);
-		z_map_insert((ZMap *) global->common.method_map, strdup("assign"), (ZObjectSignalHandler) assign);
-		z_map_insert((ZMap *) global->common.method_map, strdup("insert"), (ZObjectSignalHandler) insert);
-		z_map_insert((ZMap *) global->common.method_map, strdup("erase"), (ZObjectSignalHandler) erase);
-		z_map_insert((ZMap *) global->common.method_map, strdup("erase1"), (ZObjectSignalHandler) erase1);
-		z_map_insert((ZMap *) global->common.method_map, strdup("erase1_inc"), (ZObjectSignalHandler) erase1_inc);
-		z_map_insert((ZMap *) global->common.method_map, strdup("lower_bound"), (ZObjectSignalHandler) lower_bound);
-		z_map_insert((ZMap *) global->common.method_map, strdup("upper_bound"), (ZObjectSignalHandler) upper_bound);
-		#ifdef GLOBAL_INIT_EXISTS
-			global_init((ZMapGlobal *) global);
-		#endif
-		return global;
-	}
-	return (ZMapGlobal *) *global_ptr;
+	ZCO_CREATE_CLASS(global, ZMap, z_map, 1);
+	ZCO_INHERIT_CLASS(ZObject, z_object, ZMap);
+	ZCO_REGISTER_TYPE(z_map);
+	ZCO_OVERRIDE_VIRTUAL_METHOD(ZObject, z_object, z_map, reset);
+	ZCO_OVERRIDE_VIRTUAL_METHOD(ZObject, z_object, z_map, dispose);
+	ZCO_OVERRIDE_VIRTUAL_METHOD(ZObject, z_object, z_map, class_destroy);
+	ZCO_OVERRIDE_VIRTUAL_METHOD(ZObject, z_object, z_map, __delete);
+	ZCO_CREATE_METHOD_MAP(ZMap, z_map);
+	ZCO_REGISTER_METHOD(new);
+	ZCO_REGISTER_METHOD(clear);
+	ZCO_REGISTER_METHOD(find);
+	ZCO_REGISTER_METHOD(get_key);
+	ZCO_REGISTER_METHOD(get_value);
+	ZCO_REGISTER_METHOD(set_value);
+	ZCO_REGISTER_METHOD(assign);
+	ZCO_REGISTER_METHOD(insert);
+	ZCO_REGISTER_METHOD(erase);
+	ZCO_REGISTER_METHOD(erase1);
+	ZCO_REGISTER_METHOD(erase1_inc);
+	ZCO_REGISTER_METHOD(lower_bound);
+	ZCO_REGISTER_METHOD(upper_bound);
+	#ifdef GLOBAL_INIT_EXISTS
+		global_init(global);
+	#endif
+	return global;
 }
 
 void __z_map_class_init(struct zco_context_t *ctx, ZMapClass *_class)
@@ -220,11 +129,9 @@ void __z_map_class_init(struct zco_context_t *ctx, ZMapClass *_class)
 }
 void __z_map_init(struct zco_context_t *ctx, Self *self)
 {
-	struct ZMapGlobal *_global = z_map_get_type(ctx);
-	self->_global = _global;
+	ZCO_INIT_START(ZMap, z_map);
 	__z_object_init(ctx, (ZObject *) (self));
-	((ZObject *) self)->class_base = (void *) CLASS_FROM_GLOBAL(_global);
-	((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (ZCommonGlobal *) _global;
+	ZCO_SEAL_CLASS();
 	#ifdef INIT_EXISTS
 		init(self);
 	#endif
@@ -275,25 +182,34 @@ static void  z_map_dispose(ZObject *object)
 #undef PARENT_HANDLER
 Self * z_map_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator)
 {
+{
  if (!allocator)
  allocator = ctx->flex_allocator;
 
  Self *self = GET_NEW(ctx, allocator);
  return self;
  }
+}
 void z_map_set_userdata(Self *self, void *  value)
+{
 {
  selfp->userdata = value;
  }
+}
 void z_map_set_key_destruct(Self *self, ZMapItemCallback  value)
+{
 {
  selfp->key_destruct = value;
  }
+}
 void z_map_set_value_destruct(Self *self, ZMapItemCallback  value)
+{
 {
  selfp->value_destruct = value;
  }
+}
 ZMapIter * z_map_get_begin(Self *self)
+{
 {
  ZVectorIter *ptr = z_vector_get_begin(selfp->data);
  ZMapIter *it = z_map_iter_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
@@ -303,7 +219,9 @@ ZMapIter * z_map_get_begin(Self *self)
 
  return it;
  }
+}
 ZMapIter * z_map_get_end(Self *self)
+{
 {
  ZVectorIter *ptr = z_vector_get_end(selfp->data);
  ZMapIter *it = z_map_iter_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
@@ -313,19 +231,27 @@ ZMapIter * z_map_get_end(Self *self)
 
  return it;
  }
+}
 int  z_map_get_is_empty(Self *self)
+{
 {
  return get_size(self) == 0;
  }
+}
 int  z_map_get_size(Self *self)
+{
 {
  return z_vector_get_size(selfp->data);
  }
+}
 void  z_map_clear(Self *self)
+{
 {
  z_vector_clear(selfp->data);
  }
+}
 static void  z_map_get_pivot(Self *self,ZVectorIter *first,ZVectorIter *last,ZVectorIter *pivot)
+{
 {
  /* The pivot is the iterator that is exactly at the center of [first,last). 
 		   In some cases, it is possible that there are two cneter iterators in a
@@ -354,7 +280,9 @@ static void  z_map_get_pivot(Self *self,ZVectorIter *first,ZVectorIter *last,ZVe
 
  z_vector_iter_advance(pivot, begin_idx + offset);
  }
+}
 static void * z_map_find_item(Self *self,const void *key,int *bound,ZMapIter *pivot)
+{
 {
  ZVectorIter *first, *last, *pivot_ptr;
 
@@ -430,13 +358,10 @@ static void * z_map_find_item(Self *self,const void *key,int *bound,ZMapIter *pi
 
  z_object_unref(Z_OBJECT(pivot_ptr));
  }
-
- z_map_iter_set_index(pivot, z_vector_iter_get_absolute_index(pivot_ptr));
- z_object_unref(Z_OBJECT(pivot_ptr));
- z_object_unref(Z_OBJECT(last));
- z_object_unref(Z_OBJECT(first));
  }
+}
 ZMapIter * z_map_find(Self *self,const void *key)
+{
 {
  ZMapIter *it;
  int bound;
@@ -456,23 +381,33 @@ ZMapIter * z_map_find(Self *self,const void *key)
  }
  }
  }
+}
 static void * z_map_get_key_internal(void *item)
+{
 {
  return (void *)((unsigned long *)item)[0];
  }
+}
 static void * z_map_get_value_internal(void *item)
+{
 {
  return (void *)((unsigned long *)item)[1];
  }
+}
 static void  z_map_set_key_internal(void *item,void *key)
+{
 {
  ((unsigned long *)item)[0] = (unsigned long)key;
  }
+}
 static void  z_map_set_value_internal(void *item,void *value)
+{
 {
  ((unsigned long *)item)[1] = (unsigned long)value;
  }
+}
 void * z_map_get_key(Self *self,ZMapIter *it)
+{
 {
  ZVectorIter *ptr = z_vector_get_begin(selfp->data);
 
@@ -482,7 +417,9 @@ void * z_map_get_key(Self *self,ZMapIter *it)
 
  return get_key_internal(item);
  }
+}
 void * z_map_get_value(Self *self,ZMapIter *it)
+{
 {
  ZVectorIter *ptr = z_vector_get_begin(selfp->data);
 
@@ -492,7 +429,9 @@ void * z_map_get_value(Self *self,ZMapIter *it)
 
  return get_value_internal(item);
  }
+}
 void  z_map_set_value(Self *self,ZMapIter *it,void *value)
+{
 {
  ZVectorIter *ptr = z_vector_get_begin(selfp->data);
 
@@ -502,7 +441,9 @@ void  z_map_set_value(Self *self,ZMapIter *it,void *value)
 
  set_value_internal(item, value);
  }
+}
 static void  z_map_item_destroy(void *item,void *userdata)
+{
 {
  ZMap *self = (ZMap *) userdata;
  void *key, *value;
@@ -516,7 +457,9 @@ static void  z_map_item_destroy(void *item,void *userdata)
  if (selfp->value_destruct) 
  selfp->value_destruct(value, selfp->userdata);
  }
+}
 static int  z_map_add_item(Self *self,void *key,void *value,int allow_replace)
+{
 {
  ZMapIter *it, *prev;
  unsigned long key_value[2];
@@ -573,15 +516,21 @@ static int  z_map_add_item(Self *self,void *key,void *value,int allow_replace)
 
  return 0;
  }
+}
 int  z_map_assign(Self *self,void *key,void *value)
+{
 {
  return add_item(self, key, value, 1);
  }
+}
 int  z_map_insert(Self *self,void *key,void *value)
+{
 {
  return add_item(self, key, value, 0);
  }
+}
 void  z_map_erase(Self *self,ZMapIter *first,ZMapIter *last)
+{
 {
  ZVectorIter *p1, *p2;
 
@@ -610,7 +559,9 @@ void  z_map_erase(Self *self,ZMapIter *first,ZMapIter *last)
  z_object_unref(Z_OBJECT(last));
  z_object_unref(Z_OBJECT(first));
  }
+}
 void  z_map_erase1(Self *self,ZMapIter *it)
+{
 {
  ZMapIter *end;
 
@@ -619,14 +570,17 @@ void  z_map_erase1(Self *self,ZMapIter *it)
  erase(self, it, end);
  z_object_unref(Z_OBJECT(end));
  }
+}
 void  z_map_erase1_inc(Self *self,ZMapIter **it)
+{
 {
  ZMapIter *temp;
 
  temp = get_begin(self);
 
  if (z_map_iter_is_equal(*it, temp)) {
- /* iterator is pointing to the first element in the map */
+ /* Iterator is pointing to the first element in the map */
+ z_object_unref(Z_OBJECT(temp));
  erase1(self, *it);
  z_object_unref(Z_OBJECT(*it));
  *it = get_begin(self);
@@ -638,7 +592,9 @@ void  z_map_erase1_inc(Self *self,ZMapIter **it)
  z_map_iter_increment(*it);
  }
  }
+}
 ZMapIter * z_map_lower_bound(Self *self,void *key)
+{
 {
  ZMapIter *it;
  int bound;
@@ -655,7 +611,9 @@ ZMapIter * z_map_lower_bound(Self *self,void *key)
 
  return it;
  }
+}
 ZMapIter * z_map_upper_bound(Self *self,void *key)
+{
 {
  ZMapIter *it;
  int bound;
@@ -690,10 +648,13 @@ ZMapIter * z_map_upper_bound(Self *self,void *key)
 
  return it;
  }
+}
 void z_map_set_compare(Self *self, ZMapCompareFunc  value)
+{
 {
  selfp->compare = value;
  }
+}
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
 static void z_map_class_destroy(ZObjectGlobal *gbl)
 {

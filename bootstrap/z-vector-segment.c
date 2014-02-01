@@ -71,34 +71,8 @@ struct ZSegmentData {
 #define insert_range z_vector_segment_insert_range
 #define erase z_vector_segment_erase
 
-int z_vector_segment_type_id = -1;
+ZCO_DEFINE_CLASS_TYPE(z_vector_segment);
 
-static Self *__z_vector_segment_new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
-{
-	Self *self = NULL;
-	if (allocator) {
-		ZObjectTracker *object_tracker = z_memory_allocator_get_object_tracker(allocator);
-		if (object_tracker) {
-			self = (Self *) z_object_tracker_create(object_tracker, z_vector_segment_type_id);
-			z_object_unref(Z_OBJECT(object_tracker));
-		}
-	}
-	if (!self) {
-		ZMemoryAllocator *obj_allocator = ctx->fixed_allocator;
-		if (obj_allocator)
-			self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));
-		else
-			self = (Self *) malloc(sizeof(Self));
-		z_object_set_allocator_ptr((ZObject *) self, allocator);
-		__z_vector_segment_init(ctx, self);
-	}
-	return self;
-}
-
-static int __map_compare(ZMap *map, const void *a, const void *b)
-{
-	return strcmp(a, b);
-}
 static void z_vector_segment_init(Self *self);
 static void  z_vector_segment_reset(ZObject *object);
 static void  z_vector_segment_dispose(ZObject *object);
@@ -117,93 +91,28 @@ static void cleanup_signal_arg(void *item, void *userdata)
 }
 ZVectorSegmentGlobal * z_vector_segment_get_type(struct zco_context_t *ctx)
 {
-	ZCommonGlobal **global_ptr = NULL;
-	if (z_vector_segment_type_id != -1) {
-		global_ptr = zco_get_ctx_type(ctx, z_vector_segment_type_id);
-	}
-	if (!global_ptr || !*global_ptr) {
-		struct ZVectorSegmentGlobal *global = (ZVectorSegmentGlobal *) malloc(sizeof(struct ZVectorSegmentGlobal));
-		global->common.ctx = ctx;
-		global->_class = malloc(sizeof(struct ZVectorSegmentClass));
-		memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct ZVectorSegmentClass));
-		global->common.name = "ZVectorSegment";
-		global->common.vtable_off_list = NULL;
-		global->common.vtable_off_size = 0;
-		global->common.svtable_off_list = NULL;
-		global->common.svtable_off_size = 0;
-		global->common.is_object = 1;
-
-		struct ZVectorSegment temp;
-		struct ZVectorSegmentClass temp_class;
-
-		{
-			struct ZObjectGlobal *p_global = z_object_get_type(ctx);
-			zco_inherit_vtable(
-				&global->common.vtable_off_list,
-				&global->common.vtable_off_size,
-				p_global->common.vtable_off_list,
-				p_global->common.vtable_off_size,
-				&temp,
-				&temp.parent_z_object);
-			zco_inherit_vtable(
-				&global->common.svtable_off_list,
-				&global->common.svtable_off_size,
-				p_global->common.svtable_off_list,
-				p_global->common.svtable_off_size,
-				&temp_class,
-				&temp_class.parent_z_object);
-			ZObjectClass *p1_class = CLASS_FROM_GLOBAL(p_global);
-			ZObjectClass *p2_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
-			memcpy(p2_class, p1_class, sizeof(struct ZObjectClass));
-		}
-		if (z_vector_segment_type_id == -1)
-			z_vector_segment_type_id = zco_allocate_type_id();
-		global->common.id = z_vector_segment_type_id;
-		zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, z_vector_segment_type_id);
-		zco_add_to_vtable(&global->common.svtable_off_list, &global->common.svtable_off_size, z_vector_segment_type_id);
-		global_ptr = zco_get_ctx_type(ctx, z_vector_segment_type_id);
-		*global_ptr = (ZCommonGlobal *) global;
-		
-		{
-			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
-			global->__parent_reset = p_class->__reset;
-			p_class->__reset = z_vector_segment_reset;
-		}
-		{
-			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
-			global->__parent_dispose = p_class->__dispose;
-			p_class->__dispose = z_vector_segment_dispose;
-		}
-		{
-			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
-			global->__parent_class_destroy = p_class->__class_destroy;
-			p_class->__class_destroy = z_vector_segment_class_destroy;
-		}
-		{
-			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
-			global->__parent___delete = p_class->____delete;
-			p_class->____delete = z_vector_segment___delete;
-		}
-		__z_vector_segment_class_init(ctx, (ZVectorSegmentClass *) CLASS_FROM_GLOBAL(global));
-		global->common.method_map = z_map_new(ctx, NULL);
-		z_map_set_compare(global->common.method_map, __map_compare);
-		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
-		z_map_insert((ZMap *) global->common.method_map, strdup("new"), (ZObjectSignalHandler) new);
-		z_map_insert((ZMap *) global->common.method_map, strdup("get_size"), (ZObjectSignalHandler) get_size);
-		z_map_insert((ZMap *) global->common.method_map, strdup("set_size"), (ZObjectSignalHandler) set_size);
-		z_map_insert((ZMap *) global->common.method_map, strdup("get_capacity"), (ZObjectSignalHandler) get_capacity);
-		z_map_insert((ZMap *) global->common.method_map, strdup("is_in_bound"), (ZObjectSignalHandler) is_in_bound);
-		z_map_insert((ZMap *) global->common.method_map, strdup("get_item"), (ZObjectSignalHandler) get_item);
-		z_map_insert((ZMap *) global->common.method_map, strdup("set_item"), (ZObjectSignalHandler) set_item);
-		z_map_insert((ZMap *) global->common.method_map, strdup("insert"), (ZObjectSignalHandler) insert);
-		z_map_insert((ZMap *) global->common.method_map, strdup("insert_range"), (ZObjectSignalHandler) insert_range);
-		z_map_insert((ZMap *) global->common.method_map, strdup("erase"), (ZObjectSignalHandler) erase);
-		#ifdef GLOBAL_INIT_EXISTS
-			global_init((ZVectorSegmentGlobal *) global);
-		#endif
-		return global;
-	}
-	return (ZVectorSegmentGlobal *) *global_ptr;
+	ZCO_CREATE_CLASS(global, ZVectorSegment, z_vector_segment, 1);
+	ZCO_INHERIT_CLASS(ZObject, z_object, ZVectorSegment);
+	ZCO_REGISTER_TYPE(z_vector_segment);
+	ZCO_OVERRIDE_VIRTUAL_METHOD(ZObject, z_object, z_vector_segment, reset);
+	ZCO_OVERRIDE_VIRTUAL_METHOD(ZObject, z_object, z_vector_segment, dispose);
+	ZCO_OVERRIDE_VIRTUAL_METHOD(ZObject, z_object, z_vector_segment, class_destroy);
+	ZCO_OVERRIDE_VIRTUAL_METHOD(ZObject, z_object, z_vector_segment, __delete);
+	ZCO_CREATE_METHOD_MAP(ZVectorSegment, z_vector_segment);
+	ZCO_REGISTER_METHOD(new);
+	ZCO_REGISTER_METHOD(get_size);
+	ZCO_REGISTER_METHOD(set_size);
+	ZCO_REGISTER_METHOD(get_capacity);
+	ZCO_REGISTER_METHOD(is_in_bound);
+	ZCO_REGISTER_METHOD(get_item);
+	ZCO_REGISTER_METHOD(set_item);
+	ZCO_REGISTER_METHOD(insert);
+	ZCO_REGISTER_METHOD(insert_range);
+	ZCO_REGISTER_METHOD(erase);
+	#ifdef GLOBAL_INIT_EXISTS
+		global_init(global);
+	#endif
+	return global;
 }
 
 void __z_vector_segment_class_init(struct zco_context_t *ctx, ZVectorSegmentClass *_class)
@@ -215,11 +124,9 @@ void __z_vector_segment_class_init(struct zco_context_t *ctx, ZVectorSegmentClas
 }
 void __z_vector_segment_init(struct zco_context_t *ctx, Self *self)
 {
-	struct ZVectorSegmentGlobal *_global = z_vector_segment_get_type(ctx);
-	self->_global = _global;
+	ZCO_INIT_START(ZVectorSegment, z_vector_segment);
 	__z_object_init(ctx, (ZObject *) (self));
-	((ZObject *) self)->class_base = (void *) CLASS_FROM_GLOBAL(_global);
-	((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (ZCommonGlobal *) _global;
+	ZCO_SEAL_CLASS();
 	#ifdef INIT_EXISTS
 		init(self);
 	#endif
@@ -265,20 +172,25 @@ static void  z_vector_segment_dispose(ZObject *object)
 #undef PARENT_HANDLER
 Self * z_vector_segment_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator)
 {
+{
  if (!allocator)
  allocator = ctx->flex_allocator;
 
  Self *self = GET_NEW(ctx, allocator);
  return self;
  }
+}
 Self * z_vector_segment_get_prev(Self *self)
+{
 {
  if (selfp->prev)
  z_object_ref(Z_OBJECT(selfp->prev));
 
  return selfp->prev;
  }
+}
 void z_vector_segment_set_prev(Self *self, Self * value)
+{
 {
  if (selfp->prev)
  z_object_unref(Z_OBJECT(selfp->prev));
@@ -288,14 +200,18 @@ void z_vector_segment_set_prev(Self *self, Self * value)
  if (value)
  z_object_ref(Z_OBJECT(value));
  }
+}
 Self * z_vector_segment_get_next(Self *self)
+{
 {
  if (selfp->next)
  z_object_ref(Z_OBJECT(selfp->next));
 
  return selfp->next;
  }
+}
 void z_vector_segment_set_next(Self *self, Self * value)
+{
 {
  if (selfp->next)
  z_object_unref(Z_OBJECT(selfp->next));
@@ -305,14 +221,18 @@ void z_vector_segment_set_next(Self *self, Self * value)
  if (value)
  z_object_ref(Z_OBJECT(value));
  }
+}
 static void  z_vector_segment_release_data(Self *self)
+{
 {
  assert(selfp->data->ref_count > 1);
  --selfp->data->ref_count;
 
  selfp->data = NULL;
  }
+}
 static void  z_vector_segment_prepare_for_writing(Self *self,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_copy_construct)
+{
 {
  /* If the segment data has a ref-count of 1, we are allowed to
                    write on it because it's not being shared by any other
@@ -356,11 +276,15 @@ static void  z_vector_segment_prepare_for_writing(Self *self,int item_size,int s
                    segment data */
  --original->ref_count;
  }
+}
 int  z_vector_segment_get_size(Self *self)
+{
 {
  return selfp->count;
  }
+}
 int  z_vector_segment_set_size(Self *self,int value,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_construct,ZVectorItemCallback item_copy_construct,ZVectorItemCallback item_destruct)
+{
 {
  int rc = 0;
 
@@ -423,11 +347,15 @@ int  z_vector_segment_set_size(Self *self,int value,int item_size,int storage_mo
 done:
  return rc;
  }
+}
 int  z_vector_segment_get_capacity(Self *self)
+{
 {
  return selfp->capacity;
  }
+}
 static void  z_vector_segment_deallocate(Self *self)
+{
 {
  ZSegmentData *data = selfp->data;
 
@@ -448,7 +376,9 @@ static void  z_vector_segment_deallocate(Self *self)
 
  selfp->data = NULL;
  }
+}
 static int  z_vector_segment_set_capacity(Self *self,int min_value,int max_value,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_construct,ZVectorItemCallback item_copy_construct,ZVectorItemCallback item_destruct)
+{
 {
  if (max_value < selfp->count) {
  set_size(self, max_value, item_size, storage_mode, userdata, item_construct, item_copy_construct, item_destruct);
@@ -528,7 +458,9 @@ static int  z_vector_segment_set_capacity(Self *self,int min_value,int max_value
 
  return 0;
  }
+}
 int  z_vector_segment_is_in_bound(Self *self,ZVectorIter *iter)
+{
 {
  int index = z_vector_iter_get_index(iter);
 
@@ -538,7 +470,9 @@ int  z_vector_segment_is_in_bound(Self *self,ZVectorIter *iter)
  else
  return 0;
  }
+}
 void *  z_vector_segment_get_item(Self *self,ZVectorIter *iter,int item_size,int storage_mode)
+{
 {
  int index = z_vector_iter_get_index(iter);
  int offset = index * item_size;
@@ -556,7 +490,9 @@ void *  z_vector_segment_get_item(Self *self,ZVectorIter *iter,int item_size,int
 
  return NULL;
  }
+}
 int  z_vector_segment_set_item(Self *self,ZVectorIter *iter,void *item,void *userdata,ZVectorItemCallback item_copy_construct,int item_size,int storage_mode)
+{
 {
  int index = z_vector_iter_get_index(iter);
  int offset = index * item_size;
@@ -574,7 +510,9 @@ int  z_vector_segment_set_item(Self *self,ZVectorIter *iter,void *item,void *use
 
  return ERANGE;
  }
+}
 int  z_vector_segment_insert(Self *self,ZVectorIter *iter,int n,void *item,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_copy_construct)
+{
 {
  /* increase the size of the vector */
 
@@ -638,13 +576,17 @@ int  z_vector_segment_insert(Self *self,ZVectorIter *iter,int n,void *item,int i
 
  return 0;
  }
+}
 ZVectorIter *  z_vector_segment_get_begin(Self *self)
+{
 {
  ZVectorIter *iter = z_vector_iter_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  z_vector_iter_set_segment(iter, self);
  return iter;
  }
+}
 ZVectorIter *  z_vector_segment_get_end(Self *self)
+{
 {
  ZVectorIter *iter = z_vector_iter_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  z_vector_iter_set_segment(iter, self);
@@ -652,7 +594,9 @@ ZVectorIter *  z_vector_segment_get_end(Self *self)
  z_vector_iter_increment(iter);
  return iter;
  }
+}
 static int  z_vector_segment_clone(Self *self,ZVectorSegment *src)
+{
 {
  selfp->data = src->_priv.data;
  ++selfp->data->ref_count;
@@ -662,7 +606,9 @@ static int  z_vector_segment_clone(Self *self,ZVectorSegment *src)
 
  return selfp->count;
  }
+}
 int  z_vector_segment_insert_range(Self *self,ZVectorIter *iter,ZVectorSegment *src,ZVectorIter *src_iter_start,ZVectorIter *src_iter_end,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_copy_construct)
+{
 {
  ZVectorIter *src_begin_it, *src_end_it;
  ZVectorIter *it1, *it2;
@@ -789,7 +735,9 @@ done:
 
  return n;
  }
+}
 int  z_vector_segment_erase(Self *self,ZVectorIter *start,ZVectorIter *end,int item_size,int storage_mode,void *userdata,ZVectorItemCallback item_copy_construct,ZVectorItemCallback item_destruct)
+{
 {
  ZVectorIter *it1;
  ZVectorIter *it2;
@@ -869,6 +817,7 @@ int  z_vector_segment_erase(Self *self,ZVectorIter *start,ZVectorIter *end,int i
 
  return n;
  }
+}
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
 static void z_vector_segment_class_destroy(ZObjectGlobal *gbl)
 {

@@ -203,6 +203,56 @@
         ((ZObject *) self)->class_base = (void *) CLASS_FROM_GLOBAL(self->_global); \
         ((ZObjectClass *) CLASS_FROM_GLOBAL(self->_global))->real_global = (ZCommonGlobal *) self->_global
 
+#define ZCO_METHOD_HOOK_START(self,args) \
+	{ \
+		ZObjectMethodHookHandler _method_hook = Z_OBJECT(self)->_priv._method_hook; \
+		if (_method_hook) { \
+			ZVector *args = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self)); \
+			z_vector_set_item_size(args, 0); \
+			z_vector_set_item_destruct(args, (ZVectorItemCallback) z_object_unref) \
+
+#define ZCO_METHOD_HOOK_END(self,args,symbol,ret_type) \
+			ret_type dummy; \
+			ret_type ret = (ret_type) _method_hook((ZObject *) self, #symbol, sizeof(*dummy), args); \
+			z_object_unref(Z_OBJECT(args)); \
+			return ret; \
+		} \
+	}
+
+
+#define ZCO_ADD_ZVALUE_ARG(args,a) \
+        { \
+                ZValue *value = a; \
+                z_object_ref(Z_OBJECT(value)); \
+                z_vector_push_back(args, value); \
+        }
+
+#define ZCO_ADD_OBJECT_ARG(args,a) \
+        { \
+                ZValue *value = z_value_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self)); \
+                z_value_set_as_object(value, Z_OBJECT(a)); \
+                z_vector_push_back(args, value); \
+        }
+
+
+#define ZCO_ADD_STRING_ARG(args,a) \
+        { \
+                ZValue *value = z_value_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self)); \
+                ZString *_temp = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self)); \
+                z_string_set_cstring(_temp, a, Z_STRING_ENCODING_UTF8); \
+                z_value_set_as_object(value, Z_OBJECT(_temp)); \
+                z_object_unref(Z_OBJECT(_temp)); \
+                z_vector_push_back(args, value); \
+        }
+
+#define A4(args,a,type) \
+        { \
+                ZValue *value = z_value_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self)); \
+                z_value_set_as_##type(value, a); \
+                z_vector_push_back(args, value); \
+        }
+
+
 struct ZCommonGlobal {
         /* vtable for object instance.
            This table maps type id to an offset. Given a type id of a parent

@@ -43,17 +43,7 @@ enum ZStringEncoding
 #define Z_STRING(s) ((ZString *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_string_type_id]))
 
 
-struct ZStringPrivate;
-struct ZStringProtected;
-struct ZStringGlobal;
-struct ZStringClass;
-struct ZString;
-
-typedef struct ZStringPrivate ZStringPrivate;
-typedef struct ZStringProtected ZStringProtected;
-typedef struct ZStringGlobal ZStringGlobal;
-typedef struct ZStringClass ZStringClass;
-typedef struct ZString ZString;
+ZCO_TYPEDEF_FWD_DECL_CLASS(ZString);
 
 struct ZStringPrivate {
 	ZVector *data;
@@ -65,8 +55,7 @@ struct ZStringProtected {
 };
 
 struct ZStringGlobal {
-	struct ZCommonGlobal common;
-	struct ZStringClass *_class;
+	ZCO_CLASS_GLOBAL_HEAD(ZString);
 	void  (*__parent_reset)(ZObject *object);
 	void  (*__parent_dispose)(ZObject *object);
 	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
@@ -79,9 +68,7 @@ struct ZStringClass {
 
 struct ZString {
 	struct ZObject parent_z_object;
-	struct ZStringGlobal *_global;
-	struct ZStringPrivate _priv;
-	struct ZStringProtected _prot;
+	ZCO_CLASS_PUBLIC_HEAD(ZString);
 };
 extern int z_string_type_id;
 ZStringGlobal * z_string_get_type(struct zco_context_t *ctx);

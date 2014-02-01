@@ -31,17 +31,7 @@ typedef struct ZVectorSegment ZVectorSegment;
 #define Z_VECTOR_ITER(s) ((ZVectorIter *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_vector_iter_type_id]))
 
 
-struct ZVectorIterPrivate;
-struct ZVectorIterProtected;
-struct ZVectorIterGlobal;
-struct ZVectorIterClass;
-struct ZVectorIter;
-
-typedef struct ZVectorIterPrivate ZVectorIterPrivate;
-typedef struct ZVectorIterProtected ZVectorIterProtected;
-typedef struct ZVectorIterGlobal ZVectorIterGlobal;
-typedef struct ZVectorIterClass ZVectorIterClass;
-typedef struct ZVectorIter ZVectorIter;
+ZCO_TYPEDEF_FWD_DECL_CLASS(ZVectorIter);
 
 struct ZVectorIterPrivate {
 	int index;
@@ -53,8 +43,7 @@ struct ZVectorIterProtected {
 };
 
 struct ZVectorIterGlobal {
-	struct ZCommonGlobal common;
-	struct ZVectorIterClass *_class;
+	ZCO_CLASS_GLOBAL_HEAD(ZVectorIter);
 	void  (*__parent_reset)(ZObject *object);
 	void  (*__parent_dispose)(ZObject *object);
 	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
@@ -67,9 +56,7 @@ struct ZVectorIterClass {
 
 struct ZVectorIter {
 	struct ZObject parent_z_object;
-	struct ZVectorIterGlobal *_global;
-	struct ZVectorIterPrivate _priv;
-	struct ZVectorIterProtected _prot;
+	ZCO_CLASS_PUBLIC_HEAD(ZVectorIter);
 };
 extern int z_vector_iter_type_id;
 ZVectorIterGlobal * z_vector_iter_get_type(struct zco_context_t *ctx);

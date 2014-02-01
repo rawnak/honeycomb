@@ -63,34 +63,8 @@
 #define get_closure_marshal z_object_get_closure_marshal
 #define set_closure_marshal z_object_set_closure_marshal
 
-int z_object_type_id = -1;
+ZCO_DEFINE_CLASS_TYPE(z_object);
 
-static Self *__z_object_new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
-{
-	Self *self = NULL;
-	if (allocator) {
-		ZObjectTracker *object_tracker = z_memory_allocator_get_object_tracker(allocator);
-		if (object_tracker) {
-			self = (Self *) z_object_tracker_create(object_tracker, z_object_type_id);
-			z_object_unref(Z_OBJECT(object_tracker));
-		}
-	}
-	if (!self) {
-		ZMemoryAllocator *obj_allocator = ctx->fixed_allocator;
-		if (obj_allocator)
-			self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));
-		else
-			self = (Self *) malloc(sizeof(Self));
-		z_object_set_allocator_ptr((ZObject *) self, allocator);
-		__z_object_init(ctx, self);
-	}
-	return self;
-}
-
-static int __map_compare(ZMap *map, const void *a, const void *b)
-{
-	return strcmp(a, b);
-}
 static void z_object_init(Self *self);
 static void  z_object_virtual_class_destroy(ZObjectGlobal *gbl);
 static void  z_object_cleanup_attached_properties(Self *self);
@@ -107,57 +81,27 @@ static void cleanup_signal_arg(void *item, void *userdata)
 }
 ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
 {
-	ZCommonGlobal **global_ptr = NULL;
-	if (z_object_type_id != -1) {
-		global_ptr = zco_get_ctx_type(ctx, z_object_type_id);
-	}
-	if (!global_ptr || !*global_ptr) {
-		struct ZObjectGlobal *global = (ZObjectGlobal *) malloc(sizeof(struct ZObjectGlobal));
-		global->common.ctx = ctx;
-		global->_class = malloc(sizeof(struct ZObjectClass));
-		memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct ZObjectClass));
-		global->common.name = "ZObject";
-		global->common.vtable_off_list = NULL;
-		global->common.vtable_off_size = 0;
-		global->common.svtable_off_list = NULL;
-		global->common.svtable_off_size = 0;
-		global->common.is_object = 1;
-
-		struct ZObject temp;
-		struct ZObjectClass temp_class;
-
-		if (z_object_type_id == -1)
-			z_object_type_id = zco_allocate_type_id();
-		global->common.id = z_object_type_id;
-		zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, z_object_type_id);
-		zco_add_to_vtable(&global->common.svtable_off_list, &global->common.svtable_off_size, z_object_type_id);
-		global_ptr = zco_get_ctx_type(ctx, z_object_type_id);
-		*global_ptr = (ZCommonGlobal *) global;
-		
-		CLASS_FROM_GLOBAL(global)->__class_destroy = z_object_virtual_class_destroy;
-		CLASS_FROM_GLOBAL(global)->__reset = z_object_virtual_reset;
-		CLASS_FROM_GLOBAL(global)->____delete = z_object_virtual___delete;
-		CLASS_FROM_GLOBAL(global)->__dispose = z_object_virtual_dispose;
-		__z_object_class_init(ctx, (ZObjectClass *) CLASS_FROM_GLOBAL(global));
-		global->common.method_map = z_map_new(ctx, NULL);
-		z_map_set_compare(global->common.method_map, __map_compare);
-		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
-		z_map_insert((ZMap *) global->common.method_map, strdup("reset"), (ZObjectSignalHandler) reset);
-		z_map_insert((ZMap *) global->common.method_map, strdup("__delete"), (ZObjectSignalHandler) __delete);
-		z_map_insert((ZMap *) global->common.method_map, strdup("dispose"), (ZObjectSignalHandler) dispose);
-		z_map_insert((ZMap *) global->common.method_map, strdup("ref"), (ZObjectSignalHandler) ref);
-		z_map_insert((ZMap *) global->common.method_map, strdup("unref"), (ZObjectSignalHandler) unref);
-		z_map_insert((ZMap *) global->common.method_map, strdup("connect"), (ZObjectSignalHandler) connect);
-		z_map_insert((ZMap *) global->common.method_map, strdup("disconnect"), (ZObjectSignalHandler) disconnect);
-		z_map_insert((ZMap *) global->common.method_map, strdup("register_signal"), (ZObjectSignalHandler) register_signal);
-		z_map_insert((ZMap *) global->common.method_map, strdup("emit_signal"), (ZObjectSignalHandler) emit_signal);
-		z_map_insert((ZMap *) global->common.method_map, strdup("add_attached_property_map"), (ZObjectSignalHandler) add_attached_property_map);
-		#ifdef GLOBAL_INIT_EXISTS
-			global_init((ZObjectGlobal *) global);
-		#endif
-		return global;
-	}
-	return (ZObjectGlobal *) *global_ptr;
+	ZCO_CREATE_CLASS(global, ZObject, z_object, 1);
+	ZCO_REGISTER_TYPE(z_object);
+	ZCO_CREATE_VIRTUAL_METHOD(z_object, class_destroy);
+	ZCO_CREATE_VIRTUAL_METHOD(z_object, reset);
+	ZCO_CREATE_VIRTUAL_METHOD(z_object, __delete);
+	ZCO_CREATE_VIRTUAL_METHOD(z_object, dispose);
+	ZCO_CREATE_METHOD_MAP(ZObject, z_object);
+	ZCO_REGISTER_METHOD(reset);
+	ZCO_REGISTER_METHOD(__delete);
+	ZCO_REGISTER_METHOD(dispose);
+	ZCO_REGISTER_METHOD(ref);
+	ZCO_REGISTER_METHOD(unref);
+	ZCO_REGISTER_METHOD(connect);
+	ZCO_REGISTER_METHOD(disconnect);
+	ZCO_REGISTER_METHOD(register_signal);
+	ZCO_REGISTER_METHOD(emit_signal);
+	ZCO_REGISTER_METHOD(add_attached_property_map);
+	#ifdef GLOBAL_INIT_EXISTS
+		global_init(global);
+	#endif
+	return global;
 }
 
 void __z_object_class_init(struct zco_context_t *ctx, ZObjectClass *_class)
@@ -168,10 +112,8 @@ void __z_object_class_init(struct zco_context_t *ctx, ZObjectClass *_class)
 }
 void __z_object_init(struct zco_context_t *ctx, Self *self)
 {
-	struct ZObjectGlobal *_global = z_object_get_type(ctx);
-	self->_global = _global;
-	((ZObject *) self)->class_base = (void *) CLASS_FROM_GLOBAL(_global);
-	((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (ZCommonGlobal *) _global;
+	ZCO_INIT_START(ZObject, z_object);
+	ZCO_SEAL_CLASS();
 	#ifdef INIT_EXISTS
 		init(self);
 	#endif
@@ -182,6 +124,7 @@ static void z_object_init(Self *self)
  selfp->attached_properties = NULL;
  selfp->signal_map = NULL;
  selfp->closure_marshal = NULL;
+ selfp->_method_hook = NULL;
  }
 void  z_object_class_destroy(ZObjectGlobal *gbl)
 {
@@ -194,6 +137,7 @@ static void  z_object_virtual_class_destroy(ZObjectGlobal *gbl)
 {
  }
 static void  z_object_cleanup_attached_properties(Self *self)
+{
 {
  ZVector *attached_properties = (ZVector *) selfp->attached_properties;
 
@@ -223,13 +167,16 @@ static void  z_object_cleanup_attached_properties(Self *self)
  }
 
  }
+}
 void  z_object_reset(Self *self)
+{
 {
 	ZObject *obj = (ZObject *) self;
 	ZObjectClass *class_base = (ZObjectClass *) obj->class_base;
 	ZCommonGlobal *common_global = class_base->real_global;
 	unsigned long offset = common_global->svtable_off_list[z_object_type_id];
 	((ZObjectClass *) ((char *) class_base + offset))->__reset(self);
+}
 }
 static void  z_object_virtual_reset(Self *self)
 {
@@ -247,11 +194,13 @@ static void  z_object_virtual_reset(Self *self)
  }
 void  z_object___delete(Self *self)
 {
+{
 	ZObject *obj = (ZObject *) self;
 	ZObjectClass *class_base = (ZObjectClass *) obj->class_base;
 	ZCommonGlobal *common_global = class_base->real_global;
 	unsigned long offset = common_global->svtable_off_list[z_object_type_id];
 	((ZObjectClass *) ((char *) class_base + offset))->____delete(self);
+}
 }
 static void  z_object_virtual___delete(Self *self)
 {
@@ -261,11 +210,13 @@ static void  z_object_virtual___delete(Self *self)
  }
 void  z_object_dispose(Self *self)
 {
+{
 	ZObject *obj = (ZObject *) self;
 	ZObjectClass *class_base = (ZObjectClass *) obj->class_base;
 	ZCommonGlobal *common_global = class_base->real_global;
 	unsigned long offset = common_global->svtable_off_list[z_object_type_id];
 	((ZObjectClass *) ((char *) class_base + offset))->__dispose(self);
+}
 }
 static void  z_object_virtual_dispose(Self *self)
 {
@@ -282,9 +233,12 @@ static void  z_object_virtual_dispose(Self *self)
  }
 void  z_object_ref(Self *self)
 {
+{
  ++selfp->ref_count;
  }
+}
 void  z_object_unref(Self *self)
+{
 {
  assert(selfp->ref_count > 0);
  if (--selfp->ref_count == 0) {
@@ -300,7 +254,9 @@ void  z_object_unref(Self *self)
  dispose(self);
  }
  }
+}
 static ZObjectSignalHandler  z_object_lookup_method(Self *self,char *method_name)
+{
 {
  /* This reinterpret cast is only valid for the fields that
 		   are common between the source (unknown) *Global type and
@@ -334,7 +290,9 @@ static ZObjectSignalHandler  z_object_lookup_method(Self *self,char *method_name
 
  return NULL;
  }
+}
 void *  z_object_connect(Self *self,char *name,ZObject *target,char *method_name,void *userdata)
+{
 {
 #if !defined(BOOTSTRAP)
  ZClosure *closure;
@@ -372,7 +330,9 @@ void *  z_object_connect(Self *self,char *name,ZObject *target,char *method_name
  return NULL;
 #endif
  }
+}
 void  z_object_disconnect(Self *self,char *name,void *key)
+{
 {
  assert(selfp->signal_map != NULL);
 
@@ -403,7 +363,9 @@ void  z_object_disconnect(Self *self,char *name,void *key)
 
  unref(self);
  }
+}
 void  z_object_register_signal(Self *self,char *name)
+{
 {
  /* create signal map (if necessary) */
  if (!selfp->signal_map) {
@@ -428,7 +390,9 @@ void  z_object_register_signal(Self *self,char *name)
  z_object_unref(Z_OBJECT(it));
  }
  }
+}
 int  z_object_emit_signal(Self *self,char *name,void *argv)
+{
 {
 #if !defined(BOOTSTRAP)
  assert(selfp->signal_map != NULL);
@@ -462,7 +426,9 @@ int  z_object_emit_signal(Self *self,char *name,void *argv)
  return -1;
 #endif
  }
+}
 void  z_object_add_attached_property_map(Self *self,void *map)
+{
 {
  if (selfp->attached_properties == 0) {
  ZVector *attached_properties = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
@@ -474,26 +440,36 @@ void  z_object_add_attached_property_map(Self *self,void *map)
  /* keep note of the maps that has a pointer to 'self' */
  z_vector_push_back((ZVector *) selfp->attached_properties, map);
  }
+}
 static int  z_object_map_compare(ZMap *map,const void *a,const void *b)
+{
 {
  return strcmp(a, b);
  }
+}
 ZMemoryAllocator *  z_object_get_allocator_ptr(Self *self)
+{
 {
  return selfp->allocator;
  }
+}
 void z_object_set_allocator_ptr(Self *self, ZMemoryAllocator *  value)
+{
 {
  selfp->allocator = value;
  }
+}
 ZObject *  z_object_get_closure_marshal(Self *self)
+{
 {
  if (selfp->closure_marshal)
  z_object_ref(selfp->closure_marshal);
 
  return selfp->closure_marshal;
  }
+}
 void z_object_set_closure_marshal(Self *self, ZObject *  value)
+{
 {
  if (selfp->closure_marshal)
  z_object_unref(selfp->closure_marshal);
@@ -503,6 +479,7 @@ void z_object_set_closure_marshal(Self *self, ZObject *  value)
  if (selfp->closure_marshal)
  z_object_ref(selfp->closure_marshal);
  }
+}
 
 
 

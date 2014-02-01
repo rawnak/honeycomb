@@ -73,6 +73,7 @@ static ZString *to_zstring(char *s)
 "*"                     { yylval=to_zstring("*");                   return ASTERISK;   }
 "!"                     { yylval=to_zstring("!");                   return BANG;       }
 "#"                     { yylval=to_zstring("#");                   return HASH;       }
+"export"                { yylval=to_zstring("export");              return EXPORT;     }
 "global"                { yylval=to_zstring("global");              return GLOBAL;     }
 "public"                { yylval=to_zstring("public");              return PUBLIC;     }
 "protected"             { yylval=to_zstring("protected");           return PROTECTED;  }

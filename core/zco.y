@@ -36,8 +36,9 @@ ZZcoSourceGenerator *source_generator;
 int yylex(void);
 %}
 
-%token HEADER_BLK_START SOURCE_BLK_START FILE_BLK_END CLASS INTERFACE STRUCT UNION CONST SIGNED UNSIGNED COLON GLOBAL PUBLIC PROTECTED PRIVATE GET SET 
-%token OVERRIDE VIRTUAL WORD CODE OBRACE EBRACE OPAREN EPAREN SEMICOLON VAR_ARGS SPACE ASTERISK COMMENT COMMA HASH BANG VOLATILE
+%token HEADER_BLK_START SOURCE_BLK_START FILE_BLK_END CLASS INTERFACE STRUCT UNION CONST SIGNED UNSIGNED COLON GLOBAL
+%token OVERRIDE VIRTUAL WORD CODE OBRACE EBRACE OPAREN EPAREN SEMICOLON VAR_ARGS SPACE ASTERISK COMMENT COMMA HASH
+%token BANG VOLATILE PUBLIC PROTECTED PRIVATE GET SET EXPORT
 
 
 %start translation_unit
@@ -306,6 +307,18 @@ ccodes
 		z_object_unref(Z_OBJECT($1));
 	}
 	| ccodes GLOBAL
+	{
+		z_string_append_format((ZString *) $1, "%S", $2);
+		z_object_unref(Z_OBJECT($2));
+	}
+
+	| EXPORT
+	{
+		$$=z_zco_source_generator_new_string(source_generator,NULL);
+		z_string_append_format($$, "%S", $1);
+		z_object_unref(Z_OBJECT($1));
+	}
+	| ccodes EXPORT
 	{
 		z_string_append_format((ZString *) $1, "%S", $2);
 		z_object_unref(Z_OBJECT($2));
@@ -861,6 +874,14 @@ access_specifier
 	}
 	;
 
+export_options
+        : EXPORT
+        {
+                z_zco_source_generator_set_export_option(source_generator, 1);
+                z_object_unref(Z_OBJECT($1));
+        }
+        ;
+
 type_name
 	: WORD pointers
 	{
@@ -1114,6 +1135,46 @@ class_object
 		z_object_unref((ZObject *) $6);
 		z_object_unref((ZObject *) $7);
 		z_object_unref((ZObject *) $8);
+	}
+
+	| access_specifier ignorables export_options ignorables type_name symbol_name argument_list ccodes_block
+	{
+		z_zco_source_generator_class_member_function_decl(source_generator, $6, (ZString *) $7, (ZString *) $8);
+		z_object_unref((ZObject *) $2);
+		z_object_unref((ZObject *) $6);
+		z_object_unref((ZObject *) $7);
+		z_object_unref((ZObject *) $8);
+	}
+
+	| access_specifier ignorables export_options ignorables type_name symbol_name ignorables argument_list ccodes_block
+	{
+		z_zco_source_generator_class_member_function_decl(source_generator, $6, (ZString *) $8, (ZString *) $9);
+		z_object_unref((ZObject *) $2);
+		z_object_unref((ZObject *) $6);
+		z_object_unref((ZObject *) $7);
+		z_object_unref((ZObject *) $8);
+		z_object_unref((ZObject *) $9);
+	}
+
+	| access_specifier ignorables export_options ignorables type_name symbol_name argument_list ignorables ccodes_block
+	{
+		z_zco_source_generator_class_member_function_decl(source_generator, $6, (ZString *) $7, (ZString *) $9);
+		z_object_unref((ZObject *) $2);
+		z_object_unref((ZObject *) $6);
+		z_object_unref((ZObject *) $7);
+		z_object_unref((ZObject *) $8);
+		z_object_unref((ZObject *) $9);
+	}
+
+	| access_specifier ignorables export_options ignorables type_name symbol_name ignorables argument_list ignorables ccodes_block
+	{
+		z_zco_source_generator_class_member_function_decl(source_generator, $6, (ZString *) $8, (ZString *) $10);
+		z_object_unref((ZObject *) $2);
+		z_object_unref((ZObject *) $6);
+		z_object_unref((ZObject *) $7);
+		z_object_unref((ZObject *) $8);
+		z_object_unref((ZObject *) $9);
+		z_object_unref((ZObject *) $10);
 	}
 
 	/* special member functions (ie. init() or global_init() */

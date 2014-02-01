@@ -36,17 +36,7 @@ typedef struct ZSegmentData ZSegmentData;
 #define Z_VECTOR_SEGMENT(s) ((ZVectorSegment *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_vector_segment_type_id]))
 
 
-struct ZVectorSegmentPrivate;
-struct ZVectorSegmentProtected;
-struct ZVectorSegmentGlobal;
-struct ZVectorSegmentClass;
-struct ZVectorSegment;
-
-typedef struct ZVectorSegmentPrivate ZVectorSegmentPrivate;
-typedef struct ZVectorSegmentProtected ZVectorSegmentProtected;
-typedef struct ZVectorSegmentGlobal ZVectorSegmentGlobal;
-typedef struct ZVectorSegmentClass ZVectorSegmentClass;
-typedef struct ZVectorSegment ZVectorSegment;
+ZCO_TYPEDEF_FWD_DECL_CLASS(ZVectorSegment);
 
 struct ZVectorSegmentPrivate {
 	int start;
@@ -61,8 +51,7 @@ struct ZVectorSegmentProtected {
 };
 
 struct ZVectorSegmentGlobal {
-	struct ZCommonGlobal common;
-	struct ZVectorSegmentClass *_class;
+	ZCO_CLASS_GLOBAL_HEAD(ZVectorSegment);
 	void  (*__parent_reset)(ZObject *object);
 	void  (*__parent_dispose)(ZObject *object);
 	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
@@ -75,9 +64,7 @@ struct ZVectorSegmentClass {
 
 struct ZVectorSegment {
 	struct ZObject parent_z_object;
-	struct ZVectorSegmentGlobal *_global;
-	struct ZVectorSegmentPrivate _priv;
-	struct ZVectorSegmentProtected _prot;
+	ZCO_CLASS_PUBLIC_HEAD(ZVectorSegment);
 };
 extern int z_vector_segment_type_id;
 ZVectorSegmentGlobal * z_vector_segment_get_type(struct zco_context_t *ctx);

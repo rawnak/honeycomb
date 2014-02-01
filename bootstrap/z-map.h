@@ -36,17 +36,7 @@ typedef void(*ZMapItemCallback)(void *item, void *userdata);
 #define Z_MAP(s) ((ZMap *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_map_type_id]))
 
 
-struct ZMapPrivate;
-struct ZMapProtected;
-struct ZMapGlobal;
-struct ZMapClass;
-struct ZMap;
-
-typedef struct ZMapPrivate ZMapPrivate;
-typedef struct ZMapProtected ZMapProtected;
-typedef struct ZMapGlobal ZMapGlobal;
-typedef struct ZMapClass ZMapClass;
-typedef struct ZMap ZMap;
+ZCO_TYPEDEF_FWD_DECL_CLASS(ZMap);
 
 struct ZMapPrivate {
 	ZVector *data;
@@ -60,8 +50,7 @@ struct ZMapProtected {
 };
 
 struct ZMapGlobal {
-	struct ZCommonGlobal common;
-	struct ZMapClass *_class;
+	ZCO_CLASS_GLOBAL_HEAD(ZMap);
 	void  (*__parent_reset)(ZObject *object);
 	void  (*__parent_dispose)(ZObject *object);
 	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
@@ -74,9 +63,7 @@ struct ZMapClass {
 
 struct ZMap {
 	struct ZObject parent_z_object;
-	struct ZMapGlobal *_global;
-	struct ZMapPrivate _priv;
-	struct ZMapProtected _prot;
+	ZCO_CLASS_PUBLIC_HEAD(ZMap);
 };
 extern int z_map_type_id;
 ZMapGlobal * z_map_get_type(struct zco_context_t *ctx);

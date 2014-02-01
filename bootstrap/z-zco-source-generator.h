@@ -61,17 +61,7 @@ typedef enum modifier_mode_t modifier_mode_t;
 #define Z_ZCO_SOURCE_GENERATOR(s) ((ZZcoSourceGenerator *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_zco_source_generator_type_id]))
 
 
-struct ZZcoSourceGeneratorPrivate;
-struct ZZcoSourceGeneratorProtected;
-struct ZZcoSourceGeneratorGlobal;
-struct ZZcoSourceGeneratorClass;
-struct ZZcoSourceGenerator;
-
-typedef struct ZZcoSourceGeneratorPrivate ZZcoSourceGeneratorPrivate;
-typedef struct ZZcoSourceGeneratorProtected ZZcoSourceGeneratorProtected;
-typedef struct ZZcoSourceGeneratorGlobal ZZcoSourceGeneratorGlobal;
-typedef struct ZZcoSourceGeneratorClass ZZcoSourceGeneratorClass;
-typedef struct ZZcoSourceGenerator ZZcoSourceGenerator;
+ZCO_TYPEDEF_FWD_DECL_CLASS(ZZcoSourceGenerator);
 
 struct ZZcoSourceGeneratorPrivate {
 	ZFile *source_file;
@@ -115,6 +105,7 @@ struct ZZcoSourceGeneratorPrivate {
 	ZString *class_destroy_code;
 	access_mode_t access_mode;
 	modifier_mode_t modifier_mode;
+	int export_option;
 	ZString *str_class_init;
 	ZString *str_global_init;
 	ZString *str_init;
@@ -154,8 +145,7 @@ struct ZZcoSourceGeneratorProtected {
 };
 
 struct ZZcoSourceGeneratorGlobal {
-	struct ZCommonGlobal common;
-	struct ZZcoSourceGeneratorClass *_class;
+	ZCO_CLASS_GLOBAL_HEAD(ZZcoSourceGenerator);
 	void  (*__parent_dispose)(ZObject *object);
 	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
 	void (*__parent___delete)(ZObject *self);
@@ -167,9 +157,7 @@ struct ZZcoSourceGeneratorClass {
 
 struct ZZcoSourceGenerator {
 	struct ZObject parent_z_object;
-	struct ZZcoSourceGeneratorGlobal *_global;
-	struct ZZcoSourceGeneratorPrivate _priv;
-	struct ZZcoSourceGeneratorProtected _prot;
+	ZCO_CLASS_PUBLIC_HEAD(ZZcoSourceGenerator);
 };
 extern int z_zco_source_generator_type_id;
 ZZcoSourceGeneratorGlobal * z_zco_source_generator_get_type(struct zco_context_t *ctx);
@@ -194,6 +182,7 @@ void  z_zco_source_generator_interface_declaration(Self *self);
 void  z_zco_source_generator_enable_virtual_mode(Self *self);
 void  z_zco_source_generator_enable_override_mode(Self *self,ZString *s);
 void  z_zco_source_generator_set_access_mode(Self *self,int mode);
+void  z_zco_source_generator_set_export_option(Self *self,int option);
 void  z_zco_source_generator_set_type_name(Self *self,ZString *s);
 void  z_zco_source_generator_set_symbol_name(Self *self,ZString *s);
 void  z_zco_source_generator_add_class_data_member(Self *self);

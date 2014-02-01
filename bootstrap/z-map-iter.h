@@ -28,17 +28,7 @@
 #define Z_MAP_ITER(s) ((ZMapIter *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_map_iter_type_id]))
 
 
-struct ZMapIterPrivate;
-struct ZMapIterProtected;
-struct ZMapIterGlobal;
-struct ZMapIterClass;
-struct ZMapIter;
-
-typedef struct ZMapIterPrivate ZMapIterPrivate;
-typedef struct ZMapIterProtected ZMapIterProtected;
-typedef struct ZMapIterGlobal ZMapIterGlobal;
-typedef struct ZMapIterClass ZMapIterClass;
-typedef struct ZMapIter ZMapIter;
+ZCO_TYPEDEF_FWD_DECL_CLASS(ZMapIter);
 
 struct ZMapIterPrivate {
 	int index;
@@ -48,8 +38,7 @@ struct ZMapIterProtected {
 };
 
 struct ZMapIterGlobal {
-	struct ZCommonGlobal common;
-	struct ZMapIterClass *_class;
+	ZCO_CLASS_GLOBAL_HEAD(ZMapIter);
 	void  (*__parent_reset)(ZObject *object);
 	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
 	void (*__parent___delete)(ZObject *self);
@@ -61,9 +50,7 @@ struct ZMapIterClass {
 
 struct ZMapIter {
 	struct ZObject parent_z_object;
-	struct ZMapIterGlobal *_global;
-	struct ZMapIterPrivate _priv;
-	struct ZMapIterProtected _prot;
+	ZCO_CLASS_PUBLIC_HEAD(ZMapIter);
 };
 extern int z_map_iter_type_id;
 ZMapIterGlobal * z_map_iter_get_type(struct zco_context_t *ctx);

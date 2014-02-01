@@ -32,17 +32,7 @@ typedef void(*ZVectorItemCallback)(void *item, void *userdata);
 #define Z_VECTOR(s) ((ZVector *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_vector_type_id]))
 
 
-struct ZVectorPrivate;
-struct ZVectorProtected;
-struct ZVectorGlobal;
-struct ZVectorClass;
-struct ZVector;
-
-typedef struct ZVectorPrivate ZVectorPrivate;
-typedef struct ZVectorProtected ZVectorProtected;
-typedef struct ZVectorGlobal ZVectorGlobal;
-typedef struct ZVectorClass ZVectorClass;
-typedef struct ZVector ZVector;
+ZCO_TYPEDEF_FWD_DECL_CLASS(ZVector);
 
 struct ZVectorPrivate {
 	int item_size;
@@ -61,8 +51,7 @@ struct ZVectorProtected {
 };
 
 struct ZVectorGlobal {
-	struct ZCommonGlobal common;
-	struct ZVectorClass *_class;
+	ZCO_CLASS_GLOBAL_HEAD(ZVector);
 	void  (*__parent_reset)(ZObject *object);
 	void  (*__parent_dispose)(ZObject *object);
 	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
@@ -75,9 +64,7 @@ struct ZVectorClass {
 
 struct ZVector {
 	struct ZObject parent_z_object;
-	struct ZVectorGlobal *_global;
-	struct ZVectorPrivate _priv;
-	struct ZVectorProtected _prot;
+	ZCO_CLASS_PUBLIC_HEAD(ZVector);
 };
 extern int z_vector_type_id;
 ZVectorGlobal * z_vector_get_type(struct zco_context_t *ctx);

@@ -41,34 +41,8 @@
 #define write_vformat z_file_write_vformat
 #define write_format z_file_write_format
 
-int z_file_type_id = -1;
+ZCO_DEFINE_CLASS_TYPE(z_file);
 
-static Self *__z_file_new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
-{
-	Self *self = NULL;
-	if (allocator) {
-		ZObjectTracker *object_tracker = z_memory_allocator_get_object_tracker(allocator);
-		if (object_tracker) {
-			self = (Self *) z_object_tracker_create(object_tracker, z_file_type_id);
-			z_object_unref(Z_OBJECT(object_tracker));
-		}
-	}
-	if (!self) {
-		ZMemoryAllocator *obj_allocator = ctx->fixed_allocator;
-		if (obj_allocator)
-			self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));
-		else
-			self = (Self *) malloc(sizeof(Self));
-		z_object_set_allocator_ptr((ZObject *) self, allocator);
-		__z_file_init(ctx, self);
-	}
-	return self;
-}
-
-static int __map_compare(ZMap *map, const void *a, const void *b)
-{
-	return strcmp(a, b);
-}
 static void z_file_init(Self *self);
 static void z_file_class_destroy(ZObjectGlobal *gbl);
 static void z_file___delete(ZObject *self);
@@ -80,79 +54,22 @@ static void cleanup_signal_arg(void *item, void *userdata)
 }
 ZFileGlobal * z_file_get_type(struct zco_context_t *ctx)
 {
-	ZCommonGlobal **global_ptr = NULL;
-	if (z_file_type_id != -1) {
-		global_ptr = zco_get_ctx_type(ctx, z_file_type_id);
-	}
-	if (!global_ptr || !*global_ptr) {
-		struct ZFileGlobal *global = (ZFileGlobal *) malloc(sizeof(struct ZFileGlobal));
-		global->common.ctx = ctx;
-		global->_class = malloc(sizeof(struct ZFileClass));
-		memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct ZFileClass));
-		global->common.name = "ZFile";
-		global->common.vtable_off_list = NULL;
-		global->common.vtable_off_size = 0;
-		global->common.svtable_off_list = NULL;
-		global->common.svtable_off_size = 0;
-		global->common.is_object = 1;
-
-		struct ZFile temp;
-		struct ZFileClass temp_class;
-
-		{
-			struct ZObjectGlobal *p_global = z_object_get_type(ctx);
-			zco_inherit_vtable(
-				&global->common.vtable_off_list,
-				&global->common.vtable_off_size,
-				p_global->common.vtable_off_list,
-				p_global->common.vtable_off_size,
-				&temp,
-				&temp.parent_z_object);
-			zco_inherit_vtable(
-				&global->common.svtable_off_list,
-				&global->common.svtable_off_size,
-				p_global->common.svtable_off_list,
-				p_global->common.svtable_off_size,
-				&temp_class,
-				&temp_class.parent_z_object);
-			ZObjectClass *p1_class = CLASS_FROM_GLOBAL(p_global);
-			ZObjectClass *p2_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
-			memcpy(p2_class, p1_class, sizeof(struct ZObjectClass));
-		}
-		if (z_file_type_id == -1)
-			z_file_type_id = zco_allocate_type_id();
-		global->common.id = z_file_type_id;
-		zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, z_file_type_id);
-		zco_add_to_vtable(&global->common.svtable_off_list, &global->common.svtable_off_size, z_file_type_id);
-		global_ptr = zco_get_ctx_type(ctx, z_file_type_id);
-		*global_ptr = (ZCommonGlobal *) global;
-		
-		{
-			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
-			global->__parent_class_destroy = p_class->__class_destroy;
-			p_class->__class_destroy = z_file_class_destroy;
-		}
-		{
-			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
-			global->__parent___delete = p_class->____delete;
-			p_class->____delete = z_file___delete;
-		}
-		__z_file_class_init(ctx, (ZFileClass *) CLASS_FROM_GLOBAL(global));
-		global->common.method_map = z_map_new(ctx, NULL);
-		z_map_set_compare(global->common.method_map, __map_compare);
-		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
-		z_map_insert((ZMap *) global->common.method_map, strdup("new"), (ZObjectSignalHandler) new);
-		z_map_insert((ZMap *) global->common.method_map, strdup("open"), (ZObjectSignalHandler) open);
-		z_map_insert((ZMap *) global->common.method_map, strdup("close"), (ZObjectSignalHandler) close);
-		z_map_insert((ZMap *) global->common.method_map, strdup("write"), (ZObjectSignalHandler) write);
-		z_map_insert((ZMap *) global->common.method_map, strdup("write_vformat"), (ZObjectSignalHandler) write_vformat);
-		z_map_insert((ZMap *) global->common.method_map, strdup("write_format"), (ZObjectSignalHandler) write_format);
-		#ifdef GLOBAL_INIT_EXISTS
-			global_init((ZFileGlobal *) global);
-		#endif
-		return global;
-	}
-	return (ZFileGlobal *) *global_ptr;
+	ZCO_CREATE_CLASS(global, ZFile, z_file, 1);
+	ZCO_INHERIT_CLASS(ZObject, z_object, ZFile);
+	ZCO_REGISTER_TYPE(z_file);
+	ZCO_OVERRIDE_VIRTUAL_METHOD(ZObject, z_object, z_file, class_destroy);
+	ZCO_OVERRIDE_VIRTUAL_METHOD(ZObject, z_object, z_file, __delete);
+	ZCO_CREATE_METHOD_MAP(ZFile, z_file);
+	ZCO_REGISTER_METHOD(new);
+	ZCO_REGISTER_METHOD(open);
+	ZCO_REGISTER_METHOD(close);
+	ZCO_REGISTER_METHOD(write);
+	ZCO_REGISTER_METHOD(write_vformat);
+	ZCO_REGISTER_METHOD(write_format);
+	#ifdef GLOBAL_INIT_EXISTS
+		global_init(global);
+	#endif
+	return global;
 }
 
 void __z_file_class_init(struct zco_context_t *ctx, ZFileClass *_class)
@@ -164,11 +81,9 @@ void __z_file_class_init(struct zco_context_t *ctx, ZFileClass *_class)
 }
 void __z_file_init(struct zco_context_t *ctx, Self *self)
 {
-	struct ZFileGlobal *_global = z_file_get_type(ctx);
-	self->_global = _global;
+	ZCO_INIT_START(ZFile, z_file);
 	__z_object_init(ctx, (ZObject *) (self));
-	((ZObject *) self)->class_base = (void *) CLASS_FROM_GLOBAL(_global);
-	((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (ZCommonGlobal *) _global;
+	ZCO_SEAL_CLASS();
 	#ifdef INIT_EXISTS
 		init(self);
 	#endif
@@ -179,15 +94,20 @@ static void z_file_init(Self *self)
  }
 Self * z_file_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator)
 {
+{
  Self *self = GET_NEW(ctx, allocator);
  return self;
  }
+}
 int  z_file_open(Self *self,const char *filename,const char *mode)
+{
 {
  selfp->file = fopen(filename, mode);
  return selfp->file? 0 : -1;
  }
+}
 int  z_file_close(Self *self)
+{
 {
  if (selfp->file) {
  fclose(selfp->file);
@@ -197,11 +117,15 @@ int  z_file_close(Self *self)
 
  return -1;
  }
+}
 void  z_file_write(Self *self,const char *str)
+{
 {
  fputs(str, selfp->file);
  }
+}
 int  z_file_write_vformat(Self *self,const char *fmt,va_list ap)
+{
 {
  ZString *temp = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  
@@ -217,7 +141,9 @@ int  z_file_write_vformat(Self *self,const char *fmt,va_list ap)
  /* release temporary string */
  z_object_unref(Z_OBJECT(temp));
  }
+}
 void  z_file_write_format(Self *self,const char *fmt,...)
+{
 {
  va_list ap;
 
@@ -225,6 +151,7 @@ void  z_file_write_format(Self *self,const char *fmt,...)
  write_vformat(self, fmt, ap);
  va_end(ap);
  }
+}
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
 static void z_file_class_destroy(ZObjectGlobal *gbl)
 {

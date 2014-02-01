@@ -29,17 +29,7 @@
 #define Z_FILE(s) ((ZFile *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_file_type_id]))
 
 
-struct ZFilePrivate;
-struct ZFileProtected;
-struct ZFileGlobal;
-struct ZFileClass;
-struct ZFile;
-
-typedef struct ZFilePrivate ZFilePrivate;
-typedef struct ZFileProtected ZFileProtected;
-typedef struct ZFileGlobal ZFileGlobal;
-typedef struct ZFileClass ZFileClass;
-typedef struct ZFile ZFile;
+ZCO_TYPEDEF_FWD_DECL_CLASS(ZFile);
 
 struct ZFilePrivate {
 	FILE * file;
@@ -49,8 +39,7 @@ struct ZFileProtected {
 };
 
 struct ZFileGlobal {
-	struct ZCommonGlobal common;
-	struct ZFileClass *_class;
+	ZCO_CLASS_GLOBAL_HEAD(ZFile);
 	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
 	void (*__parent___delete)(ZObject *self);
 };
@@ -61,9 +50,7 @@ struct ZFileClass {
 
 struct ZFile {
 	struct ZObject parent_z_object;
-	struct ZFileGlobal *_global;
-	struct ZFilePrivate _priv;
-	struct ZFileProtected _prot;
+	ZCO_CLASS_PUBLIC_HEAD(ZFile);
 };
 extern int z_file_type_id;
 ZFileGlobal * z_file_get_type(struct zco_context_t *ctx);

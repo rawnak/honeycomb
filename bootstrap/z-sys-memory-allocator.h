@@ -29,17 +29,7 @@
 #define Z_SYS_MEMORY_ALLOCATOR(s) ((ZSysMemoryAllocator *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_sys_memory_allocator_type_id]))
 
 
-struct ZSysMemoryAllocatorPrivate;
-struct ZSysMemoryAllocatorProtected;
-struct ZSysMemoryAllocatorGlobal;
-struct ZSysMemoryAllocatorClass;
-struct ZSysMemoryAllocator;
-
-typedef struct ZSysMemoryAllocatorPrivate ZSysMemoryAllocatorPrivate;
-typedef struct ZSysMemoryAllocatorProtected ZSysMemoryAllocatorProtected;
-typedef struct ZSysMemoryAllocatorGlobal ZSysMemoryAllocatorGlobal;
-typedef struct ZSysMemoryAllocatorClass ZSysMemoryAllocatorClass;
-typedef struct ZSysMemoryAllocator ZSysMemoryAllocator;
+ZCO_TYPEDEF_FWD_DECL_CLASS(ZSysMemoryAllocator);
 
 struct ZSysMemoryAllocatorPrivate {
 };
@@ -48,8 +38,7 @@ struct ZSysMemoryAllocatorProtected {
 };
 
 struct ZSysMemoryAllocatorGlobal {
-	struct ZCommonGlobal common;
-	struct ZSysMemoryAllocatorClass *_class;
+	ZCO_CLASS_GLOBAL_HEAD(ZSysMemoryAllocator);
 	void  (*__parent_dispose)(ZObject *object);
 	void *  (*__parent_allocate)(ZMemoryAllocator *allocator,int size);
 	void *  (*__parent_allocate_aligned)(ZMemoryAllocator *allocator,int size,int alignment);
@@ -66,9 +55,7 @@ struct ZSysMemoryAllocatorClass {
 
 struct ZSysMemoryAllocator {
 	struct ZMemoryAllocator parent_z_memory_allocator;
-	struct ZSysMemoryAllocatorGlobal *_global;
-	struct ZSysMemoryAllocatorPrivate _priv;
-	struct ZSysMemoryAllocatorProtected _prot;
+	ZCO_CLASS_PUBLIC_HEAD(ZSysMemoryAllocator);
 };
 extern int z_sys_memory_allocator_type_id;
 ZSysMemoryAllocatorGlobal * z_sys_memory_allocator_get_type(struct zco_context_t *ctx);

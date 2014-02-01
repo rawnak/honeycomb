@@ -57,7 +57,7 @@ class ZTestDerivedObject : ZTestObject
                 }
         }
 
-	public void click_it(Self *self, char *message)
+	public int * click_it(Self *self, char *message)
 	{
 		clicked(self, message);
 	}

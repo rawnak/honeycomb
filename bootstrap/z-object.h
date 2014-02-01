@@ -27,6 +27,9 @@
 struct ZObject;
 typedef void(*ZObjectSignalHandler)(struct ZObject *self, ...);
 
+struct ZVector;
+typedef void*(*ZObjectMethodHookHandler)(struct ZObject *self, const char *symbol, int return_value_size, struct ZVector *args);
+
 struct ZMemoryAllocator;
 typedef struct ZMemoryAllocator ZMemoryAllocator;
 
@@ -39,17 +42,7 @@ typedef struct ZClosureMarshal ZClosureMarshal;
 #define Z_OBJECT(s) ((ZObject *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_object_type_id]))
 
 
-struct ZObjectPrivate;
-struct ZObjectProtected;
-struct ZObjectGlobal;
-struct ZObjectClass;
-struct ZObject;
-
-typedef struct ZObjectPrivate ZObjectPrivate;
-typedef struct ZObjectProtected ZObjectProtected;
-typedef struct ZObjectGlobal ZObjectGlobal;
-typedef struct ZObjectClass ZObjectClass;
-typedef struct ZObject ZObject;
+ZCO_TYPEDEF_FWD_DECL_CLASS(ZObject);
 
 struct ZObjectPrivate {
 	unsigned int ref_count;
@@ -57,14 +50,14 @@ struct ZObjectPrivate {
 	ZObject *signal_map;
 	ZObject *closure_marshal;
 	ZMemoryAllocator *allocator;
+	ZObjectMethodHookHandler _method_hook;
 };
 
 struct ZObjectProtected {
 };
 
 struct ZObjectGlobal {
-	struct ZCommonGlobal common;
-	struct ZObjectClass *_class;
+	ZCO_CLASS_GLOBAL_HEAD(ZObject);
 };
 
 struct ZObjectClass {
@@ -76,9 +69,7 @@ struct ZObjectClass {
 };
 
 struct ZObject {
-	struct ZObjectGlobal *_global;
-	struct ZObjectPrivate _priv;
-	struct ZObjectProtected _prot;
+	ZCO_CLASS_PUBLIC_HEAD(ZObject);
 	void *class_base;
 };
 extern int z_object_type_id;

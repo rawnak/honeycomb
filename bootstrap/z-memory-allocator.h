@@ -30,17 +30,7 @@
 #define Z_MEMORY_ALLOCATOR(s) ((ZMemoryAllocator *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_memory_allocator_type_id]))
 
 
-struct ZMemoryAllocatorPrivate;
-struct ZMemoryAllocatorProtected;
-struct ZMemoryAllocatorGlobal;
-struct ZMemoryAllocatorClass;
-struct ZMemoryAllocator;
-
-typedef struct ZMemoryAllocatorPrivate ZMemoryAllocatorPrivate;
-typedef struct ZMemoryAllocatorProtected ZMemoryAllocatorProtected;
-typedef struct ZMemoryAllocatorGlobal ZMemoryAllocatorGlobal;
-typedef struct ZMemoryAllocatorClass ZMemoryAllocatorClass;
-typedef struct ZMemoryAllocator ZMemoryAllocator;
+ZCO_TYPEDEF_FWD_DECL_CLASS(ZMemoryAllocator);
 
 struct ZMemoryAllocatorPrivate {
 	ZObjectTracker *object_tracker;
@@ -50,8 +40,7 @@ struct ZMemoryAllocatorProtected {
 };
 
 struct ZMemoryAllocatorGlobal {
-	struct ZCommonGlobal common;
-	struct ZMemoryAllocatorClass *_class;
+	ZCO_CLASS_GLOBAL_HEAD(ZMemoryAllocator);
 	void  (*__parent_dispose)(ZObject *object);
 	void  (*__parent_reset)(ZObject *object);
 	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
@@ -71,9 +60,7 @@ struct ZMemoryAllocatorClass {
 
 struct ZMemoryAllocator {
 	struct ZObject parent_z_object;
-	struct ZMemoryAllocatorGlobal *_global;
-	struct ZMemoryAllocatorPrivate _priv;
-	struct ZMemoryAllocatorProtected _prot;
+	ZCO_CLASS_PUBLIC_HEAD(ZMemoryAllocator);
 };
 extern int z_memory_allocator_type_id;
 ZMemoryAllocatorGlobal * z_memory_allocator_get_type(struct zco_context_t *ctx);

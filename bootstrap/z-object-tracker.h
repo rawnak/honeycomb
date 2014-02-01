@@ -28,17 +28,7 @@
 #define Z_OBJECT_TRACKER(s) ((ZObjectTracker *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_object_tracker_type_id]))
 
 
-struct ZObjectTrackerPrivate;
-struct ZObjectTrackerProtected;
-struct ZObjectTrackerGlobal;
-struct ZObjectTrackerClass;
-struct ZObjectTracker;
-
-typedef struct ZObjectTrackerPrivate ZObjectTrackerPrivate;
-typedef struct ZObjectTrackerProtected ZObjectTrackerProtected;
-typedef struct ZObjectTrackerGlobal ZObjectTrackerGlobal;
-typedef struct ZObjectTrackerClass ZObjectTrackerClass;
-typedef struct ZObjectTracker ZObjectTracker;
+ZCO_TYPEDEF_FWD_DECL_CLASS(ZObjectTracker);
 
 struct ZObjectTrackerPrivate {
 };

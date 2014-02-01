@@ -25,6 +25,9 @@
 struct ZObject;
 typedef void(*ZObjectSignalHandler)(struct ZObject *self, ...);
 
+struct ZVector;
+typedef void*(*ZObjectMethodHookHandler)(struct ZObject *self, const char *symbol, int return_value_size, struct ZVector *args);
+
 struct ZMemoryAllocator;
 typedef struct ZMemoryAllocator ZMemoryAllocator;
 
@@ -56,6 +59,7 @@ class ZObject
 	private ZObject *signal_map;
         private ZObject *closure_marshal;
         private ZMemoryAllocator *allocator;
+	private ZObjectMethodHookHandler _method_hook;
 
 	init(Self *self)
 	{
@@ -63,6 +67,7 @@ class ZObject
 		selfp->attached_properties = NULL;
 		selfp->signal_map = NULL;
                 selfp->closure_marshal = NULL;
+		selfp->_method_hook = NULL;
 	}
 
         global virtual void class_destroy(ZObjectGlobal *gbl)

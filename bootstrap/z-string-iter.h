@@ -28,17 +28,7 @@
 #define Z_STRING_ITER(s) ((ZStringIter *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[z_string_iter_type_id]))
 
 
-struct ZStringIterPrivate;
-struct ZStringIterProtected;
-struct ZStringIterGlobal;
-struct ZStringIterClass;
-struct ZStringIter;
-
-typedef struct ZStringIterPrivate ZStringIterPrivate;
-typedef struct ZStringIterProtected ZStringIterProtected;
-typedef struct ZStringIterGlobal ZStringIterGlobal;
-typedef struct ZStringIterClass ZStringIterClass;
-typedef struct ZStringIter ZStringIter;
+ZCO_TYPEDEF_FWD_DECL_CLASS(ZStringIter);
 
 struct ZStringIterPrivate {
 	int index;
@@ -48,8 +38,7 @@ struct ZStringIterProtected {
 };
 
 struct ZStringIterGlobal {
-	struct ZCommonGlobal common;
-	struct ZStringIterClass *_class;
+	ZCO_CLASS_GLOBAL_HEAD(ZStringIter);
 	void  (*__parent_reset)(ZObject *object);
 	void (*__parent_class_destroy)(ZObjectGlobal *gbl);
 	void (*__parent___delete)(ZObject *self);
@@ -61,9 +50,7 @@ struct ZStringIterClass {
 
 struct ZStringIter {
 	struct ZObject parent_z_object;
-	struct ZStringIterGlobal *_global;
-	struct ZStringIterPrivate _priv;
-	struct ZStringIterProtected _prot;
+	ZCO_CLASS_PUBLIC_HEAD(ZStringIter);
 };
 extern int z_string_iter_type_id;
 ZStringIterGlobal * z_string_iter_get_type(struct zco_context_t *ctx);

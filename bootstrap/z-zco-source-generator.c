@@ -25,7 +25,7 @@
 
 struct ZZcoSourceGenerator;
 
-typedef void(*CallbackFunc)(struct ZZcoSourceGenerator *self, int is_first, ZString *token, ZString *output);
+typedef void(*CallbackFunc)(struct ZZcoSourceGenerator *self, const char *method_type, int is_first, ZString *token, ZString *output);
 
 
 #include <z-object-tracker.h>
@@ -49,7 +49,7 @@ typedef void(*CallbackFunc)(struct ZZcoSourceGenerator *self, int is_first, ZStr
 #define self_strndup z_zco_source_generator_self_strndup
 #define extract_argument z_zco_source_generator_extract_argument
 #define signal_decl z_zco_source_generator_signal_decl
-#define add_signal_arg z_zco_source_generator_add_signal_arg
+#define add_value_arg z_zco_source_generator_add_value_arg
 #define member_function_decl z_zco_source_generator_member_function_decl
 #define add_data_member z_zco_source_generator_add_data_member
 #define add_virtual_data_member z_zco_source_generator_add_virtual_data_member
@@ -81,6 +81,7 @@ typedef void(*CallbackFunc)(struct ZZcoSourceGenerator *self, int is_first, ZStr
 #define enable_virtual_mode z_zco_source_generator_enable_virtual_mode
 #define enable_override_mode z_zco_source_generator_enable_override_mode
 #define set_access_mode z_zco_source_generator_set_access_mode
+#define set_export_option z_zco_source_generator_set_export_option
 #define set_type_name z_zco_source_generator_set_type_name
 #define set_symbol_name z_zco_source_generator_set_symbol_name
 #define add_class_data_member z_zco_source_generator_add_class_data_member
@@ -93,34 +94,8 @@ typedef void(*CallbackFunc)(struct ZZcoSourceGenerator *self, int is_first, ZStr
 #define enable_attached_property z_zco_source_generator_enable_attached_property
 #define setup z_zco_source_generator_setup
 
-int z_zco_source_generator_type_id = -1;
+ZCO_DEFINE_CLASS_TYPE(z_zco_source_generator);
 
-static Self *__z_zco_source_generator_new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
-{
-	Self *self = NULL;
-	if (allocator) {
-		ZObjectTracker *object_tracker = z_memory_allocator_get_object_tracker(allocator);
-		if (object_tracker) {
-			self = (Self *) z_object_tracker_create(object_tracker, z_zco_source_generator_type_id);
-			z_object_unref(Z_OBJECT(object_tracker));
-		}
-	}
-	if (!self) {
-		ZMemoryAllocator *obj_allocator = ctx->fixed_allocator;
-		if (obj_allocator)
-			self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));
-		else
-			self = (Self *) malloc(sizeof(Self));
-		z_object_set_allocator_ptr((ZObject *) self, allocator);
-		__z_zco_source_generator_init(ctx, self);
-	}
-	return self;
-}
-
-static int __map_compare(ZMap *map, const void *a, const void *b)
-{
-	return strcmp(a, b);
-}
 static void z_zco_source_generator_init(Self *self);
 static void  z_zco_source_generator_dispose(ZObject *object);
 static void  z_zco_source_generator_print_line_number(Self *self,ZString *str);
@@ -128,7 +103,7 @@ static void  z_zco_source_generator_print_line_number_on_file(Self *self,ZFile *
 static char *  z_zco_source_generator_self_strndup(const char *s,int max_len);
 static void  z_zco_source_generator_extract_argument(ZString *arg,ZString *arg_type,ZString *arg_name);
 static void  z_zco_source_generator_signal_decl(Self *self,ZString *type,ZString *symbol,ZString *arglist);
-static void  z_zco_source_generator_add_signal_arg(Self *self,int is_first,ZString *token,ZString *output);
+static void  z_zco_source_generator_add_value_arg(Self *self,const char *method_type,int is_first,ZString *token,ZString *output);
 static void  z_zco_source_generator_member_function_decl(Self *self,ZString *type,ZString *symbol,ZString *arglist,ZString *code,int should_register_method);
 static void  z_zco_source_generator_add_data_member(Self *self,int mode,ZString *_type_name,ZString *_symbol_name);
 static void  z_zco_source_generator_add_virtual_data_member(Self *self,int mode,ZString *_type_name,ZString *_symbol_name);
@@ -138,8 +113,8 @@ static ZString *  z_zco_source_generator_pascal_to_uppercase(Self *self,ZString 
 static ZString *  z_zco_source_generator_pascal_to_lowercase(Self *self,ZString *str,char delimiter);
 static void  z_zco_source_generator_add_function_pointer(Self *self,ZString *output,ZString *_type_name,const char *_symbol_name_prefix,ZString *_symbol_name,ZString *_arglist);
 static ZString * z_zco_source_generator_strip_out_type(Self *self,ZString *arg);
-static void  z_zco_source_generator_append_stripped_arg(Self *self,int is_first,ZString *token,ZString *output);
-static void  z_zco_source_generator_for_each_arg(Self *self,ZString *output,ZString *arglist,CallbackFunc callback);
+static void  z_zco_source_generator_append_stripped_arg(Self *self,const char *method_type,int is_first,ZString *token,ZString *output);
+static void  z_zco_source_generator_for_each_arg(Self *self,ZString *output,ZString *arglist,CallbackFunc callback,const char *method_type);
 static void  z_zco_source_generator_virtual_member_function_decl(Self *self,ZString *type,ZString *symbol,ZString *arglist,ZString *code);
 static void  z_zco_source_generator_override_member_function_decl(Self *self,ZString *type,ZString *symbol,ZString *arglist,ZString *code);
 static char *  z_zco_source_generator_get_base_filename(const char *full_filename,int *base_length);
@@ -155,108 +130,48 @@ static void cleanup_signal_arg(void *item, void *userdata)
 }
 ZZcoSourceGeneratorGlobal * z_zco_source_generator_get_type(struct zco_context_t *ctx)
 {
-	ZCommonGlobal **global_ptr = NULL;
-	if (z_zco_source_generator_type_id != -1) {
-		global_ptr = zco_get_ctx_type(ctx, z_zco_source_generator_type_id);
-	}
-	if (!global_ptr || !*global_ptr) {
-		struct ZZcoSourceGeneratorGlobal *global = (ZZcoSourceGeneratorGlobal *) malloc(sizeof(struct ZZcoSourceGeneratorGlobal));
-		global->common.ctx = ctx;
-		global->_class = malloc(sizeof(struct ZZcoSourceGeneratorClass));
-		memset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct ZZcoSourceGeneratorClass));
-		global->common.name = "ZZcoSourceGenerator";
-		global->common.vtable_off_list = NULL;
-		global->common.vtable_off_size = 0;
-		global->common.svtable_off_list = NULL;
-		global->common.svtable_off_size = 0;
-		global->common.is_object = 1;
-
-		struct ZZcoSourceGenerator temp;
-		struct ZZcoSourceGeneratorClass temp_class;
-
-		{
-			struct ZObjectGlobal *p_global = z_object_get_type(ctx);
-			zco_inherit_vtable(
-				&global->common.vtable_off_list,
-				&global->common.vtable_off_size,
-				p_global->common.vtable_off_list,
-				p_global->common.vtable_off_size,
-				&temp,
-				&temp.parent_z_object);
-			zco_inherit_vtable(
-				&global->common.svtable_off_list,
-				&global->common.svtable_off_size,
-				p_global->common.svtable_off_list,
-				p_global->common.svtable_off_size,
-				&temp_class,
-				&temp_class.parent_z_object);
-			ZObjectClass *p1_class = CLASS_FROM_GLOBAL(p_global);
-			ZObjectClass *p2_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
-			memcpy(p2_class, p1_class, sizeof(struct ZObjectClass));
-		}
-		if (z_zco_source_generator_type_id == -1)
-			z_zco_source_generator_type_id = zco_allocate_type_id();
-		global->common.id = z_zco_source_generator_type_id;
-		zco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, z_zco_source_generator_type_id);
-		zco_add_to_vtable(&global->common.svtable_off_list, &global->common.svtable_off_size, z_zco_source_generator_type_id);
-		global_ptr = zco_get_ctx_type(ctx, z_zco_source_generator_type_id);
-		*global_ptr = (ZCommonGlobal *) global;
-		
-		{
-			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
-			global->__parent_dispose = p_class->__dispose;
-			p_class->__dispose = z_zco_source_generator_dispose;
-		}
-		{
-			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
-			global->__parent_class_destroy = p_class->__class_destroy;
-			p_class->__class_destroy = z_zco_source_generator_class_destroy;
-		}
-		{
-			ZObjectClass *p_class = (ZObjectClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[z_object_type_id]);
-			global->__parent___delete = p_class->____delete;
-			p_class->____delete = z_zco_source_generator___delete;
-		}
-		__z_zco_source_generator_class_init(ctx, (ZZcoSourceGeneratorClass *) CLASS_FROM_GLOBAL(global));
-		global->common.method_map = z_map_new(ctx, NULL);
-		z_map_set_compare(global->common.method_map, __map_compare);
-		z_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);
-		z_map_insert((ZMap *) global->common.method_map, strdup("shutdown"), (ZObjectSignalHandler) shutdown);
-		z_map_insert((ZMap *) global->common.method_map, strdup("new"), (ZObjectSignalHandler) new);
-		z_map_insert((ZMap *) global->common.method_map, strdup("new_string"), (ZObjectSignalHandler) new_string);
-		z_map_insert((ZMap *) global->common.method_map, strdup("special_member_function_decl"), (ZObjectSignalHandler) special_member_function_decl);
-		z_map_insert((ZMap *) global->common.method_map, strdup("property_decl"), (ZObjectSignalHandler) property_decl);
-		z_map_insert((ZMap *) global->common.method_map, strdup("add_parent"), (ZObjectSignalHandler) add_parent);
-		z_map_insert((ZMap *) global->common.method_map, strdup("record_line_number"), (ZObjectSignalHandler) record_line_number);
-		z_map_insert((ZMap *) global->common.method_map, strdup("prepare_class"), (ZObjectSignalHandler) prepare_class);
-		z_map_insert((ZMap *) global->common.method_map, strdup("prepare_interface"), (ZObjectSignalHandler) prepare_interface);
-		z_map_insert((ZMap *) global->common.method_map, strdup("finalize_class_definition"), (ZObjectSignalHandler) finalize_class_definition);
-		z_map_insert((ZMap *) global->common.method_map, strdup("finalize_interface_definition"), (ZObjectSignalHandler) finalize_interface_definition);
-		z_map_insert((ZMap *) global->common.method_map, strdup("write_header_block"), (ZObjectSignalHandler) write_header_block);
-		z_map_insert((ZMap *) global->common.method_map, strdup("write_protected_header_block"), (ZObjectSignalHandler) write_protected_header_block);
-		z_map_insert((ZMap *) global->common.method_map, strdup("write_source_block"), (ZObjectSignalHandler) write_source_block);
-		z_map_insert((ZMap *) global->common.method_map, strdup("class_declaration"), (ZObjectSignalHandler) class_declaration);
-		z_map_insert((ZMap *) global->common.method_map, strdup("interface_declaration"), (ZObjectSignalHandler) interface_declaration);
-		z_map_insert((ZMap *) global->common.method_map, strdup("enable_virtual_mode"), (ZObjectSignalHandler) enable_virtual_mode);
-		z_map_insert((ZMap *) global->common.method_map, strdup("enable_override_mode"), (ZObjectSignalHandler) enable_override_mode);
-		z_map_insert((ZMap *) global->common.method_map, strdup("set_access_mode"), (ZObjectSignalHandler) set_access_mode);
-		z_map_insert((ZMap *) global->common.method_map, strdup("set_type_name"), (ZObjectSignalHandler) set_type_name);
-		z_map_insert((ZMap *) global->common.method_map, strdup("set_symbol_name"), (ZObjectSignalHandler) set_symbol_name);
-		z_map_insert((ZMap *) global->common.method_map, strdup("add_class_data_member"), (ZObjectSignalHandler) add_class_data_member);
-		z_map_insert((ZMap *) global->common.method_map, strdup("add_class_virtual_data_member"), (ZObjectSignalHandler) add_class_virtual_data_member);
-		z_map_insert((ZMap *) global->common.method_map, strdup("class_virtual_member_function_decl"), (ZObjectSignalHandler) class_virtual_member_function_decl);
-		z_map_insert((ZMap *) global->common.method_map, strdup("class_override_member_function_decl"), (ZObjectSignalHandler) class_override_member_function_decl);
-		z_map_insert((ZMap *) global->common.method_map, strdup("class_member_function_decl"), (ZObjectSignalHandler) class_member_function_decl);
-		z_map_insert((ZMap *) global->common.method_map, strdup("class_signal_decl"), (ZObjectSignalHandler) class_signal_decl);
-		z_map_insert((ZMap *) global->common.method_map, strdup("finalize_property"), (ZObjectSignalHandler) finalize_property);
-		z_map_insert((ZMap *) global->common.method_map, strdup("enable_attached_property"), (ZObjectSignalHandler) enable_attached_property);
-		z_map_insert((ZMap *) global->common.method_map, strdup("setup"), (ZObjectSignalHandler) setup);
-		#ifdef GLOBAL_INIT_EXISTS
-			global_init((ZZcoSourceGeneratorGlobal *) global);
-		#endif
-		return global;
-	}
-	return (ZZcoSourceGeneratorGlobal *) *global_ptr;
+	ZCO_CREATE_CLASS(global, ZZcoSourceGenerator, z_zco_source_generator, 1);
+	ZCO_INHERIT_CLASS(ZObject, z_object, ZZcoSourceGenerator);
+	ZCO_REGISTER_TYPE(z_zco_source_generator);
+	ZCO_OVERRIDE_VIRTUAL_METHOD(ZObject, z_object, z_zco_source_generator, dispose);
+	ZCO_OVERRIDE_VIRTUAL_METHOD(ZObject, z_object, z_zco_source_generator, class_destroy);
+	ZCO_OVERRIDE_VIRTUAL_METHOD(ZObject, z_object, z_zco_source_generator, __delete);
+	ZCO_CREATE_METHOD_MAP(ZZcoSourceGenerator, z_zco_source_generator);
+	ZCO_REGISTER_METHOD(shutdown);
+	ZCO_REGISTER_METHOD(new);
+	ZCO_REGISTER_METHOD(new_string);
+	ZCO_REGISTER_METHOD(special_member_function_decl);
+	ZCO_REGISTER_METHOD(property_decl);
+	ZCO_REGISTER_METHOD(add_parent);
+	ZCO_REGISTER_METHOD(record_line_number);
+	ZCO_REGISTER_METHOD(prepare_class);
+	ZCO_REGISTER_METHOD(prepare_interface);
+	ZCO_REGISTER_METHOD(finalize_class_definition);
+	ZCO_REGISTER_METHOD(finalize_interface_definition);
+	ZCO_REGISTER_METHOD(write_header_block);
+	ZCO_REGISTER_METHOD(write_protected_header_block);
+	ZCO_REGISTER_METHOD(write_source_block);
+	ZCO_REGISTER_METHOD(class_declaration);
+	ZCO_REGISTER_METHOD(interface_declaration);
+	ZCO_REGISTER_METHOD(enable_virtual_mode);
+	ZCO_REGISTER_METHOD(enable_override_mode);
+	ZCO_REGISTER_METHOD(set_access_mode);
+	ZCO_REGISTER_METHOD(set_export_option);
+	ZCO_REGISTER_METHOD(set_type_name);
+	ZCO_REGISTER_METHOD(set_symbol_name);
+	ZCO_REGISTER_METHOD(add_class_data_member);
+	ZCO_REGISTER_METHOD(add_class_virtual_data_member);
+	ZCO_REGISTER_METHOD(class_virtual_member_function_decl);
+	ZCO_REGISTER_METHOD(class_override_member_function_decl);
+	ZCO_REGISTER_METHOD(class_member_function_decl);
+	ZCO_REGISTER_METHOD(class_signal_decl);
+	ZCO_REGISTER_METHOD(finalize_property);
+	ZCO_REGISTER_METHOD(enable_attached_property);
+	ZCO_REGISTER_METHOD(setup);
+	#ifdef GLOBAL_INIT_EXISTS
+		global_init(global);
+	#endif
+	return global;
 }
 
 void __z_zco_source_generator_class_init(struct zco_context_t *ctx, ZZcoSourceGeneratorClass *_class)
@@ -268,11 +183,9 @@ void __z_zco_source_generator_class_init(struct zco_context_t *ctx, ZZcoSourceGe
 }
 void __z_zco_source_generator_init(struct zco_context_t *ctx, Self *self)
 {
-	struct ZZcoSourceGeneratorGlobal *_global = z_zco_source_generator_get_type(ctx);
-	self->_global = _global;
+	ZCO_INIT_START(ZZcoSourceGenerator, z_zco_source_generator);
 	__z_object_init(ctx, (ZObject *) (self));
-	((ZObject *) self)->class_base = (void *) CLASS_FROM_GLOBAL(_global);
-	((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (ZCommonGlobal *) _global;
+	ZCO_SEAL_CLASS();
 	#ifdef INIT_EXISTS
 		init(self);
 	#endif
@@ -349,10 +262,12 @@ static void z_zco_source_generator_init(Self *self)
  }
 void  z_zco_source_generator_shutdown(Self *self)
 {
+{
  z_file_write(selfp->protected_header_file, "\n#endif\n");
  z_file_write(selfp->header_file, "\n#endif\n");
  z_file_write(selfp->source_file, "\n\n");
  }
+}
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_dispose
 static void  z_zco_source_generator_dispose(ZObject *object)
 {
@@ -424,23 +339,32 @@ static void  z_zco_source_generator_dispose(ZObject *object)
 #undef PARENT_HANDLER
 Self * z_zco_source_generator_new(struct zco_context_t *ctx,ZMemoryAllocator *allocator)
 {
+{
  Self *self = GET_NEW(ctx, allocator);
  return self;
  }
+}
 ZString *  z_zco_source_generator_new_string(Self *self,const char *s1)
+{
 {
  ZString *str = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  if (s1)
  z_string_append_format(str, "%s", s1);
  return str;
  }
+}
 static void  z_zco_source_generator_print_line_number(Self *self,ZString *str)
 {
- }
-static void  z_zco_source_generator_print_line_number_on_file(Self *self,ZFile *file)
 {
  }
+}
+static void  z_zco_source_generator_print_line_number_on_file(Self *self,ZFile *file)
+{
+{
+ }
+}
 void  z_zco_source_generator_special_member_function_decl(Self *self,ZString *symbol,ZString *arglist,ZString *code)
+{
 {
  if (!z_string_compare(symbol, NULL, selfp->str_class_init, NULL, 0, -1))
  z_string_append_cstring(selfp->c_macros, "#define CLASS_INIT_EXISTS\n", Z_STRING_ENCODING_UTF8);
@@ -465,7 +389,9 @@ void  z_zco_source_generator_special_member_function_decl(Self *self,ZString *sy
  print_line_number(self, selfp->function_definitions);
  z_string_append_format(selfp->function_definitions, "static void %S_%S%S\n%S\n", selfp->current_class_name_lowercase, symbol, arglist, code);
  }
+}
 static char *  z_zco_source_generator_self_strndup(const char *s,int max_len)
+{
 {
  int length = strlen(s);
 
@@ -478,7 +404,9 @@ static char *  z_zco_source_generator_self_strndup(const char *s,int max_len)
 
  return str;
  }
+}
 static void  z_zco_source_generator_extract_argument(ZString *arg,ZString *arg_type,ZString *arg_name)
+{
 {
  int length = z_string_get_length(arg);
  ZStringIter *it, *begin;
@@ -519,7 +447,9 @@ static void  z_zco_source_generator_extract_argument(ZString *arg,ZString *arg_t
  z_object_unref(Z_OBJECT(begin));
  z_object_unref(Z_OBJECT(it));
  }
+}
 static void  z_zco_source_generator_signal_decl(Self *self,ZString *type,ZString *symbol,ZString *arglist)
+{
 {
  print_line_number(self, selfp->c_macros);
  z_string_append_format(selfp->c_macros, "#define %S %S_%S\n", symbol, selfp->current_class_name_lowercase, symbol);
@@ -558,20 +488,13 @@ static void  z_zco_source_generator_signal_decl(Self *self,ZString *type,ZString
  z_string_append_format(selfp->function_definitions, "\x7b\n");
 
  print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\tZVector *args = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));\n");
- z_string_append_format(selfp->function_definitions, "\tz_vector_set_item_size(args, 0);\n");
+ z_string_append_format(selfp->function_definitions, "\tZCO_SIGNAL_START(args);\n");
 
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\tz_vector_set_item_destruct(args, (ZVectorItemCallback) z_object_unref);\n");
-
- for_each_arg(self, NULL, arglist, add_signal_arg);
+ for_each_arg(self, NULL, arglist, add_value_arg, "signal");
 
  /* end of function body */
  print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\tz_object_emit_signal(Z_OBJECT(self), \"%S\", args);\n", symbol);
-
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\tz_object_unref(Z_OBJECT(args));\n");
+ z_string_append_format(selfp->function_definitions, "\tZCO_SIGNAL_END(args, %S)\n", symbol);
 
  print_line_number(self, selfp->function_definitions);
  z_string_append_format(selfp->function_definitions, "\x7d\n");
@@ -579,7 +502,9 @@ static void  z_zco_source_generator_signal_decl(Self *self,ZString *type,ZString
  print_line_number(self, selfp->signal_registrations);
  z_string_append_format(selfp->signal_registrations, "\tz_object_register_signal(Z_OBJECT(self), \"%S\");\n", symbol);
  }
-static void  z_zco_source_generator_add_signal_arg(Self *self,int is_first,ZString *token,ZString *output)
+}
+static void  z_zco_source_generator_add_value_arg(Self *self,const char *method_type,int is_first,ZString *token,ZString *output)
+{
 {
  ZString *arg_type;
  ZString *arg_name;
@@ -595,9 +520,7 @@ static void  z_zco_source_generator_add_signal_arg(Self *self,int is_first,ZStri
  arg_name = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  extract_argument(token, arg_type, arg_name);
 
- /* create the ZValue object */
  print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\x7b\n");
 
  /* check if the parameter has pointers */
  length = z_string_get_length(arg_type);
@@ -613,25 +536,17 @@ static void  z_zco_source_generator_add_signal_arg(Self *self,int is_first,ZStri
  if (is_pointer) {
  /* make sure there is at most one '*' character */
  if (!z_string_iter_is_equal(it, last)) {
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\t#error \"Invalid signal parameter type %S - cannot have multipointer types\"\n", arg_type);
-
  /* if the value is already a ZValue, use it directly */
+ z_string_append_format(selfp->function_definitions, "\t#error \"Invalid %s parameter type %S - cannot have multipointer types\"\n", method_type, arg_type);
+
  } else if (!z_string_compare(arg_type, NULL, selfp->str_zvalue, NULL, 0, 6)) {
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tZValue *value = %s;\n");
-
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tz_object_ref(Z_OBJECT(value));\n");
-
  /* if the value is derived from ZObject, treat it as an object type */
+ z_string_append_format(selfp->function_definitions, "\tZCO_ADD_ZVALUE_ARG(args, %S);\n", arg_name);
+
  } else if (!z_string_compare(arg_type, NULL, selfp->str_self, NULL, 0, 4) ||
  !z_string_compare(arg_type, NULL, selfp->str_z, NULL, 0, 1)) {
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));\n");
 
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_object(value, Z_OBJECT(%S));\n", arg_name);
+ z_string_append_format(selfp->function_definitions, "\tZCO_ADD_OBJECT_ARG(args, %S);\n", arg_name);
 
  } else if (!z_string_compare(arg_type, NULL, selfp->str_char, NULL, 0, 4) ||
  !z_string_compare(arg_type, NULL, selfp->str_int8_t, NULL, 0, 6) ||
@@ -639,126 +554,63 @@ static void  z_zco_source_generator_add_signal_arg(Self *self,int is_first,ZStri
  !z_string_compare(arg_type, NULL, selfp->str_uint8_t, NULL, 0, 7)) {
 
  selfp->class_needs_string = 1;
+ z_string_append_format(selfp->function_definitions, "\tZCO_ADD_STRING_ARG(args, %S);\n", arg_name);
 
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));\n");
-
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tZString *_temp = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));\n");
-
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tz_string_set_cstring(_temp, %S, Z_STRING_ENCODING_UTF8);\n", arg_name);
-
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_object(value, Z_OBJECT(_temp));\n");
-
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tz_object_unref(Z_OBJECT(_temp));\n");
+ } else {
+ z_string_append_format(selfp->function_definitions, "\t#error \"Invalid %s parameter type %S - Unknown pointer type\"\n", method_type, arg_type);
  }
+
 
  } else if (!z_string_compare(arg_type, NULL, selfp->str_char, NULL, 0, -1) ||
  !z_string_compare(arg_type, NULL, selfp->str_int8_t, NULL, 0, -1)) {
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));\n");
-
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_int8(value, %S);\n", arg_name);
+ z_string_append_format(selfp->function_definitions, "\tZCO_ADD_PRIMITIVE_ARG(args, %S, int8);\n", arg_name);
 
  } else if (!z_string_compare(arg_type, NULL, selfp->str_short, NULL, 0, -1) ||
  !z_string_compare(arg_type, NULL, selfp->str_int16_t, NULL, 0, -1)) {
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));\n");
-
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_int16(value, %S);\n", arg_name);
+ z_string_append_format(selfp->function_definitions, "\tZCO_ADD_PRIMITIVE_ARG(args, %S, int16);\n", arg_name);
 
  } else if (!z_string_compare(arg_type, NULL, selfp->str_int, NULL, 0, -1) ||
  !z_string_compare(arg_type, NULL, selfp->str_int32_t, NULL, 0, -1)) {
-
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));\n");
-
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_int32(value, %S);\n", arg_name);
+ z_string_append_format(selfp->function_definitions, "\tZCO_ADD_PRIMITIVE_ARG(args, %S, int32);\n", arg_name);
 
  } else if (!z_string_compare(arg_type, NULL, selfp->str_long, NULL, 0, -1) ||
  !z_string_compare(arg_type, NULL, selfp->str_long_long, NULL, 0, -1) ||
  !z_string_compare(arg_type, NULL, selfp->str_int64_t, NULL, 0, -1)) {
-
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));\n");
-
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_int64(value, %S);\n", arg_name);
+ z_string_append_format(selfp->function_definitions, "\tZCO_ADD_PRIMITIVE_ARG(args, %S, int64);\n", arg_name);
 
  } else if (!z_string_compare(arg_type, NULL, selfp->str_unsigned_char, NULL, 0, -1) ||
  !z_string_compare(arg_type, NULL, selfp->str_uint8_t, NULL, 0, -1)) {
-
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));\n");
-
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_uint8(value, %S);\n", arg_name);
+ z_string_append_format(selfp->function_definitions, "\tZCO_ADD_PRIMITIVE_ARG(args, %S, uint8);\n", arg_name);
 
  } else if (!z_string_compare(arg_type, NULL, selfp->str_unsigned_short, NULL, 0, -1) ||
  !z_string_compare(arg_type, NULL, selfp->str_uint16_t, NULL, 0, -1)) {
+ z_string_append_format(selfp->function_definitions, "\tZCO_ADD_PRIMITIVE_ARG(args, %S, uint16);\n", arg_name);
 
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));\n");
-
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_uint16(value, %S);\n", arg_name);
 
  } else if (!z_string_compare(arg_type, NULL, selfp->str_unsigned_int, NULL, 0, -1) ||
  !z_string_compare(arg_type, NULL, selfp->str_uint32_t, NULL, 0, -1)) {
-
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));\n");
-
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_uint32(value, %S);\n", arg_name);
+ z_string_append_format(selfp->function_definitions, "\tZCO_ADD_PRIMITIVE_ARG(args, %S, uint32);\n", arg_name);
 
  } else if (!z_string_compare(arg_type, NULL, selfp->str_unsigned_long, NULL, 0, -1) ||
  !z_string_compare(arg_type, NULL, selfp->str_unsigned_long_long, NULL, 0, -1) ||
  !z_string_compare(arg_type, NULL, selfp->str_uint64_t, NULL, 0, -1)) {
-
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));\n");
-
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_uint64(value, %S);\n", arg_name);
+ z_string_append_format(selfp->function_definitions, "\tZCO_ADD_PRIMITIVE_ARG(args, %S, uint64);\n", arg_name);
 
  } else if (!z_string_compare(arg_type, NULL, selfp->str_float, NULL, 0, -1)) {
-
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));\n");
-
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_real32(value, %S);\n", arg_name);
+ z_string_append_format(selfp->function_definitions, "\tZCO_ADD_PRIMITIVE_ARG(args, %S, real32);\n", arg_name);
 
  } else if (!z_string_compare(arg_type, NULL, selfp->str_double, NULL, 0, -1)) {
-
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tZValue *value = z_value_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));\n");
-
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tz_value_set_as_real64(value, %S);\n", arg_name);
+ z_string_append_format(selfp->function_definitions, "\tZCO_ADD_PRIMITIVE_ARG(args, %S, real64);\n", arg_name);
 
  } else {
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\t#error \"Invalid signal parameter type %S\"\n", arg_type);
+ z_string_append_format(selfp->function_definitions, "\t#error \"Invalid %s parameter type %S\"\n", method_type, arg_type);
  }
-
- /* add the ZValue into the vector */
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\tz_vector_push_back(args, value);\n");
-
- print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "\t\x7d\n");
 
  z_object_unref(Z_OBJECT(arg_name));
  }
+}
 static void  z_zco_source_generator_member_function_decl(Self *self,ZString *type,ZString *symbol,ZString *arglist,ZString *code,int should_register_method)
+{
 {
  print_line_number(self, selfp->c_macros);
  z_string_append_format(selfp->c_macros, "#define %S %S_%S\n", symbol, selfp->current_class_name_lowercase, symbol);
@@ -772,7 +624,18 @@ static void  z_zco_source_generator_member_function_decl(Self *self,ZString *typ
 
  /* for function definition */
  print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "static %S %S_%S%S\n%S\n", type, selfp->current_class_name_lowercase, symbol, arglist, code);
+ z_string_append_format(selfp->function_definitions, "static %S %S_%S%S\n\x7b\n", type, selfp->current_class_name_lowercase, symbol, arglist);
+
+ if (selfp->export_option) {
+ selfp->class_needs_vector = 1;
+ selfp->class_needs_zvalue = 1;
+
+ z_string_append_format(selfp->function_definitions, "\tZCO_METHOD_HOOK_START(self, args);\n");
+ for_each_arg(self, NULL, arglist, add_value_arg, "method");
+ z_string_append_format(selfp->function_definitions, "\tZCO_METHOD_HOOK_END(self, args, %S, %S);\n", symbol, type);
+ }
+
+ z_string_append_format(selfp->function_definitions, "%S\n\x7d\n", code);
  break;
 
  case ACCESS_PROTECTED:
@@ -782,16 +645,25 @@ static void  z_zco_source_generator_member_function_decl(Self *self,ZString *typ
 
  /* for function definition */
  print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "%S %S_%S%S\n%S\n", type, selfp->current_class_name_lowercase, symbol, arglist, code);
+ z_string_append_format(selfp->function_definitions, "%S %S_%S%S\n\x7b\n", type, selfp->current_class_name_lowercase, symbol, arglist);
+
+ if (selfp->export_option) {
+ selfp->class_needs_vector = 1;
+ selfp->class_needs_zvalue = 1;
+
+ z_string_append_format(selfp->function_definitions, "\tZCO_METHOD_HOOK_START(self, args);\n");
+ for_each_arg(self, NULL, arglist, add_value_arg, "method");
+ z_string_append_format(selfp->function_definitions, "\tZCO_METHOD_HOOK_END(self, args, %S, %S);\n", symbol, type);
+ }
+
+ z_string_append_format(selfp->function_definitions, "%S\n\x7d\n", code);
  break;
 
  case ACCESS_PUBLIC:
  if (should_register_method) {
  /* register method in look up table */
  print_line_number(self, selfp->function_registrations);
- z_string_append_format(selfp->function_registrations,
- "\t\tz_map_insert((ZMap *) global->common.method_map, strdup(\"%S\"), (ZObjectSignalHandler) %S);\n",
- symbol, symbol);
+ z_string_append_format(selfp->function_registrations, "\tZCO_REGISTER_METHOD(%S);\n", symbol);
  }
 
  /* for function prototype */
@@ -800,8 +672,20 @@ static void  z_zco_source_generator_member_function_decl(Self *self,ZString *typ
 
  /* for function definition */
  print_line_number(self, selfp->function_definitions);
- z_string_append_format(selfp->function_definitions, "%S %S_%S%S\n%S\n", type, selfp->current_class_name_lowercase, symbol, arglist, code);
+ z_string_append_format(selfp->function_definitions, "%S %S_%S%S\n\x7b\n", type, selfp->current_class_name_lowercase, symbol, arglist);
+
+ if (selfp->export_option) {
+ selfp->class_needs_vector = 1;
+ selfp->class_needs_zvalue = 1;
+
+ z_string_append_format(selfp->function_definitions, "\tZCO_METHOD_HOOK_START(self, args);\n");
+ for_each_arg(self, NULL, arglist, add_value_arg, "method");
+ z_string_append_format(selfp->function_definitions, "\tZCO_METHOD_HOOK_END(self, args, %S, %S);\n", symbol, type);
+ }
+
+ z_string_append_format(selfp->function_definitions, "%S\n\x7d\n", code);
  break;
+
  case ACCESS_GLOBAL:
  /* for function prototype */
  print_line_number(self, selfp->function_prototypes_h);
@@ -816,7 +700,9 @@ static void  z_zco_source_generator_member_function_decl(Self *self,ZString *typ
  abort();
  }
  }
+}
 static void  z_zco_source_generator_add_data_member(Self *self,int mode,ZString *_type_name,ZString *_symbol_name)
+{
 {
  switch (mode)
  {
@@ -844,7 +730,9 @@ static void  z_zco_source_generator_add_data_member(Self *self,int mode,ZString 
  abort();
  }
  }
+}
 static void  z_zco_source_generator_add_virtual_data_member(Self *self,int mode,ZString *_type_name,ZString *_symbol_name)
+{
 {
  switch (mode)
  {
@@ -857,7 +745,9 @@ static void  z_zco_source_generator_add_virtual_data_member(Self *self,int mode,
  abort();
  }
  }
+}
 static void  z_zco_source_generator_define_attached_property_getter(Self *self,ZString *symbol_name,ZString *app_code)
+{
 {
  ZString *code;
  ZString *arglist = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
@@ -874,6 +764,7 @@ static void  z_zco_source_generator_define_attached_property_getter(Self *self,Z
  symbol = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  z_string_format(symbol, "get_%S", symbol_name);
  member_function_decl(self, selfp->type_name, symbol, arglist, app_code, 0);
+ z_object_unref(Z_OBJECT(symbol));
 
  /* undefine the helper macro previously defined before the exposed getter */
  print_line_number(self, selfp->function_definitions);
@@ -881,32 +772,19 @@ static void  z_zco_source_generator_define_attached_property_getter(Self *self,Z
 
  /* define the method to get the value of the attached property */
  selfp->class_needs_map = 1;
- code = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- z_string_format(code,
- "\x7b\n"
- "\tstruct %SGlobal *_global = %S_get_type(GLOBAL_FROM_OBJECT(object)->common.ctx);\n"
- "\tZMap *map = (ZMap *) _global->_attached_%S;\n"
- "\tZMapIter *it = z_map_find(map, object);\n"
- "\tvoid *value = z_map_get_value(map, it);\n"
- "\tz_object_unref(Z_OBJECT(it));\n"
- "\treturn (%S) (unsigned long) value;\n"
- "\x7d",
- 
+
+ z_string_append_format(selfp->function_definitions, "ZCO_DEFINE_ATTACHED_PROP_GETTER(%S, %S, %S, %S)\n",
  selfp->current_class_name_pascal,
  selfp->current_class_name_lowercase,
  symbol_name,
  selfp->type_name);
 
- z_string_format(symbol, "get_attached_%S", symbol_name);
- member_function_decl(self, selfp->type_name, symbol, arglist, code, 0);
-
- z_object_unref(Z_OBJECT(symbol));
- z_object_unref(Z_OBJECT(code));
  z_object_unref(Z_OBJECT(arglist));
  }
+}
 static void  z_zco_source_generator_define_attached_property_setter(Self *self,ZString *symbol_name,ZString *app_code)
 {
- ZString *code;
+{
  ZString *arglist = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  z_string_format(arglist, "(ZObject *object, %S value)", selfp->type_name);
  char *temp;
@@ -921,6 +799,8 @@ static void  z_zco_source_generator_define_attached_property_setter(Self *self,Z
  symbol = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  z_string_format(symbol, "set_%S", symbol_name);
  member_function_decl(self, selfp->type_name, symbol, arglist, app_code, 0);
+ z_object_unref(Z_OBJECT(symbol));
+ z_object_unref(Z_OBJECT(arglist));
 
  /* undefine the helper macro previously defined before the exposed setter */
  print_line_number(self, selfp->function_definitions);
@@ -928,29 +808,15 @@ static void  z_zco_source_generator_define_attached_property_setter(Self *self,Z
 
  /* define the method to set the value of the attached property */
  selfp->class_needs_map = 1;
- code = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- z_string_format(code,
- "\x7b\n"
- "\tstruct %SGlobal *_global = %S_get_type(GLOBAL_FROM_OBJECT(object)->common.ctx);\n"
- "\tZMap *map = (ZMap *) _global->_attached_%S;\n"
- "\tif (z_map_assign(map, object, (void *) (unsigned long) value) == 0)\n"
- "\t\tz_object_add_attached_property_map(object, map);\n"
- "\x7d", 
+
+ z_string_append_format(selfp->function_definitions, "ZCO_DEFINE_ATTACHED_PROP_SETTER(%S, %S, %S)\n",
  selfp->current_class_name_pascal,
  selfp->current_class_name_lowercase,
  symbol_name);
-
- z_string_format(symbol, "set_attached_%S", symbol_name);
- ZString *temp2 = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- z_string_format(temp2, "void");
- member_function_decl(self, temp2, symbol, arglist, code, 0);
-
- z_object_unref(Z_OBJECT(temp2));
- z_object_unref(Z_OBJECT(symbol));
- z_object_unref(Z_OBJECT(code));
- z_object_unref(Z_OBJECT(arglist));
  }
+}
 void  z_zco_source_generator_property_decl(Self *self,ZString *get_or_set,ZString *code)
+{
 {
  ZString *arglist = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  ZString *symbol;
@@ -989,7 +855,9 @@ void  z_zco_source_generator_property_decl(Self *self,ZString *get_or_set,ZStrin
 
  z_object_unref(Z_OBJECT(arglist));
  }
+}
 static ZString *  z_zco_source_generator_pascal_to_uppercase(Self *self,ZString *str,char delimiter)
+{
 {
  ZString *res;
  ZStringIter *it, *end;
@@ -1026,7 +894,9 @@ static ZString *  z_zco_source_generator_pascal_to_uppercase(Self *self,ZString 
 
  return res;
  }
+}
 static ZString *  z_zco_source_generator_pascal_to_lowercase(Self *self,ZString *str,char delimiter)
+{
 {
  ZString *res;
  ZStringIter *it, *end;
@@ -1059,7 +929,9 @@ static ZString *  z_zco_source_generator_pascal_to_lowercase(Self *self,ZString 
 
  return res;
  }
+}
 void  z_zco_source_generator_add_parent(Self *self,ZString *name_in_pascal)
+{
 {
  /* increase the size of the parent class list */
  ++selfp->parent_class_count;
@@ -1075,12 +947,16 @@ void  z_zco_source_generator_add_parent(Self *self,ZString *name_in_pascal)
 
  z_object_ref(Z_OBJECT(name_in_pascal));
  }
+}
 static void  z_zco_source_generator_add_function_pointer(Self *self,ZString *output,ZString *_type_name,const char *_symbol_name_prefix,ZString *_symbol_name,ZString *_arglist)
+{
 {
  print_line_number(self, output);
  z_string_append_format(output, "\t%S (*%s%S)%S;\n", _type_name, _symbol_name_prefix, _symbol_name, _arglist);
  }
+}
 static ZString * z_zco_source_generator_strip_out_type(Self *self,ZString *arg)
+{
 {
  ZString *res;
  ZStringIter *it, *begin;
@@ -1114,7 +990,9 @@ static ZString * z_zco_source_generator_strip_out_type(Self *self,ZString *arg)
 
  return res;
  }
-static void  z_zco_source_generator_append_stripped_arg(Self *self,int is_first,ZString *token,ZString *output)
+}
+static void  z_zco_source_generator_append_stripped_arg(Self *self,const char *method_type,int is_first,ZString *token,ZString *output)
+{
 {
  /* strip out the type names from the token */
  ZString *q = strip_out_type(self, token);
@@ -1125,7 +1003,9 @@ static void  z_zco_source_generator_append_stripped_arg(Self *self,int is_first,
  z_string_append_format(output, "%S", q);
  z_object_unref(Z_OBJECT(q));
  }
-static void  z_zco_source_generator_for_each_arg(Self *self,ZString *output,ZString *arglist,CallbackFunc callback)
+}
+static void  z_zco_source_generator_for_each_arg(Self *self,ZString *output,ZString *arglist,CallbackFunc callback,const char *method_type)
+{
 {
  int is_first = 1;
 
@@ -1157,7 +1037,7 @@ static void  z_zco_source_generator_for_each_arg(Self *self,ZString *output,ZStr
  z_object_unref(Z_OBJECT(last));
  z_object_unref(Z_OBJECT(first));
 
- callback(self, is_first, token, output);
+ callback(self, method_type, is_first, token, output);
  z_object_unref(Z_OBJECT(token));
 
  is_first = 0;
@@ -1168,7 +1048,9 @@ static void  z_zco_source_generator_for_each_arg(Self *self,ZString *output,ZStr
 
  z_object_unref(Z_OBJECT(arglist_no_paren));
  }
+}
 static void  z_zco_source_generator_virtual_member_function_decl(Self *self,ZString *type,ZString *symbol,ZString *arglist,ZString *code)
+{
 {
  /* virtual function prototype */
  print_line_number(self, selfp->function_prototypes_c);
@@ -1198,7 +1080,7 @@ static void  z_zco_source_generator_virtual_member_function_decl(Self *self,ZStr
  "\t((%SClass *) ((char *) class_base + offset))->__%S(",
  selfp->current_class_name_pascal, symbol);
 
- for_each_arg(self, vcode, arglist, append_stripped_arg);
+ for_each_arg(self, vcode, arglist, append_stripped_arg, NULL);
  z_string_append_cstring(vcode, ");\n\x7d", Z_STRING_ENCODING_UTF8);
 
  member_function_decl(self, type, symbol, arglist, vcode, 1);
@@ -1213,13 +1095,17 @@ static void  z_zco_source_generator_virtual_member_function_decl(Self *self,ZStr
 
  /* assign the address of the function into the function pointer data member */
  print_line_number(self, selfp->virtual_function_ptr_inits);
- z_string_append_format(selfp->virtual_function_ptr_inits, "\t\tCLASS_FROM_GLOBAL(global)->__%S = %S_virtual_%S;\n", symbol, selfp->current_class_name_lowercase, symbol);
+ z_string_append_format(selfp->virtual_function_ptr_inits, "\tZCO_CREATE_VIRTUAL_METHOD(%S, %S);\n", selfp->current_class_name_lowercase, symbol);
  }
+}
 void  z_zco_source_generator_record_line_number(Self *self)
+{
 {
  selfp->real_lineno = yylineno;
  }
+}
 static void  z_zco_source_generator_override_member_function_decl(Self *self,ZString *type,ZString *symbol,ZString *arglist,ZString *code)
+{
 {
  /* virtual function caller prototype */
  print_line_number(self, selfp->function_prototypes_c);
@@ -1244,32 +1130,21 @@ static void  z_zco_source_generator_override_member_function_decl(Self *self,ZSt
  ZString *base_name_lowercase = pascal_to_lowercase(self, selfp->virtual_base_name, '_');
 
  /* up cast to parent class */
- print_line_number(self, selfp->virtual_function_ptr_inits);
- z_string_append_cstring(selfp->virtual_function_ptr_inits, "\t\t\x7b\n", Z_STRING_ENCODING_UTF8);
-
  /* create a pointer to the parent class's dispatch object */
  print_line_number(self, selfp->virtual_function_ptr_inits);
 
  z_string_append_format(selfp->virtual_function_ptr_inits,
- "\t\t\t%SClass *p_class = (%SClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[%S_type_id]);\n",
+ "\tZCO_OVERRIDE_VIRTUAL_METHOD(%S, %S, %S, %S);\n",
  selfp->virtual_base_name,
- selfp->virtual_base_name,
- base_name_lowercase);
-
- /* backup the existing virtual function pointer for the PARENT_HANDLER macro */
- print_line_number(self, selfp->virtual_function_ptr_inits);
- z_string_append_format(selfp->virtual_function_ptr_inits, "\t\t\tglobal->__parent_%S = p_class->__%S;\n", symbol, symbol);
-
- /* assign the address of the function into the function pointer data member */
- print_line_number(self, selfp->virtual_function_ptr_inits);
- z_string_append_format(selfp->virtual_function_ptr_inits, "\t\t\tp_class->__%S = %S_%S;\n", symbol, selfp->current_class_name_lowercase, symbol);
-
- print_line_number(self, selfp->virtual_function_ptr_inits);
- z_string_append_cstring(selfp->virtual_function_ptr_inits, "\t\t\x7d\n", Z_STRING_ENCODING_UTF8);
+ base_name_lowercase,
+ selfp->current_class_name_lowercase,
+ symbol);
 
  z_object_unref(Z_OBJECT(base_name_lowercase));
  }
+}
 void  z_zco_source_generator_prepare_class(Self *self,ZString *class_name)
+{
 {
  int i;
 
@@ -1325,8 +1200,7 @@ void  z_zco_source_generator_prepare_class(Self *self,ZString *class_name)
  /* start the global data structure */
  z_string_append_format(selfp->global_data,
  "struct %SGlobal \x7b\n"
- "\tstruct ZCommonGlobal common;\n"
- "\tstruct %SClass *_class;\n",
+ "\tZCO_CLASS_GLOBAL_HEAD(%S);\n",
  class_name, class_name);
 
  /* start the klass data structure */
@@ -1344,17 +1218,12 @@ void  z_zco_source_generator_prepare_class(Self *self,ZString *class_name)
  }
 
  /* declare the _class pointer in the public structure */
- z_string_append_format(selfp->public_data, "\tstruct %SGlobal *_global;\n", class_name);
-
  /* declare the _priv member in the public structure */
- z_string_append_format(selfp->public_data, "\tstruct %SPrivate _priv;\n", class_name);
-
  /* declare the _prot member in the public structure */
- z_string_append_format(selfp->public_data, "\tstruct %SProtected _prot;\n", class_name);
+ z_string_append_format(selfp->public_data, "\tZCO_CLASS_PUBLIC_HEAD(%S);\n", class_name);
 
  selfp->access_mode = ACCESS_PUBLIC;
  selfp->modifier_mode = MODIFIER_NONE;
-
 
  selfp->symbol_name = 0;
  selfp->type_name = 0;
@@ -1365,7 +1234,9 @@ void  z_zco_source_generator_prepare_class(Self *self,ZString *class_name)
  selfp->class_needs_map = 0;
  selfp->class_needs_string = 0;
  }
+}
 void  z_zco_source_generator_prepare_interface(Self *self,ZString *interface_name)
+{
 {
  int i;
 
@@ -1461,7 +1332,9 @@ void  z_zco_source_generator_prepare_interface(Self *self,ZString *interface_nam
  selfp->class_needs_map = 0;
  selfp->class_needs_string = 0;
  }
+}
 static char *  z_zco_source_generator_get_base_filename(const char *full_filename,int *base_length)
+{
 {
  char *res;
  int length = strlen(full_filename);
@@ -1484,7 +1357,9 @@ static char *  z_zco_source_generator_get_base_filename(const char *full_filenam
 
  return NULL;
  }
+}
 static char * z_zco_source_generator_macro_safe(const char *s)
+{
 {
  int i, length = strlen(s);
  char *res = malloc(length + 1);
@@ -1507,15 +1382,21 @@ static char * z_zco_source_generator_macro_safe(const char *s)
  res[length] = 0;
  return res;
  }
+}
 void  z_zco_source_generator_finalize_class_definition(Self *self)
+{
 {
  external_definition(self, 1);
  }
+}
 void  z_zco_source_generator_finalize_interface_definition(Self *self)
+{
 {
  external_definition(self, 0);
  }
+}
 static void  z_zco_source_generator_external_definition(Self *self,int is_object)
+{
 {
  int i;
 
@@ -1604,31 +1485,8 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
  selfp->h_macros_head = NULL;
 
 
- /* forward declarations of data structures */
- z_file_write_format(selfp->header_file,
- "struct %SPrivate;\n"
- "struct %SProtected;\n"
- "struct %SGlobal;\n"
- "struct %SClass;\n"
- "struct %S;\n\n",
- selfp->current_class_name_pascal,
- selfp->current_class_name_pascal,
- selfp->current_class_name_pascal,
- selfp->current_class_name_pascal,
- selfp->current_class_name_pascal);
-
- /* create typedefs */
- z_file_write_format(selfp->header_file,
- "typedef struct %SPrivate %SPrivate;\n"
- "typedef struct %SProtected %SProtected;\n"
- "typedef struct %SGlobal %SGlobal;\n"
- "typedef struct %SClass %SClass;\n"
- "typedef struct %S %S;\n\n",
- selfp->current_class_name_pascal, selfp->current_class_name_pascal,
- selfp->current_class_name_pascal, selfp->current_class_name_pascal,
- selfp->current_class_name_pascal, selfp->current_class_name_pascal,
- selfp->current_class_name_pascal, selfp->current_class_name_pascal,
- selfp->current_class_name_pascal, selfp->current_class_name_pascal);
+ /* forward declarations and typedefs of data structures */
+ z_file_write_format(selfp->header_file, "ZCO_TYPEDEF_FWD_DECL_CLASS(%S);\n\n", selfp->current_class_name_pascal);
 
  /* private data members */
  z_file_write_format(selfp->header_file, "%S\x7d;\n\n", selfp->private_data);
@@ -1718,42 +1576,10 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
  z_object_unref(Z_OBJECT(selfp->c_macros));
  selfp->c_macros = NULL;
 
-
  /* declare the global variables */
- z_file_write_format(selfp->source_file, "int %S_type_id = -1;\n\n", selfp->current_class_name_lowercase);
+ z_file_write_format(selfp->source_file, "ZCO_DEFINE_CLASS_TYPE(%S);\n\n", selfp->current_class_name_lowercase);
 
  /* function prototypes in source file */
- z_file_write_format(selfp->source_file,
- "static Self *__%S_new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)\n"
- "\x7b\n"
- "\tSelf *self = NULL;\n"
- "\tif (allocator) \x7b\n"
- "\t\tZObjectTracker *object_tracker = z_memory_allocator_get_object_tracker(allocator);\n"
- "\t\tif (object_tracker) \x7b\n"
- "\t\t\tself = (Self *) z_object_tracker_create(object_tracker, %S_type_id);\n"
- "\t\t\tz_object_unref(Z_OBJECT(object_tracker));\n"
- "\t\t\x7d\n"
- "\t\x7d\n"
- "\tif (!self) {\n"
- "\t\tZMemoryAllocator *obj_allocator = ctx->fixed_allocator;\n"
- "\t\tif (obj_allocator)\n"
- "\t\t\tself = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self));\n"
- "\t\telse\n"
- "\t\t\tself = (Self *) malloc(sizeof(Self));\n"
- "\t\tz_object_set_allocator_ptr((ZObject *) self, allocator);\n"
- "\t\t__%S_init(ctx, self);\n"
- "\t}\n"
- "\treturn self;\n"
- "\x7d\n"
- "\n"
- "static int __map_compare(ZMap *map, const void *a, const void *b)\n"
- "\x7b\n"
- "\treturn strcmp(a, b);\n"
- "\x7d\n",
- selfp->current_class_name_lowercase,
- selfp->current_class_name_lowercase,
- selfp->current_class_name_lowercase);
-
  z_file_write_format(selfp->source_file, "%S\n", selfp->function_prototypes_c);
 
  z_object_unref(Z_OBJECT(selfp->function_prototypes_c));
@@ -1768,113 +1594,39 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
  "\x7d\n");
 
  /* define get_type */
- z_file_write_format(selfp->source_file, "%SGlobal * %S_get_type(struct zco_context_t *ctx)\n"
+ z_file_write_format(selfp->source_file,
+ "%SGlobal * %S_get_type(struct zco_context_t *ctx)\n"
  "\x7b\n"
- "\tZCommonGlobal **global_ptr = NULL;\n"
- "\tif (%S_type_id != -1) \x7b\n"
- "\t\tglobal_ptr = zco_get_ctx_type(ctx, %S_type_id);\n"
- "\t\x7d\n"
- "\tif (!global_ptr || !*global_ptr) \x7b\n"
- "\t\tstruct %SGlobal *global = (%SGlobal *) malloc(sizeof(struct %SGlobal));\n"
- "\t\tglobal->common.ctx = ctx;\n"
- "\t\tglobal->_class = malloc(sizeof(struct %SClass));\n"
- "\t\tmemset(CLASS_FROM_GLOBAL(global), 0, sizeof(struct %SClass));\n"
- "\t\tglobal->common.name = \"%S\";\n"
- "\t\tglobal->common.vtable_off_list = NULL;\n"
- "\t\tglobal->common.vtable_off_size = 0;\n"
- "\t\tglobal->common.svtable_off_list = NULL;\n"
- "\t\tglobal->common.svtable_off_size = 0;\n"
- "\t\tglobal->common.is_object = %d;\n"
- "\n"
- "\t\tstruct %S temp;\n"
- "\t\tstruct %SClass temp_class;\n"
- "\n",
+ "\tZCO_CREATE_CLASS(global, %S, %S, %d);\n",
  selfp->current_class_name_pascal, selfp->current_class_name_lowercase,
- selfp->current_class_name_lowercase,
- selfp->current_class_name_lowercase,
- selfp->current_class_name_pascal,
- selfp->current_class_name_pascal, selfp->current_class_name_pascal,
- selfp->current_class_name_pascal,
- selfp->current_class_name_pascal,
- selfp->current_class_name_pascal,
- is_object,
- selfp->current_class_name_pascal,
- selfp->current_class_name_pascal);
+ selfp->current_class_name_pascal, selfp->current_class_name_lowercase, is_object);
 
  /* inherit the vtable from the parent class */
  for (i=0; i < selfp->parent_class_count; ++i) {
  z_file_write_format(selfp->source_file,
- "\t\t\x7b\n"
- "\t\t\tstruct %SGlobal *p_global = %S_get_type(ctx);\n",
- selfp->parent_class_name_pascal[i],
- selfp->parent_class_name_lowercase[i]);
-
- z_file_write_format(selfp->source_file,
- "\t\t\tzco_inherit_vtable(\n"
- "\t\t\t\t&global->common.vtable_off_list,\n"
- "\t\t\t\t&global->common.vtable_off_size,\n"
- "\t\t\t\tp_global->common.vtable_off_list,\n"
- "\t\t\t\tp_global->common.vtable_off_size,\n"
- "\t\t\t\t&temp,\n"
- "\t\t\t\t&temp.parent_%S);\n",
- selfp->parent_class_name_lowercase[i]);
-
- z_file_write_format(selfp->source_file,
- "\t\t\tzco_inherit_vtable(\n"
- "\t\t\t\t&global->common.svtable_off_list,\n"
- "\t\t\t\t&global->common.svtable_off_size,\n"
- "\t\t\t\tp_global->common.svtable_off_list,\n"
- "\t\t\t\tp_global->common.svtable_off_size,\n"
- "\t\t\t\t&temp_class,\n"
- "\t\t\t\t&temp_class.parent_%S);\n",
- selfp->parent_class_name_lowercase[i]);
-
- z_file_write_format(selfp->source_file,
- "\t\t\t%SClass *p1_class = CLASS_FROM_GLOBAL(p_global);\n"
- "\t\t\t%SClass *p2_class = (%SClass *) ((char *) CLASS_FROM_GLOBAL(global) + global->common.svtable_off_list[%S_type_id]);\n"
- "\t\t\tmemcpy(p2_class, p1_class, sizeof(struct %SClass));\n",
- selfp->parent_class_name_pascal[i],
- selfp->parent_class_name_pascal[i],
+ "\tZCO_INHERIT_CLASS(%S, %S, %S);\n",
  selfp->parent_class_name_pascal[i],
  selfp->parent_class_name_lowercase[i],
- selfp->parent_class_name_pascal[i]);
-
- z_file_write_format(selfp->source_file,
- "\t\t\x7d\n");
+ selfp->current_class_name_pascal);
  }
 
  z_file_write_format(selfp->source_file,
- "\t\tif (%S_type_id == -1)\n"
- "\t\t\t%S_type_id = zco_allocate_type_id();\n"
- "\t\tglobal->common.id = %S_type_id;\n"
- "\t\tzco_add_to_vtable(&global->common.vtable_off_list, &global->common.vtable_off_size, %S_type_id);\n"
- "\t\tzco_add_to_vtable(&global->common.svtable_off_list, &global->common.svtable_off_size, %S_type_id);\n"
- "\t\tglobal_ptr = zco_get_ctx_type(ctx, %S_type_id);\n"
- "\t\t*global_ptr = (ZCommonGlobal *) global;\n"
- "\t\t\n",
- selfp->current_class_name_lowercase,
- selfp->current_class_name_lowercase,
- selfp->current_class_name_lowercase,
- selfp->current_class_name_lowercase,
- selfp->current_class_name_lowercase,
+ "\tZCO_REGISTER_TYPE(%S);\n",
  selfp->current_class_name_lowercase);
 
  /* assign the virtual function pointers */
  z_file_write_format(selfp->source_file, "%S", selfp->virtual_function_ptr_inits);
 
- z_file_write_format(selfp->source_file,
- "\t\t__%S_class_init(ctx, (%SClass *) CLASS_FROM_GLOBAL(global));\n",
- selfp->current_class_name_lowercase,
- selfp->current_class_name_pascal);
+ /* register methods */
+
+ z_file_write_format(selfp->source_file, "\tZCO_CREATE_METHOD_MAP(%S, %S);\n",
+ selfp->current_class_name_pascal,
+ selfp->current_class_name_lowercase);
+
 
  z_object_unref(Z_OBJECT(selfp->virtual_function_ptr_inits));
  selfp->virtual_function_ptr_inits = NULL;
 
- /* register methods */
- z_file_write(selfp->source_file,
- "\t\tglobal->common.method_map = z_map_new(ctx, NULL);\n"
- "\t\tz_map_set_compare(global->common.method_map, __map_compare);\n"
- "\t\tz_map_set_key_destruct(global->common.method_map, (ZMapItemCallback) free);\n");
 
  z_file_write_format(selfp->source_file, "%S", selfp->function_registrations);
 
@@ -1886,22 +1638,17 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
  z_object_unref(Z_OBJECT(selfp->attached_prop_registrations));
  selfp->attached_prop_registrations = NULL;
 
-
  z_file_write_format(selfp->source_file,
- "\t\t#ifdef GLOBAL_INIT_EXISTS\n"
- "\t\t\tglobal_init((%SGlobal *) global);\n"
- "\t\t#endif\n",
- selfp->current_class_name_pascal);
+ "\t#ifdef GLOBAL_INIT_EXISTS\n"
+ "\t\tglobal_init(global);\n"
+ "\t#endif\n");
 
  /* It's important to return global inside the if-block because the value of *global_ptr can become invalid
                    due to memory reallocation inside zco-context.c. Since we cannot dereference global_ptr if the if-block
                    runs, we might as well just return the previously dereferenced value */
  z_file_write_format(selfp->source_file,
- "\t\treturn global;\n"
- "\t\x7d\n"
- "\treturn (%SGlobal *) *global_ptr;\n"
- "\x7d\n\n",
- selfp->current_class_name_pascal);
+ "\treturn global;\n"
+ "\x7d\n\n");
 
  /* define *_class_init */
  z_file_write_format(selfp->source_file,
@@ -1931,8 +1678,7 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
  z_file_write_format(selfp->source_file,
  "void __%S_init(struct zco_context_t *ctx, Self *self)\n"
  "\x7b\n"
- "\tstruct %SGlobal *_global = %S_get_type(ctx);\n"
- "\tself->_global = _global;\n",
+ "\tZCO_INIT_START(%S, %S);\n",
  selfp->current_class_name_lowercase,
  selfp->current_class_name_pascal,
  selfp->current_class_name_lowercase);
@@ -1959,32 +1705,12 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
  selfp->parent_class_name_lowercase[i],
  selfp->parent_class_name_pascal[i],
  selfp->parent_class_name_lowercase[i]);
-
-
-//"((%S *) ((char *) (self) + GLOBAL_FROM_OBJECT(self)->common.vtable_off_list[%S_type_id]))"
  }
-
-
-
- /*
-                z_string_append_format(selfp->h_macros_head,
-                                "#define %S(s) ((%S *) ((char *) (s) + GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT((ZObject *) (s)))->vtable_off_list[%S_type_id]))\n\n",
-                                current_class_name_uppercase,
-                                selfp->current_class_name_pascal,
-                                selfp->current_class_name_lowercase);
-                                */
-
- }
-
- if (!selfp->is_interface) {
- z_file_write(selfp->source_file,
- "\t((ZObject *) self)->class_base = (void *) CLASS_FROM_GLOBAL(_global);\n");
  }
 
  /* assign current class as the active class */
  if (!selfp->is_interface) {
- z_file_write(selfp->source_file,
- "\t((ZObjectClass *) CLASS_FROM_GLOBAL(_global))->real_global = (ZCommonGlobal *) _global;\n");
+ z_file_write(selfp->source_file, "\tZCO_SEAL_CLASS();\n");
  }
 
  z_file_write_format(selfp->source_file, "%S", selfp->signal_registrations);
@@ -2028,28 +1754,36 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
  record_line_number(self);
  print_line_number_on_file(self, selfp->source_file);
  }
+}
 void  z_zco_source_generator_write_header_block(Self *self,ZString *s)
+{
 {
  record_line_number(self);
  print_line_number_on_file(self, selfp->header_file);
 
  z_file_write_format(selfp->header_file, "%S\n", s);
  }
+}
 void  z_zco_source_generator_write_protected_header_block(Self *self,ZString *s)
+{
 {
  record_line_number(self);
  print_line_number_on_file(self, selfp->protected_header_file);
 
  z_file_write_format(selfp->protected_header_file, "%S\n", s);
  }
+}
 void  z_zco_source_generator_write_source_block(Self *self,ZString *s)
+{
 {
  record_line_number(self);
  print_line_number_on_file(self, selfp->source_file);
 
  z_file_write_format(selfp->source_file, "%S\n", s);
  }
+}
 void  z_zco_source_generator_class_declaration(Self *self)
+{
 {
  selfp->parent_class_name_pascal = 0;
  selfp->parent_class_name_lowercase = 0;
@@ -2057,7 +1791,9 @@ void  z_zco_source_generator_class_declaration(Self *self)
  selfp->parent_class_count = 0;
  selfp->is_interface = 0;
  }
+}
 void  z_zco_source_generator_interface_declaration(Self *self)
+{
 {
  selfp->parent_class_name_pascal = 0;
  selfp->parent_class_name_lowercase = 0;
@@ -2065,7 +1801,9 @@ void  z_zco_source_generator_interface_declaration(Self *self)
  selfp->parent_class_count = 0;
  selfp->is_interface = 1;
  }
+}
 void  z_zco_source_generator_enable_virtual_mode(Self *self)
+{
 {
  selfp->modifier_mode = MODIFIER_VIRTUAL;
  if (selfp->virtual_base_name) {
@@ -2073,7 +1811,9 @@ void  z_zco_source_generator_enable_virtual_mode(Self *self)
  }
  selfp->virtual_base_name=0;
  }
+}
 void  z_zco_source_generator_enable_override_mode(Self *self,ZString *s)
+{
 {
  selfp->modifier_mode = MODIFIER_OVERRIDE;
  record_line_number(self);
@@ -2085,11 +1825,21 @@ void  z_zco_source_generator_enable_override_mode(Self *self,ZString *s)
  selfp->virtual_base_name=s; 
  z_object_ref(Z_OBJECT(s));
  }
+}
 void  z_zco_source_generator_set_access_mode(Self *self,int mode)
+{
 {
  selfp->access_mode = mode;
  }
+}
+void  z_zco_source_generator_set_export_option(Self *self,int option)
+{
+{
+ selfp->export_option = option;
+ }
+}
 void  z_zco_source_generator_set_type_name(Self *self,ZString *s)
+{
 {
  if (selfp->type_name)
  z_object_unref(Z_OBJECT(selfp->type_name));
@@ -2097,7 +1847,9 @@ void  z_zco_source_generator_set_type_name(Self *self,ZString *s)
  selfp->type_name = s;
  z_object_ref(Z_OBJECT(s));
  }
+}
 void  z_zco_source_generator_set_symbol_name(Self *self,ZString *s)
+{
 {
  if (selfp->symbol_name)
  z_object_unref(Z_OBJECT(selfp->symbol_name));
@@ -2109,31 +1861,46 @@ void  z_zco_source_generator_set_symbol_name(Self *self,ZString *s)
  /* reset state */
  selfp->is_attached_property = 0;
  }
+}
 void  z_zco_source_generator_add_class_data_member(Self *self)
+{
 {
  add_data_member(self, selfp->access_mode, selfp->type_name, selfp->symbol_name);
  }
+}
 void  z_zco_source_generator_add_class_virtual_data_member(Self *self)
+{
 {
  add_virtual_data_member(self, selfp->access_mode, selfp->type_name, selfp->symbol_name);
  }
+}
 void  z_zco_source_generator_class_virtual_member_function_decl(Self *self,ZString *s1,ZString *s2,ZString *s3)
+{
 {
  virtual_member_function_decl(self, selfp->type_name, s1, s2, s3); 
  }
+}
 void  z_zco_source_generator_class_override_member_function_decl(Self *self,ZString *s1,ZString *s2,ZString *s3)
+{
 {
  override_member_function_decl(self, selfp->type_name, s1, s2, s3);
  }
+}
 void  z_zco_source_generator_class_member_function_decl(Self *self,ZString *s1,ZString *s2,ZString *s3)
 {
+{
  member_function_decl(self, selfp->type_name, s1, s2, s3, 1); 
+ set_export_option(self, 0);
  }
+}
 void  z_zco_source_generator_class_signal_decl(Self *self,ZString *s1,ZString *s2)
+{
 {
  signal_decl(self, selfp->type_name, s1, s2); 
  }
+}
 void  z_zco_source_generator_finalize_property(Self *self)
+{
 {
  if (selfp->is_attached_property) {
  /* add the global map that will hold the attached property for different objects */
@@ -2146,8 +1913,8 @@ void  z_zco_source_generator_finalize_property(Self *self)
  z_object_unref(Z_OBJECT(symbol_name));
 
  z_string_append_format(selfp->attached_prop_registrations,
- "\t\tglobal->_attached_%S = z_map_new(ctx, NULL);\n"
- "\t\tz_map_set_key_destruct(global->_attached_%S, (ZMapItemCallback) z_object_unref);\n",
+ "\tglobal->_attached_%S = z_map_new(ctx, NULL);\n"
+ "\tz_map_set_key_destruct(global->_attached_%S, (ZMapItemCallback) z_object_unref);\n",
  selfp->symbol_name,
  selfp->symbol_name);
 
@@ -2157,11 +1924,15 @@ void  z_zco_source_generator_finalize_property(Self *self)
 
  }
  }
+}
 void  z_zco_source_generator_enable_attached_property(Self *self)
+{
 {
  selfp->is_attached_property = 1;
  }
+}
 int  z_zco_source_generator_setup(Self *self,int argc,char **argv)
+{
 {
  char *filename;
  int base_length;
@@ -2246,6 +2017,7 @@ int  z_zco_source_generator_setup(Self *self,int argc,char **argv)
 
  return 0;
  }
+}
 #define PARENT_HANDLER GLOBAL_FROM_OBJECT(self)->__parent_class_destroy
 static void z_zco_source_generator_class_destroy(ZObjectGlobal *gbl)
 {
