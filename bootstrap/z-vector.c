@@ -578,10 +578,8 @@ int  z_vector_insert_range(Self *self,ZVectorIter *iter,ZVector *src,ZVectorIter
 		   non-empty */
  assert(source_end_segment != NULL);
 
-
  ZVectorIter *temp_iter = z_vector_iter_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
  z_vector_iter_assign(temp_iter, iter);
-
 
  ZVectorSegment *target_segment = z_vector_iter_get_segment(temp_iter);
 

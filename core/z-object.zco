@@ -170,7 +170,7 @@ class ZObject
 		   ZObjectGlobal. Since we are interested in the vtable information,
 		   we can perform the cast */
 		ZCommonGlobal *gbl = ((ZObjectClass *) self->class_base)->real_global;
-
+                struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
 
 		int *vtable_off_list = gbl->vtable_off_list;
 		int vtable_off_size = gbl->vtable_off_size;
@@ -184,7 +184,7 @@ class ZObject
 			if (offset == -1)
 				continue;
 
-			gbl = *((ZCommonGlobal **) zco_get_ctx_type(CTX_FROM_OBJECT(self), i));
+			gbl = *((ZCommonGlobal **) zco_get_ctx_type(ctx, i));
 			ZMap *method_map = (ZMap *) gbl->method_map;
 			ZMapIter *it = z_map_find(method_map, method_name);
 
@@ -271,9 +271,12 @@ class ZObject
 
 	public void register_signal(Self *self, char *name)
 	{
+                struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
+                ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
+
 		/* create signal map (if necessary) */
 		if (!selfp->signal_map) {
-			ZMap *signal_map = z_map_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+			ZMap *signal_map = z_map_new(ctx, allocator);
 			z_map_set_compare(signal_map, map_compare);
 			z_map_set_key_destruct(signal_map, (ZMapItemCallback) free);
 			z_map_set_value_destruct(signal_map, (ZMapItemCallback) unref);
@@ -286,7 +289,7 @@ class ZObject
 		ZMapIter *it = z_map_find(signal_map, name);
 
 		if (!it) {
-			ZVector *closure_list = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+			ZVector *closure_list = z_vector_new(ctx, allocator);
                         z_vector_set_item_size(closure_list, 0);
 			z_vector_set_item_destruct(closure_list, (ZVectorItemCallback) unref);
 			z_map_insert(signal_map, strdup(name), closure_list);

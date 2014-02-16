@@ -192,39 +192,42 @@ void __z_zco_source_generator_init(struct zco_context_t *ctx, Self *self)
 }
 static void z_zco_source_generator_init(Self *self)
 {
- selfp->str_class_init = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_global_init = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_init = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_global_destroy = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_get = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_set = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_comma = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_zvalue = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_self = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_z = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_char = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_int8_t = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_unsigned_char = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_uint8_t = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_short = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_int16_t = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_int = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_int32_t = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_long = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_long_long = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_int64_t = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_unsigned_short = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_uint16_t = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_unsigned_int = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_uint32_t = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_unsigned_long = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_unsigned_long_long = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_uint64_t = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_float = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_double = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_void = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->str_class_destroy = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->z_object_class_name_pascal = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
+ ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
+ 
+ selfp->str_class_init = z_string_new(ctx, allocator);
+ selfp->str_global_init = z_string_new(ctx, allocator);
+ selfp->str_init = z_string_new(ctx, allocator);
+ selfp->str_global_destroy = z_string_new(ctx, allocator);
+ selfp->str_get = z_string_new(ctx, allocator);
+ selfp->str_set = z_string_new(ctx, allocator);
+ selfp->str_comma = z_string_new(ctx, allocator);
+ selfp->str_zvalue = z_string_new(ctx, allocator);
+ selfp->str_self = z_string_new(ctx, allocator);
+ selfp->str_z = z_string_new(ctx, allocator);
+ selfp->str_char = z_string_new(ctx, allocator);
+ selfp->str_int8_t = z_string_new(ctx, allocator);
+ selfp->str_unsigned_char = z_string_new(ctx, allocator);
+ selfp->str_uint8_t = z_string_new(ctx, allocator);
+ selfp->str_short = z_string_new(ctx, allocator);
+ selfp->str_int16_t = z_string_new(ctx, allocator);
+ selfp->str_int = z_string_new(ctx, allocator);
+ selfp->str_int32_t = z_string_new(ctx, allocator);
+ selfp->str_long = z_string_new(ctx, allocator);
+ selfp->str_long_long = z_string_new(ctx, allocator);
+ selfp->str_int64_t = z_string_new(ctx, allocator);
+ selfp->str_unsigned_short = z_string_new(ctx, allocator);
+ selfp->str_uint16_t = z_string_new(ctx, allocator);
+ selfp->str_unsigned_int = z_string_new(ctx, allocator);
+ selfp->str_uint32_t = z_string_new(ctx, allocator);
+ selfp->str_unsigned_long = z_string_new(ctx, allocator);
+ selfp->str_unsigned_long_long = z_string_new(ctx, allocator);
+ selfp->str_uint64_t = z_string_new(ctx, allocator);
+ selfp->str_float = z_string_new(ctx, allocator);
+ selfp->str_double = z_string_new(ctx, allocator);
+ selfp->str_void = z_string_new(ctx, allocator);
+ selfp->str_class_destroy = z_string_new(ctx, allocator);
+ selfp->z_object_class_name_pascal = z_string_new(ctx, allocator);
 
  z_string_set_cstring(selfp->str_class_init, "class_init", Z_STRING_ENCODING_UTF8);
  z_string_set_cstring(selfp->str_global_init, "global_init", Z_STRING_ENCODING_UTF8);
@@ -516,8 +519,12 @@ static void  z_zco_source_generator_add_value_arg(Self *self,const char *method_
  if (is_first)
  return;
 
- arg_type = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- arg_name = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+
+ struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
+ ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
+
+ arg_type = z_string_new(ctx, allocator);
+ arg_name = z_string_new(ctx, allocator);
  extract_argument(token, arg_type, arg_name);
 
  print_line_number(self, selfp->function_definitions);
@@ -749,8 +756,11 @@ static void  z_zco_source_generator_add_virtual_data_member(Self *self,int mode,
 static void  z_zco_source_generator_define_attached_property_getter(Self *self,ZString *symbol_name,ZString *app_code)
 {
 {
+ struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
+ ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
+
  ZString *code;
- ZString *arglist = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ ZString *arglist = z_string_new(ctx, allocator);
  z_string_format(arglist, "(ZObject *object)");
  char *temp;
  ZString *symbol;
@@ -761,7 +771,7 @@ static void  z_zco_source_generator_define_attached_property_getter(Self *self,Z
  "#define get_current_value() get_attached_%S(object)\n", symbol_name);
 
  /* define the exposed getter of the attached property */
- symbol = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ symbol = z_string_new(ctx, allocator);
  z_string_format(symbol, "get_%S", symbol_name);
  member_function_decl(self, selfp->type_name, symbol, arglist, app_code, 0);
  z_object_unref(Z_OBJECT(symbol));
@@ -785,7 +795,10 @@ static void  z_zco_source_generator_define_attached_property_getter(Self *self,Z
 static void  z_zco_source_generator_define_attached_property_setter(Self *self,ZString *symbol_name,ZString *app_code)
 {
 {
- ZString *arglist = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
+ ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
+
+ ZString *arglist = z_string_new(ctx, allocator);
  z_string_format(arglist, "(ZObject *object, %S value)", selfp->type_name);
  char *temp;
  ZString *symbol;
@@ -796,7 +809,7 @@ static void  z_zco_source_generator_define_attached_property_setter(Self *self,Z
  "#define set_current_value(val) set_attached_%S(object,value)\n", symbol_name);
 
  /* define the exposed setter of the attached property */
- symbol = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ symbol = z_string_new(ctx, allocator);
  z_string_format(symbol, "set_%S", symbol_name);
  member_function_decl(self, selfp->type_name, symbol, arglist, app_code, 0);
  z_object_unref(Z_OBJECT(symbol));
@@ -818,7 +831,10 @@ static void  z_zco_source_generator_define_attached_property_setter(Self *self,Z
 void  z_zco_source_generator_property_decl(Self *self,ZString *get_or_set,ZString *code)
 {
 {
- ZString *arglist = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
+ ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
+
+ ZString *arglist = z_string_new(ctx, allocator);
  ZString *symbol;
 
  if (selfp->is_attached_property) {
@@ -834,17 +850,17 @@ void  z_zco_source_generator_property_decl(Self *self,ZString *get_or_set,ZStrin
 
  if (!z_string_compare(get_or_set, NULL, selfp->str_get, NULL, 0, -1)) {
  z_string_format(arglist, "(Self *self)");
- symbol = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ symbol = z_string_new(ctx, allocator);
  z_string_format(symbol, "get_%S", selfp->symbol_name);
  member_function_decl(self, selfp->type_name, symbol, arglist, code, 0);
  z_object_unref(Z_OBJECT(symbol));
 
  } else if (!z_string_compare(get_or_set, NULL, selfp->str_set, NULL, 0, -1)) {
  z_string_format(arglist, "(Self *self, %S value)", selfp->type_name);
- symbol = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ symbol = z_string_new(ctx, allocator);
  z_string_format(symbol, "set_%S", selfp->symbol_name);
 
- ZString *temp2 = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ ZString *temp2 = z_string_new(ctx, allocator);
  z_string_format(temp2, "void");
  member_function_decl(self, temp2, symbol, arglist, code, 0);
  z_object_unref(Z_OBJECT(temp2));
@@ -903,6 +919,7 @@ static ZString *  z_zco_source_generator_pascal_to_lowercase(Self *self,ZString 
  int first = 1;
 
  res = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+
  it = z_string_get_begin(str);
  end = z_string_get_end(str);
 
@@ -967,10 +984,13 @@ static ZString * z_zco_source_generator_strip_out_type(Self *self,ZString *arg)
  z_string_iter_decrement(it);
  z_string_iter_decrement(begin);
 
+ struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
+ ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
+
  for (; !z_string_iter_is_equal(it, begin); z_string_iter_decrement(it)) {
  uint32_t ch = z_string_get_char(arg, it);
  if (ch == ' ' || ch == '*') {
- res = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ res = z_string_new(ctx, allocator);
  z_string_iter_increment(it);
  z_string_append(res, arg, it, NULL);
 
@@ -1008,9 +1028,11 @@ static void  z_zco_source_generator_for_each_arg(Self *self,ZString *output,ZStr
 {
 {
  int is_first = 1;
+ struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
+ ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
 
  /* strip out the first parenthesis character */
- ZString *arglist_no_paren = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ ZString *arglist_no_paren = z_string_new(ctx, allocator);
  ZStringIter *it1 = z_string_get_begin(arglist);
  ZStringIter *it2 = z_string_get_end(arglist);
  z_string_iter_increment(it1);
@@ -1026,12 +1048,12 @@ static void  z_zco_source_generator_for_each_arg(Self *self,ZString *output,ZStr
  /* extract the token */
  ZStringIter *first, *last;
 
- first = z_string_iter_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- last = z_string_iter_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ first = z_string_iter_new(ctx, allocator);
+ last = z_string_iter_new(ctx, allocator);
 
  int rc = z_string_token_next(arglist_no_paren, selfp->str_comma, first, last);
 
- ZString *token = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ ZString *token = z_string_new(ctx, allocator);
  z_string_append(token, arglist_no_paren, first, last);
 
  z_object_unref(Z_OBJECT(last));
@@ -1146,25 +1168,27 @@ static void  z_zco_source_generator_override_member_function_decl(Self *self,ZSt
 void  z_zco_source_generator_prepare_class(Self *self,ZString *class_name)
 {
 {
+ struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
+ ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
  int i;
 
- selfp->global_data = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->class_data = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->private_data = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->protected_data = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->public_data = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->function_prototypes_c = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->function_definitions = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->virtual_function_ptr_inits = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->h_macros_head = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->h_macros_tail = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->c_macros = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->function_prototypes_h = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->function_prototypes_ph = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->function_registrations = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->signal_registrations = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->attached_prop_registrations = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->class_destroy_code = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ selfp->global_data = z_string_new(ctx, allocator);
+ selfp->class_data = z_string_new(ctx, allocator);
+ selfp->private_data = z_string_new(ctx, allocator);
+ selfp->protected_data = z_string_new(ctx, allocator);
+ selfp->public_data = z_string_new(ctx, allocator);
+ selfp->function_prototypes_c = z_string_new(ctx, allocator);
+ selfp->function_definitions = z_string_new(ctx, allocator);
+ selfp->virtual_function_ptr_inits = z_string_new(ctx, allocator);
+ selfp->h_macros_head = z_string_new(ctx, allocator);
+ selfp->h_macros_tail = z_string_new(ctx, allocator);
+ selfp->c_macros = z_string_new(ctx, allocator);
+ selfp->function_prototypes_h = z_string_new(ctx, allocator);
+ selfp->function_prototypes_ph = z_string_new(ctx, allocator);
+ selfp->function_registrations = z_string_new(ctx, allocator);
+ selfp->signal_registrations = z_string_new(ctx, allocator);
+ selfp->attached_prop_registrations = z_string_new(ctx, allocator);
+ selfp->class_destroy_code = z_string_new(ctx, allocator);
 
  ZString * current_class_name_uppercase = pascal_to_uppercase(self, class_name, '_');
  selfp->current_class_name_lowercase = pascal_to_lowercase(self, class_name, '_');
@@ -1238,25 +1262,27 @@ void  z_zco_source_generator_prepare_class(Self *self,ZString *class_name)
 void  z_zco_source_generator_prepare_interface(Self *self,ZString *interface_name)
 {
 {
+ struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
+ ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
  int i;
 
- selfp->global_data = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->class_data = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->private_data = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->protected_data = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->public_data = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->function_prototypes_c = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->function_definitions = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->virtual_function_ptr_inits = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->h_macros_head = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->h_macros_tail = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->c_macros = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->function_prototypes_h = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->function_prototypes_ph = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->function_registrations = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->signal_registrations = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->attached_prop_registrations = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- selfp->class_destroy_code = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ selfp->global_data = z_string_new(ctx, allocator);
+ selfp->class_data = z_string_new(ctx, allocator);
+ selfp->private_data = z_string_new(ctx, allocator);
+ selfp->protected_data = z_string_new(ctx, allocator);
+ selfp->public_data = z_string_new(ctx, allocator);
+ selfp->function_prototypes_c = z_string_new(ctx, allocator);
+ selfp->function_definitions = z_string_new(ctx, allocator);
+ selfp->virtual_function_ptr_inits = z_string_new(ctx, allocator);
+ selfp->h_macros_head = z_string_new(ctx, allocator);
+ selfp->h_macros_tail = z_string_new(ctx, allocator);
+ selfp->c_macros = z_string_new(ctx, allocator);
+ selfp->function_prototypes_h = z_string_new(ctx, allocator);
+ selfp->function_prototypes_ph = z_string_new(ctx, allocator);
+ selfp->function_registrations = z_string_new(ctx, allocator);
+ selfp->signal_registrations = z_string_new(ctx, allocator);
+ selfp->attached_prop_registrations = z_string_new(ctx, allocator);
+ selfp->class_destroy_code = z_string_new(ctx, allocator);
 
  ZString * current_class_name_uppercase = pascal_to_uppercase(self, interface_name, '_');
  selfp->current_class_name_lowercase = pascal_to_lowercase(self, interface_name, '_');
@@ -1408,9 +1434,12 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
  // FIXME: investigate this
 
  if (is_object) {
- ZString *symbol = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- ZString *arglist = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- ZString *code = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
+ ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
+
+ ZString *symbol = z_string_new(ctx, allocator);
+ ZString *arglist = z_string_new(ctx, allocator);
+ ZString *code = z_string_new(ctx, allocator);
 
  /* define class_destroy function */
  z_string_set_cstring(symbol, "class_destroy", Z_STRING_ENCODING_UTF8);
@@ -1428,7 +1457,7 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
  selfp->class_destroy_code);
 
  //selfp->access_mode == ACCESS_GLOBAL;
- ZString *virtual_base = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ ZString *virtual_base = z_string_new(ctx, allocator);
  z_string_set_cstring(virtual_base, "ZObject", Z_STRING_ENCODING_UTF8);
  enable_override_mode(self, virtual_base);
  z_object_unref(Z_OBJECT(virtual_base));
@@ -1449,7 +1478,7 @@ static void  z_zco_source_generator_external_definition(Self *self,int is_object
  "\t\tfree(self);\n"
  "\x7d\n");
 
- virtual_base = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ virtual_base = z_string_new(ctx, allocator);
  z_string_set_cstring(virtual_base, "ZObject", Z_STRING_ENCODING_UTF8);
  enable_override_mode(self, virtual_base);
  z_object_unref(Z_OBJECT(virtual_base));
@@ -1903,9 +1932,12 @@ void  z_zco_source_generator_finalize_property(Self *self)
 {
 {
  if (selfp->is_attached_property) {
+ struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
+ ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
+
  /* add the global map that will hold the attached property for different objects */
- ZString *symbol_name = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
- ZString *type_name = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ ZString *symbol_name = z_string_new(ctx, allocator);
+ ZString *type_name = z_string_new(ctx, allocator);
  z_string_format(type_name, "void *");
  z_string_format(symbol_name, "attached_%S", selfp->symbol_name);
  add_data_member(self, ACCESS_GLOBAL, type_name, symbol_name);
@@ -1934,6 +1966,9 @@ void  z_zco_source_generator_enable_attached_property(Self *self)
 int  z_zco_source_generator_setup(Self *self,int argc,char **argv)
 {
 {
+ struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
+ ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
+
  char *filename;
  int base_length;
  int rc;
@@ -1960,7 +1995,7 @@ int  z_zco_source_generator_setup(Self *self,int argc,char **argv)
  filename[base_length+2] = 0;
  selfp->header_filename = strdup(filename);
 
- selfp->header_file = z_file_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ selfp->header_file = z_file_new(ctx, allocator);
 
  if (z_file_open(selfp->header_file, selfp->header_filename, "w") != 0) {
  fputs("zco: ", stderr);
@@ -1980,7 +2015,7 @@ int  z_zco_source_generator_setup(Self *self,int argc,char **argv)
  strcat(filename, "-protected.h");
  selfp->protected_header_filename = strdup(filename);
 
- selfp->protected_header_file = z_file_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ selfp->protected_header_file = z_file_new(ctx, allocator);
 
  if (z_file_open(selfp->protected_header_file, selfp->protected_header_filename, "w") != 0) {
  fputs("zco: ", stderr);
@@ -1998,7 +2033,7 @@ int  z_zco_source_generator_setup(Self *self,int argc,char **argv)
  filename[base_length+1] = 'c';
  filename[base_length+2] = 0;
 
- selfp->source_file = z_file_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+ selfp->source_file = z_file_new(ctx, allocator);
 
  if (z_file_open(selfp->source_file, filename, "w") != 0) {
  fputs("zco: ", stderr);

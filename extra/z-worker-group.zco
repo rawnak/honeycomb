@@ -66,16 +66,18 @@ class ZWorkerGroup : ZObject
 
 	init(Self *self)
 	{
+                struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
+                ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
                 selfp->count = 0;
 
                 /* Create the workers list */
-                selfp->workers = z_vector_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                selfp->workers = z_vector_new(ctx, allocator);
                 z_vector_set_item_size(selfp->workers, sizeof(struct worker_t));
                 z_vector_set_item_construct(selfp->workers, (ZVectorItemCallback) add_worker);
                 z_vector_set_item_destruct(selfp->workers, (ZVectorItemCallback) remove_worker);
 
                 /* Create the responses map */
-                selfp->responses = z_map_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                selfp->responses = z_map_new(ctx, allocator);
                 z_map_set_compare(selfp->responses, map_compare);
                 z_map_set_value_destruct(selfp->responses, (ZMapItemCallback) response_destroy);
         }

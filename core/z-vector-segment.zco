@@ -315,8 +315,9 @@ done:
                 }
 
                 if (max_value) {
-                        int min_segment_capacity_by_size = zco_context_get_min_segment_capacity_by_size(CTX_FROM_OBJECT(self));
-                        int min_segment_capacity_by_count = zco_context_get_min_segment_capacity_by_count(CTX_FROM_OBJECT(self));
+                        struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
+                        int min_segment_capacity_by_size = zco_context_get_min_segment_capacity_by_size(ctx);
+                        int min_segment_capacity_by_count = zco_context_get_min_segment_capacity_by_count(ctx);
 
                         /* restrict minimum segment size by count */
                         if (min_value < min_segment_capacity_by_count)

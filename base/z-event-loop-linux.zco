@@ -119,8 +119,11 @@ class ZEventLoopLinux : ZEventLoop, ZInOutMultiplexer
 
 	init(Self *self)
 	{
+                struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
+                ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
+
                 /* Create an epoll file descriptor */
-                selfp->ep_handle = z_in_out_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                selfp->ep_handle = z_in_out_new(ctx, allocator);
                 int ep_fd = epoll_create1(0);
                 assert(ep_fd >= 0);
                 z_in_out_set_fd(selfp->ep_handle, ep_fd);
@@ -129,16 +132,16 @@ class ZEventLoopLinux : ZEventLoop, ZInOutMultiplexer
                 int pipe_fds[2];
                 assert(pipe(pipe_fds) == 0);
 
-                selfp->pipe_out = z_in_out_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                selfp->pipe_out = z_in_out_new(ctx, allocator);
                 z_in_out_set_fd(selfp->pipe_out, pipe_fds[0]);
 
-                selfp->pipe_in = z_in_out_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                selfp->pipe_in = z_in_out_new(ctx, allocator);
                 z_in_out_set_fd(selfp->pipe_in, pipe_fds[1]);
 
                 /* Set file descriptors to non-blocking mode */
                 z_in_out_set_flags(selfp->pipe_out, O_NONBLOCK);
 
-                selfp->fd_map = z_map_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                selfp->fd_map = z_map_new(ctx, allocator);
                 z_map_set_compare(selfp->fd_map, map_compare);
                 z_map_set_value_destruct(selfp->fd_map, (ZMapItemCallback) z_object_unref);
 
@@ -216,6 +219,9 @@ class ZEventLoopLinux : ZEventLoop, ZInOutMultiplexer
                 int timeout_ms;
                 int self_pipe_found;
 
+                struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
+                ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
+
                 do {
                         if (next_task_time)
                                 timeout_ms = (int) convert_monotonic_to_timeout(self, next_task_time);
@@ -267,7 +273,7 @@ class ZEventLoopLinux : ZEventLoop, ZInOutMultiplexer
                                                 }
 
                                                 /* Invoke the task */
-                                                ZBind *new_task = z_bind_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                                                ZBind *new_task = z_bind_new(ctx, allocator);
                                                 z_bind_assign(new_task, event_bind->bind);
                                                 z_bind_append_uint32(new_task, convert_flags(ev->events));
                                                 z_bind_invoke(new_task);

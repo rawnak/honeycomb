@@ -438,7 +438,10 @@ class ZSocket : ZObject
 
         public ZSocket * accept_connection(Self *self)
         {
-                ZSocket *socket = z_socket_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
+                ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
+
+                ZSocket *socket = z_socket_new(ctx, allocator);
                 union sock_address client_address;
                 int client_address_len;
                 int client_fd;
@@ -451,7 +454,7 @@ class ZSocket : ZObject
 
                                 assert(declare_family(socket, AF_INET6) == 0);
 
-                                ZInOut *inout = z_in_out_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                                ZInOut *inout = z_in_out_new(ctx, allocator);
                                 z_in_out_set_fd(inout, client_fd);
                                 set_inout(socket, inout);
                                 z_object_unref(Z_OBJECT(inout));
@@ -470,7 +473,7 @@ class ZSocket : ZObject
 
                                 assert(declare_family(socket, AF_INET) == 0);
 
-                                ZInOut *inout = z_in_out_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                                ZInOut *inout = z_in_out_new(ctx, allocator);
                                 z_in_out_set_fd(inout, client_fd);
                                 set_inout(socket, inout);
                                 z_object_unref(Z_OBJECT(inout));
