@@ -38,8 +38,7 @@ int yylex(void);
 
 %token HEADER_BLK_START SOURCE_BLK_START FILE_BLK_END CLASS INTERFACE STRUCT UNION CONST SIGNED UNSIGNED COLON GLOBAL
 %token OVERRIDE VIRTUAL WORD CODE OBRACE EBRACE OPAREN EPAREN SEMICOLON VAR_ARGS SPACE ASTERISK COMMENT COMMA HASH
-%token BANG VOLATILE PUBLIC PROTECTED PRIVATE GET SET EXPORT
-
+%token BANG VOLATILE PUBLIC PROTECTED PRIVATE GET SET EXPORT STRING_LITERAL
 
 %start translation_unit
 
@@ -115,6 +114,18 @@ ccodes
 		z_object_unref(Z_OBJECT($1));
 	}
 	| ccodes CODE
+	{
+		z_string_append_format((ZString *) $1, "%S", $2);
+		z_object_unref(Z_OBJECT($2));
+	}
+
+	| STRING_LITERAL
+	{
+		$$=z_zco_source_generator_new_string(source_generator,NULL);
+		z_string_append_format($$, "%S", $1);
+		z_object_unref(Z_OBJECT($1));
+	}
+	| ccodes STRING_LITERAL
 	{
 		z_string_append_format((ZString *) $1, "%S", $2);
 		z_object_unref(Z_OBJECT($2));

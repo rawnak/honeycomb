@@ -444,7 +444,7 @@ class ZZcoSourceGenerator : ZObject
 
                 /* start of function body */
                 print_line_number(self, selfp->function_definitions);
-                z_string_append_format(selfp->function_definitions, "\x7b\n");
+                z_string_append_format(selfp->function_definitions, "{\n");
 
                 print_line_number(self, selfp->function_definitions);
                 z_string_append_format(selfp->function_definitions, "\tZCO_SIGNAL_START(args);\n");
@@ -456,7 +456,7 @@ class ZZcoSourceGenerator : ZObject
                 z_string_append_format(selfp->function_definitions, "\tZCO_SIGNAL_END(args, %S)\n", symbol);
 
 		print_line_number(self, selfp->function_definitions);
-                z_string_append_format(selfp->function_definitions, "\x7d\n");
+                z_string_append_format(selfp->function_definitions, "}\n");
 
                 print_line_number(self, selfp->signal_registrations);
                 z_string_append_format(selfp->signal_registrations, "\tz_object_register_signal(Z_OBJECT(self), \"%S\");\n", symbol);
@@ -585,7 +585,7 @@ class ZZcoSourceGenerator : ZObject
 
                                 /* for function definition */
                                 print_line_number(self, selfp->function_definitions);
-                                z_string_append_format(selfp->function_definitions, "static %S %S_%S%S\n\x7b\n", type, selfp->current_class_name_lowercase, symbol, arglist);
+                                z_string_append_format(selfp->function_definitions, "static %S %S_%S%S\n{\n", type, selfp->current_class_name_lowercase, symbol, arglist);
 
                                 if (selfp->export_option) {
                                         selfp->class_needs_vector = 1;
@@ -596,7 +596,7 @@ class ZZcoSourceGenerator : ZObject
 					z_string_append_format(selfp->function_definitions, "\tZCO_METHOD_HOOK_END(self, args, %S, %S);\n", symbol, type);
 				}
 
-                                z_string_append_format(selfp->function_definitions, "%S\n\x7d\n", code);
+                                z_string_append_format(selfp->function_definitions, "%S\n}\n", code);
                                 break;
 
                         case ACCESS_PROTECTED:
@@ -606,7 +606,7 @@ class ZZcoSourceGenerator : ZObject
 
                                 /* for function definition */
                                 print_line_number(self, selfp->function_definitions);
-                                z_string_append_format(selfp->function_definitions, "%S %S_%S%S\n\x7b\n", type, selfp->current_class_name_lowercase, symbol, arglist);
+                                z_string_append_format(selfp->function_definitions, "%S %S_%S%S\n{\n", type, selfp->current_class_name_lowercase, symbol, arglist);
 
                                 if (selfp->export_option) {
                                         selfp->class_needs_vector = 1;
@@ -617,7 +617,7 @@ class ZZcoSourceGenerator : ZObject
 					z_string_append_format(selfp->function_definitions, "\tZCO_METHOD_HOOK_END(self, args, %S, %S);\n", symbol, type);
 				}
 
-                                z_string_append_format(selfp->function_definitions, "%S\n\x7d\n", code);
+                                z_string_append_format(selfp->function_definitions, "%S\n}\n", code);
                                 break;
 
                         case ACCESS_PUBLIC:
@@ -633,7 +633,7 @@ class ZZcoSourceGenerator : ZObject
 
                                 /* for function definition */
                                 print_line_number(self, selfp->function_definitions);
-                                z_string_append_format(selfp->function_definitions, "%S %S_%S%S\n\x7b\n", type, selfp->current_class_name_lowercase, symbol, arglist);
+                                z_string_append_format(selfp->function_definitions, "%S %S_%S%S\n{\n", type, selfp->current_class_name_lowercase, symbol, arglist);
 
                                 if (selfp->export_option) {
                                         selfp->class_needs_vector = 1;
@@ -644,7 +644,7 @@ class ZZcoSourceGenerator : ZObject
 					z_string_append_format(selfp->function_definitions, "\tZCO_METHOD_HOOK_END(self, args, %S, %S);\n", symbol, type);
 				}
 
-                                z_string_append_format(selfp->function_definitions, "%S\n\x7d\n", code);
+                                z_string_append_format(selfp->function_definitions, "%S\n}\n", code);
                                 break;
 
                         case ACCESS_GLOBAL:
@@ -1025,12 +1025,12 @@ class ZZcoSourceGenerator : ZObject
 
                 if (selfp->access_mode == ACCESS_GLOBAL) {
                         z_string_append_format(vcode, 
-                                        "\x7b\n"
+                                        "{\n"
                                         "\tZObjectClass *class_base = CLASS_FROM_GLOBAL(gbl);\n"
                                         "\tZCommonGlobal *common_global = class_base->real_global;\n");
                 } else {
                         z_string_append_format(vcode, 
-                                        "\x7b\n"
+                                        "{\n"
                                         "\tZObject *obj = (ZObject *) self;\n"
                                         "\tZObjectClass *class_base = (ZObjectClass *) obj->class_base;\n"
                                         "\tZCommonGlobal *common_global = class_base->real_global;\n");
@@ -1045,7 +1045,7 @@ class ZZcoSourceGenerator : ZObject
                                 selfp->current_class_name_pascal, symbol);
 
                 for_each_arg(self, vcode, arglist, append_stripped_arg, NULL);
-                z_string_append_cstring(vcode, ");\n\x7d", Z_STRING_ENCODING_UTF8);
+                z_string_append_cstring(vcode, ");\n}", Z_STRING_ENCODING_UTF8);
 
                 member_function_decl(self, type, symbol, arglist, vcode, 1);
                 z_object_unref(Z_OBJECT(vcode));
@@ -1137,10 +1137,10 @@ class ZZcoSourceGenerator : ZObject
 		z_object_ref(Z_OBJECT(class_name));
 
                 /* start the private data structure */
-                z_string_append_format(selfp->private_data, "struct %SPrivate \x7b\n", class_name);
+                z_string_append_format(selfp->private_data, "struct %SPrivate {\n", class_name);
 
                 /* start the protected data structure */
-                z_string_append_format(selfp->protected_data, "struct %SProtected \x7b\n", class_name);
+                z_string_append_format(selfp->protected_data, "struct %SProtected {\n", class_name);
 
                 /* define the Self macro in the header file */
                 z_string_append_format(selfp->h_macros_head, "#define Self %S\n", class_name);
@@ -1164,19 +1164,19 @@ class ZZcoSourceGenerator : ZObject
 
                 /* start the global data structure */
                 z_string_append_format(selfp->global_data,
-                                "struct %SGlobal \x7b\n"
+                                "struct %SGlobal {\n"
                                 "\tZCO_CLASS_GLOBAL_HEAD(%S);\n",
                                 class_name, class_name);
 
                 /* start the klass data structure */
-                z_string_append_format(selfp->class_data, "struct %SClass \x7b\n", class_name);
+                z_string_append_format(selfp->class_data, "struct %SClass {\n", class_name);
                 for (i=0; i<selfp->parent_class_count; ++i)
                 {
                         z_string_append_format(selfp->class_data, "\tstruct %SClass parent_%S;\n", selfp->parent_class_name_pascal[i], selfp->parent_class_name_lowercase[i]);
                 }
 
                 /* start the public data structure */
-                z_string_append_format(selfp->public_data, "struct %S \x7b\n", class_name);
+                z_string_append_format(selfp->public_data, "struct %S {\n", class_name);
                 for (i=0; i<selfp->parent_class_count; ++i)
                 {
                         z_string_append_format(selfp->public_data, "\tstruct %S parent_%S;\n", selfp->parent_class_name_pascal[i], selfp->parent_class_name_lowercase[i]);
@@ -1230,10 +1230,10 @@ class ZZcoSourceGenerator : ZObject
 		z_object_ref(Z_OBJECT(interface_name));
 
                 /* start the private data structure */
-                z_string_append_format(selfp->private_data, "struct %SPrivate \x7b\n", interface_name);
+                z_string_append_format(selfp->private_data, "struct %SPrivate {\n", interface_name);
 
                 /* start the protected data structure */
-                z_string_append_format(selfp->protected_data, "struct %SProtected \x7b\n", interface_name);
+                z_string_append_format(selfp->protected_data, "struct %SProtected {\n", interface_name);
 
                 /* define the Self macro in the header file */
                 z_string_append_format(selfp->h_macros_head, "#define Self %S\n", interface_name);
@@ -1258,20 +1258,20 @@ class ZZcoSourceGenerator : ZObject
 
                 /* start the global data structure */
                 z_string_append_format(selfp->global_data,
-                                "struct %SGlobal \x7b\n"
+                                "struct %SGlobal {\n"
                                 "\tstruct ZCommonGlobal common;\n"
                                 "\tstruct %SClass *_class;\n",
                                 interface_name, interface_name);
 
                 /* start the klass data structure */
-                z_string_append_format(selfp->class_data, "struct %SClass \x7b\n", interface_name);
+                z_string_append_format(selfp->class_data, "struct %SClass {\n", interface_name);
                 for (i=0; i<selfp->parent_class_count; ++i)
                 {
                         z_string_append_format(selfp->class_data, "\tstruct %SClass parent_%S;\n", selfp->parent_class_name_pascal[i], selfp->parent_class_name_lowercase[i]);
                 }
 
                 /* start the public data structure */
-                z_string_append_format(selfp->public_data, "struct %S \x7b\n", interface_name);
+                z_string_append_format(selfp->public_data, "struct %S {\n", interface_name);
                 for (i=0; i<selfp->parent_class_count; ++i)
                 {
                         z_string_append_format(selfp->public_data, "\tstruct %S parent_%S;\n", selfp->parent_class_name_pascal[i], selfp->parent_class_name_lowercase[i]);
@@ -1381,13 +1381,13 @@ class ZZcoSourceGenerator : ZObject
                                 z_string_set_cstring(symbol, "class_destroy", Z_STRING_ENCODING_UTF8);
                                 z_string_set_cstring(arglist, "(ZObjectGlobal *gbl)", Z_STRING_ENCODING_UTF8);
                                 z_string_append_format(code,
-                                                "\x7b\n"
+                                                "{\n"
                                                 "\t%SGlobal *_global = (%SGlobal *) gbl;\n"
                                                 "\t#ifdef GLOBAL_DESTROY_EXISTS\n"
                                                 "\t\tglobal_destroy(_global);\n"
                                                 "\t#endif\n"
                                                 "%S\n"
-                                                "\x7d\n",
+                                                "}\n",
                                                 selfp->current_class_name_pascal,
                                                 selfp->current_class_name_pascal,
                                                 selfp->class_destroy_code);
@@ -1406,13 +1406,13 @@ class ZZcoSourceGenerator : ZObject
                                 z_string_set_cstring(arglist, "(ZObject *self)", Z_STRING_ENCODING_UTF8);
                                 z_string_clear(code);
                                 z_string_append_format(code,
-                                                "\x7b\n"
+                                                "{\n"
                                                 "\tZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;\n"
                                                 "\tif (allocator)\n"
                                                 "\t\tz_memory_allocator_deallocate_by_size(allocator, self, sizeof(Self));\n"
                                                 "\telse\n"
                                                 "\t\tfree(self);\n"
-                                                "\x7d\n");
+                                                "}\n");
 
                                 virtual_base = z_string_new(ctx, allocator);
                                 z_string_set_cstring(virtual_base, "ZObject", Z_STRING_ENCODING_UTF8);
@@ -1454,31 +1454,31 @@ class ZZcoSourceGenerator : ZObject
                 z_file_write_format(selfp->header_file, "ZCO_TYPEDEF_FWD_DECL_CLASS(%S);\n\n", selfp->current_class_name_pascal);
 
                 /* private data members */
-                z_file_write_format(selfp->header_file, "%S\x7d;\n\n", selfp->private_data);
+                z_file_write_format(selfp->header_file, "%S};\n\n", selfp->private_data);
 
                 z_object_unref(Z_OBJECT(selfp->private_data));
                 selfp->private_data = NULL;
 
                 /* protected data members */
-                z_file_write_format(selfp->header_file, "%S\x7d;\n\n", selfp->protected_data);
+                z_file_write_format(selfp->header_file, "%S};\n\n", selfp->protected_data);
 
                 z_object_unref(Z_OBJECT(selfp->protected_data));
                 selfp->protected_data = NULL;
 
                 /* global data members */
-                z_file_write_format(selfp->header_file, "%S\x7d;\n\n", selfp->global_data);
+                z_file_write_format(selfp->header_file, "%S};\n\n", selfp->global_data);
 
                 z_object_unref(Z_OBJECT(selfp->global_data));
                 selfp->global_data = NULL;
 
                 /* klass data members */
-                z_file_write_format(selfp->header_file, "%S\x7d;\n\n", selfp->class_data);
+                z_file_write_format(selfp->header_file, "%S};\n\n", selfp->class_data);
 
                 z_object_unref(Z_OBJECT(selfp->class_data));
                 selfp->class_data = NULL;
 
                 /* public data members */
-                z_file_write_format(selfp->header_file, "%S\x7d;\n", selfp->public_data);
+                z_file_write_format(selfp->header_file, "%S};\n", selfp->public_data);
 
                 z_object_unref(Z_OBJECT(selfp->public_data));
                 selfp->public_data = NULL;
@@ -1553,15 +1553,15 @@ class ZZcoSourceGenerator : ZObject
 
                 /* define cleanup_signal_arg */
                 z_file_write(selfp->source_file, "static void cleanup_signal_arg(void *item, void *userdata)\n"
-                                "\x7b\n"
+                                "{\n"
                                 "\tZObject **obj = (ZObject **) item;\n"
                                 "\tz_object_unref(*obj);\n"
-                                "\x7d\n");
+                                "}\n");
 
                 /* define get_type */
                 z_file_write_format(selfp->source_file,
                                 "%SGlobal * %S_get_type(struct zco_context_t *ctx)\n"
-                                "\x7b\n"
+                                "{\n"
                                 "\tZCO_CREATE_CLASS(global, %S, %S, %d);\n",
                                 selfp->current_class_name_pascal, selfp->current_class_name_lowercase,
                                 selfp->current_class_name_pascal, selfp->current_class_name_lowercase, is_object);
@@ -1613,12 +1613,12 @@ class ZZcoSourceGenerator : ZObject
                    runs, we might as well just return the previously dereferenced value */
                 z_file_write_format(selfp->source_file,
                                 "\treturn global;\n"
-                                "\x7d\n\n");
+                                "}\n\n");
 
                 /* define *_class_init */
                 z_file_write_format(selfp->source_file,
                                 "void __%S_class_init(struct zco_context_t *ctx, %SClass *_class)\n"
-                                "\x7b\n",
+                                "{\n",
                                 selfp->current_class_name_lowercase,
                                 selfp->current_class_name_pascal);
 
@@ -1634,7 +1634,7 @@ class ZZcoSourceGenerator : ZObject
                                 "\t#ifdef CLASS_INIT_EXISTS\n"
                                 "\t\tclass_init(ctx, _class);\n"
                                 "\t#endif\n"
-                                "\x7d\n");
+                                "}\n");
 
                 z_object_unref(Z_OBJECT(selfp->class_destroy_code));
                 selfp->class_destroy_code = NULL;
@@ -1642,7 +1642,7 @@ class ZZcoSourceGenerator : ZObject
                 /* define *_init */
                 z_file_write_format(selfp->source_file,
                                 "void __%S_init(struct zco_context_t *ctx, Self *self)\n"
-                                "\x7b\n"
+                                "{\n"
                                 "\tZCO_INIT_START(%S, %S);\n",
                                 selfp->current_class_name_lowercase,
                                 selfp->current_class_name_pascal,
@@ -1691,7 +1691,7 @@ class ZZcoSourceGenerator : ZObject
                                 "\t#endif\n");
 
                 /* close the system defined init() definition */
-                z_file_write(selfp->source_file, "\x7d\n");
+                z_file_write(selfp->source_file, "}\n");
 
                 z_file_write_format(selfp->source_file, "%S\n", selfp->function_definitions);
 

@@ -51,6 +51,7 @@
 #define dispose z_object_dispose
 #define ref z_object_ref
 #define unref z_object_unref
+#define set_method_hook z_object_set_method_hook
 #define lookup_method z_object_lookup_method
 #define connect z_object_connect
 #define disconnect z_object_disconnect
@@ -93,6 +94,7 @@ ZObjectGlobal * z_object_get_type(struct zco_context_t *ctx)
 	ZCO_REGISTER_METHOD(dispose);
 	ZCO_REGISTER_METHOD(ref);
 	ZCO_REGISTER_METHOD(unref);
+	ZCO_REGISTER_METHOD(set_method_hook);
 	ZCO_REGISTER_METHOD(connect);
 	ZCO_REGISTER_METHOD(disconnect);
 	ZCO_REGISTER_METHOD(register_signal);
@@ -253,6 +255,12 @@ void  z_object_unref(Self *self)
 
  dispose(self);
  }
+ }
+}
+void  z_object_set_method_hook(Self *self,ZObjectMethodHookHandler handler)
+{
+{
+ selfp->_method_hook = handler;
  }
 }
 static ZObjectSignalHandler  z_object_lookup_method(Self *self,char *method_name)

@@ -82,6 +82,7 @@ void  z_object___delete(Self *self);
 void  z_object_dispose(Self *self);
 void  z_object_ref(Self *self);
 void  z_object_unref(Self *self);
+void  z_object_set_method_hook(Self *self,ZObjectMethodHookHandler handler);
 void *  z_object_connect(Self *self,char *name,ZObject *target,char *method_name,void *userdata);
 void  z_object_disconnect(Self *self,char *name,void *key);
 void  z_object_register_signal(Self *self,char *name);
