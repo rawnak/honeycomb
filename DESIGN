@@ -132,6 +132,8 @@ core: This library is similar to bootstrap except it contains the original .zco 
     the zco preprocessor is removed in the bootstrap library.
 
 base: This library builds on top of the core library and adds support for closures, event loop, I/O multiplexing.
+    The classes in this library is not included in the core library because they are not needed to build the
+    zco preprocessor.
 
 net: This library interfaces with socket API for network connectivity.
 
