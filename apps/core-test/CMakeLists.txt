@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 set(CMAKE_VERBOSE_MAKEFILE OFF)
-project(test)
+project(core-test)
 
 find_package(BISON)
 find_package(FLEX)
@@ -30,7 +30,7 @@ parse_zco(z-test-derived-object)
 
 # test driver
 add_executable(
-   zco-test
+   core-test
    z-test-object.c
    z-test-derived-object.c
    signal-test.c
@@ -42,6 +42,6 @@ add_executable(
    z-set-test.c
    )
 
-target_link_libraries(zco-test zclib-core zclib-base zclib-net zclib-extra m ffi pthread)
+target_link_libraries(core-test zclib-core zclib-base zclib-net zclib-extra m ffi pthread)
 
 
