@@ -207,7 +207,7 @@ int main(int argc, char **argv)
 				"Usage: %s [OPTION]...\n"
 				"Runs the test driver for the specific test case for the test driver set\n\n"
 				"-c,--test-case=#                      test case number within the test driver set\n"
-				"-s,--test-set=(vector,string,...)     test driver set (CObject class name)\n"
+				"-s,--test-set=(vector,string,...)     test driver set (ZObject class name)\n"
                                 "-f,--full                             test a large number of segment sizes\n\n",
 				argv[0]);
 
