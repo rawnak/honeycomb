@@ -1,0 +1,281 @@
+/* ZCO - Cross-platform Application Framework
+ * Copyright (C) 2014  Rawnak Jahan Syeda
+ *
+ * z-runtime-context.zco: Toolkit runtime context
+ * This file is part of ZCO.
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZCO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+%h{
+#include <z-object.h>
+#include <z-string.h>
+#include <z-set.h>
+
+#define ztk_if(a,b) \
+        { \
+                ZRuntimeContext *a##_runtime_context = ztk_object_get_runtime_context(ZTK_OBJECT(a)); \
+                if (ztk_int32_if_##b(a)) \
+                { \
+                        z_runtime_context_begin_block(a##_runtime_context);
+
+#define ztk_else_if(a,b) \
+                        z_runtime_context_end_block(a##_runtime_context); \
+                } \
+                if (ztk_int32_else_if_##b(a)) \
+                { \
+                        z_runtime_context_begin_block(a##_runtime_context);
+
+#define ztk_end_if(a) \
+                        z_runtime_context_end_block(a##_runtime_context); \
+                } \
+                z_object_unref(Z_OBJECT(a##_runtime_context)); \
+        }
+
+#define ztk_while(a,b) \
+        { \
+                ZRuntimeContext *a##_runtime_context = ztk_object_get_runtime_context(ZTK_OBJECT(a)); \
+                while (ztk_int32_while_##b(a)) \
+                { \
+                        z_runtime_context_begin_block(a##_runtime_context);
+
+#define ztk_end_while(a) \
+                        z_runtime_context_end_block(a##_runtime_context); \
+                } \
+                ztk_int32_end_while(a); \
+                z_object_unref(Z_OBJECT(a##_runtime_context)); \
+        }
+
+
+enum ZRuntimeTarget {
+        Z_RUNTIME_CONTEXT_NATIVE,
+        Z_RUNTIME_CONTEXT_JS
+};
+
+%}
+
+%{
+#include <unistd.h>
+#include <stdio.h>
+%}
+
+class ZRuntimeContext : ZObject
+{
+        private enum ZRuntimeTarget target;
+        private int variable_count;
+        private int indent;
+        private int is_method_hook_suspended;
+        private ZSet *exported_classes;
+        private ZString *code;
+        private ZVector *blocks;
+
+	init(Self *self)
+	{
+                struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
+                ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
+
+                selfp->target = Z_RUNTIME_CONTEXT_NATIVE;
+                selfp->code = NULL;
+                selfp->variable_count = 0;
+                selfp->indent = 0;
+                selfp->is_method_hook_suspended = 0;
+
+                selfp->exported_classes = z_set_new(ctx, allocator);
+                z_set_set_key_destruct(selfp->exported_classes, (ZSetItemCallback) z_object_unref);
+                z_set_set_compare(selfp->exported_classes, set_compare);
+
+                selfp->blocks = z_vector_new(ctx, allocator);
+                z_vector_set_item_size(selfp->blocks, 0);
+                z_vector_set_item_destruct(selfp->blocks, (ZVectorItemCallback) z_object_unref);
+
+                create_code_block(self);
+	}
+
+        private int set_compare(ZSet *self, const void *a, const void *b)
+        {
+                return z_string_compare((ZString *) a, NULL, (ZString *) b, NULL, 0, -1);
+        }
+
+	override(ZObject) void dispose(ZObject *object)
+	{
+		Self *self = (Self *) object;
+                z_object_unref(Z_OBJECT(selfp->blocks));
+                z_object_unref(Z_OBJECT(selfp->code));
+                z_object_unref(Z_OBJECT(selfp->exported_classes));
+		PARENT_HANDLER(object);
+	}
+
+	public Self *new(struct zco_context_t *ctx, ZMemoryAllocator *allocator)
+	{
+		Self *self = GET_NEW(ctx, allocator);
+		return self;
+	}
+
+        public enum ZRuntimeTarget target
+        {
+                get
+                {
+                        return selfp->target;
+                }
+                set
+                {
+                        selfp->target = value;
+                }
+        }
+
+        public int indent
+        {
+                get
+                {
+                        return selfp->indent;
+                }
+                set
+                {
+                        selfp->indent = value;
+                }
+        }
+
+        public void increase_indent(Self *self)
+        {
+                ++selfp->indent;
+        }
+
+        public void decrease_indent(Self *self)
+        {
+                if (--selfp->indent < 0)
+                        selfp->indent = 0;
+        }
+
+        public void begin_block(Self *self)
+        {
+                if (selfp->target == Z_RUNTIME_CONTEXT_NATIVE)
+                        return;
+
+                write_line(self, 0, "{");
+                increase_indent(self);
+        }
+
+        public void end_block(Self *self)
+        {
+                if (selfp->target == Z_RUNTIME_CONTEXT_NATIVE)
+                        return;
+
+                write_line(self, -1, "}");
+        }
+
+        public ZString * code
+        {
+                get
+                {
+                        if (selfp->code)
+                                z_object_ref(Z_OBJECT(selfp->code));
+
+                        return selfp->code;
+                }
+                set
+                {
+                        if (selfp->code)
+                                z_object_unref(Z_OBJECT(selfp->code));
+
+                        selfp->code = value;
+
+                        if (selfp->code)
+                                z_object_ref(Z_OBJECT(selfp->code));
+                }
+        }
+
+        public void create_code_block(Self *self)
+        {
+                ZString *block = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                set_code(self, block);
+                z_vector_push_back(selfp->blocks, block);
+        }
+
+        public int export_class(Self *self, ZString *class_name)
+        {
+                /* This will return 0 if the class hasn't been exported yet */
+                return z_set_assign(selfp->exported_classes, class_name);
+        }
+
+        public void write_line(Self *self, int indent_diff, const char *fmt, ...)
+        {
+		va_list ap;
+                ZStringIter *end;
+
+                selfp->indent += indent_diff;
+                if (selfp->indent < 0)
+                        selfp->indent = 0;
+
+		va_start(ap, fmt);
+                end = z_string_get_end(selfp->code);
+                z_string_insert_char(selfp->code, end, selfp->indent, '\t');
+                z_object_unref(Z_OBJECT(end));
+		z_string_append_vformat(selfp->code, fmt, ap);
+                z_string_append_cstring(selfp->code, "\n", Z_STRING_ENCODING_UTF8);
+		va_end(ap);
+        }
+
+        public void run(Self *self)
+        {
+                ZVectorIter *begin, *it;
+
+                if (z_vector_get_is_empty(selfp->blocks))
+                        return;
+
+                begin = z_vector_get_begin(selfp->blocks);
+                it = z_vector_get_end(selfp->blocks);
+
+                do {
+                        z_vector_iter_decrement(it);
+                        ZString *block = (ZString *) z_vector_get_item(selfp->blocks, it);
+
+                        char *buf = z_string_get_cstring(block, Z_STRING_ENCODING_UTF8);
+                        write(1, buf, z_string_get_length(block));
+                        free(buf);
+
+                } while (!z_vector_iter_is_equal(it, begin));
+
+                z_object_unref(Z_OBJECT(begin));
+                z_object_unref(Z_OBJECT(it));
+        }
+
+        public void clear(Self *self)
+        {
+                z_vector_clear(selfp->blocks);
+        }
+
+        public ZString *generate_name(Self *self)
+        {
+                ZString *name = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                z_string_append_format(name, "v%x", selfp->variable_count);
+                ++selfp->variable_count;
+                return name;
+        }
+
+        public void suspend_method_hook(Self *self)
+        {
+                selfp->is_method_hook_suspended = 1;
+        }
+
+        public int method_hook_suspended(Self *self)
+        {
+                if (selfp->is_method_hook_suspended) {
+                        selfp->is_method_hook_suspended = 0;
+                        return 1;
+                }
+
+                return 0;
+        }
+}
+

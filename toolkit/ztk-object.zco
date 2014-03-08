@@ -1,0 +1,265 @@
+/* ZCO - Cross-platform Application Framework
+ * Copyright (C) 2014  Rawnak Jahan Syeda
+ *
+ * ztk-object.zco: Base class for all toolkit objects
+ * This file is part of ZCO.
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZCO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+%h{
+#include <z-runtime-context.h>
+%}
+
+%{
+#include <z-value.h>
+#include <stdio.h>
+%}
+
+class ZtkObject : ZObject
+{
+	private ZRuntimeContext *runtime_context;
+        private ZString *name;
+
+	init(Self *self)
+	{
+		selfp->runtime_context = NULL;
+                selfp->name = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+	}
+
+	public Self *new(ZRuntimeContext *runtime_context)
+	{
+		Self *self = GET_NEW(CTX_FROM_OBJECT(runtime_context), ALLOCATOR_FROM_OBJECT(runtime_context));
+                set_runtime_context(self, runtime_context);
+		return self;
+	}
+
+        private void method_hook_js(Self *self, const char *symbol, int return_size, void **return_value, ZVector *args)
+        {
+                struct zco_context_t *ctx = CTX_FROM_OBJECT(self);
+                ZMemoryAllocator *allocator = ALLOCATOR_FROM_OBJECT(self);
+
+                ZString *return_value_name;
+                ZtkObject *temp_return_value = NULL;
+                void *buffer;
+
+                if (return_size >= sizeof(ZtkObject)) {
+                        /* Create a return value. This is a bit tricky; The return value object is created and another block
+                           of memory is allocated of the size return_size. The return value object is then copied into the
+                           new value and the original object buffer is freed. This ensures that the object can be casted to
+                           a derived type that has the return_size. Note that the unused memory is not initialized. This
+                           operation just ensures that we are not overwriting another object's memory */
+                        temp_return_value = ztk_object_new(selfp->runtime_context);
+
+                        ZCO_ALLOCATE_OBJECT_BUFFER(buffer, void *, ctx, return_size);
+                        memcpy(buffer, temp_return_value, sizeof(ZtkObject));
+
+                        ZMemoryAllocator *obj_allocator = ctx->fixed_allocator;
+                        if (obj_allocator)
+                                z_memory_allocator_deallocate_by_size(obj_allocator, temp_return_value, sizeof(ZtkObject));
+                        else
+                                free(self);
+
+                        temp_return_value = (ZtkObject *) buffer;
+
+                        /* Generate a name for the return value */
+                        return_value_name = z_runtime_context_generate_name(selfp->runtime_context);
+                        ztk_object_set_name(temp_return_value, return_value_name);
+                }
+
+                /* Iterate through the arguments and generate a line of JS code that calls the method */
+                ZVectorIter *it, *end;
+                ZString *code;
+                int is_first = 1;
+
+                code = z_string_new(ctx, allocator);
+
+                if (return_size >= sizeof(ZtkObject)) {
+                        z_string_append_format(code, "var %S = %S.%s(", return_value_name, selfp->name, symbol);
+                        z_object_unref(Z_OBJECT(return_value_name));
+                } else {
+                        z_string_append_format(code, "%S.%s(", selfp->name, symbol);
+                }
+
+                it = z_vector_get_begin(args);
+                end = z_vector_get_end(args);
+
+                while (!z_vector_iter_is_equal(it, end)) {
+                        ZValue *value = (ZValue *) z_vector_get_item(args, it);
+                        ZtkObject *obj = (ZtkObject *) z_value_get_as_object(value);
+                        ZString *name = ztk_object_get_name(obj);
+
+                        if (is_first)
+                                z_string_append_format(code, "%S", name);
+                        else
+                                z_string_append_format(code, ", %S", name);
+
+                        z_object_unref(Z_OBJECT(name));
+                        z_object_unref(Z_OBJECT(obj));
+                        z_vector_iter_increment(it);
+                        is_first = 0;
+                }
+
+                z_object_unref(Z_OBJECT(it));
+                z_object_unref(Z_OBJECT(end));
+
+                z_runtime_context_write_line(selfp->runtime_context, 0, "%S);", code);
+                z_object_unref(Z_OBJECT(code));
+
+                *return_value = temp_return_value;
+        }
+
+        private int method_hook(ZObject *obj, const char *symbol, int return_size, void **return_value, ZVector *args)
+        {
+                Self *self = (Self *) obj;
+
+                if (z_runtime_context_method_hook_suspended(selfp->runtime_context))
+                        return 1;
+
+                enum ZRuntimeTarget target = z_runtime_context_get_target(selfp->runtime_context);
+                switch(target) {
+                case Z_RUNTIME_CONTEXT_JS:
+                         method_hook_js(self, symbol, return_size, return_value, args);
+                         break;
+                default:
+                        abort();
+                }
+
+                return 0;
+        }
+
+	override(ZObject) void dispose(ZObject *object)
+	{
+		Self *self = (Self *) object;
+
+                if (selfp->name)
+                        z_object_unref(Z_OBJECT(selfp->name));
+
+                if (selfp->runtime_context)
+                        z_object_unref(Z_OBJECT(selfp->runtime_context));
+
+		PARENT_HANDLER(object);
+	}
+
+	public virtual void export_init(Self *self)
+        {
+                enum ZRuntimeTarget target = z_runtime_context_get_target(selfp->runtime_context);
+
+                switch(target) {
+                case Z_RUNTIME_CONTEXT_JS:
+                        /* During the export phase, we want to refer to the
+                           object using the only way possible: "this" */
+                        z_string_set_cstring(selfp->name, "this", Z_STRING_ENCODING_UTF8);
+                        break;
+                default:
+                        abort();
+                        break;
+                }
+        }
+
+	public virtual void export_methods(Self *self)
+        {
+        }
+
+        public ZString *name
+        {
+                get
+                {
+                        if (selfp->name)
+                                z_object_ref(Z_OBJECT(selfp->name));
+
+                        return selfp->name;
+                }
+                set
+                {
+                        if (selfp->name)
+                                z_object_unref(Z_OBJECT(selfp->name));
+
+                        selfp->name = value;
+
+                        if (selfp->name)
+                                z_object_ref(Z_OBJECT(selfp->name));
+                }
+        }
+
+        public ZRuntimeContext *runtime_context
+        {
+                get
+                {
+                        if (selfp->runtime_context)
+                                z_object_ref(Z_OBJECT(selfp->runtime_context));
+
+                        return selfp->runtime_context;
+                }
+                set
+                {
+                        if (selfp->runtime_context) {
+                                /* Runtime context cannot be changed once it has been set */
+                                abort();
+                        }
+
+                        selfp->runtime_context = value;
+
+                        if (selfp->runtime_context) {
+                                z_object_ref(Z_OBJECT(selfp->runtime_context));
+
+                                ZString *class_name;
+                                enum ZRuntimeTarget target = z_runtime_context_get_target(selfp->runtime_context);
+
+                                if (target != Z_RUNTIME_CONTEXT_NATIVE) {
+                                        z_object_set_method_hook(Z_OBJECT(self), method_hook);
+
+                                        class_name = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                                        z_string_set_cstring(class_name, ((ZCommonGlobal *) REAL_GLOBAL_FROM_OBJECT(Z_OBJECT(self)))->name, Z_STRING_ENCODING_UTF8);
+
+                                        if (z_runtime_context_export_class(selfp->runtime_context, class_name) == 0) {
+                                                /* Hold a reference to the current code block and create a new code block. The class that is going to be
+                                                   exported now will be written to the new code block. Once it's complete, the previous code block will
+                                                   be reactivated and the newly written code block will be held until it is ready to be delivered as a single
+                                                   unit */
+                                                ZString *last_code_block = z_runtime_context_get_code(selfp->runtime_context);
+                                                z_runtime_context_create_code_block(selfp->runtime_context);
+
+                                                int last_indent = z_runtime_context_get_indent(selfp->runtime_context);
+                                                z_runtime_context_set_indent(selfp->runtime_context, 0);
+
+                                                switch(target) {
+                                                case Z_RUNTIME_CONTEXT_JS:
+                                                        z_runtime_context_write_line(selfp->runtime_context, 0, "var %S = function() {", class_name);
+                                                        z_runtime_context_increase_indent(selfp->runtime_context);
+
+                                                        export_init(self);
+
+                                                        z_runtime_context_write_line(selfp->runtime_context, 0, "return this;");
+                                                        z_runtime_context_write_line(selfp->runtime_context, -1, "};");
+
+                                                        break;
+                                                default:
+                                                        abort();
+                                                        break;
+                                                }
+
+                                                export_methods(self);
+
+                                                /* Reactivate the previous code block */
+                                                z_runtime_context_set_indent(selfp->runtime_context, last_indent);
+                                                z_runtime_context_set_code(selfp->runtime_context, last_code_block);
+                                                z_object_unref(Z_OBJECT(last_code_block));
+                                        }
+                                }
+                        }
+                }
+        }
+}
+

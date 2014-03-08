@@ -7,6 +7,7 @@ add_subdirectory(core)
 add_subdirectory(base)
 add_subdirectory(net)
 add_subdirectory(extra)
+add_subdirectory(toolkit)
 add_subdirectory(widgets)
 add_subdirectory(apps)
 

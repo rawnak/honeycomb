@@ -1,0 +1,432 @@
+/* ZCO - Cross-platform Application Framework
+ * Copyright (C) 2014  Rawnak Jahan Syeda
+ *
+ * ztk-string-iter.zco: String iterator
+ * This file is part of ZCO.
+ *
+ * This library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZCO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with ZCO.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+%h{
+#include <ztk-object.h>
+#include <z-string.h>
+
+struct ZtkString;
+typedef struct ZtkString ZtkString;
+%}
+
+%{
+#include <ztk-string.h>
+#include <ztk-int32.h>
+#include <stdio.h>
+%}
+
+class ZtkStringIter : ZtkObject
+{
+        private ZStringIter *data;
+
+	init(Self *self)
+	{
+                selfp->data = 0;
+	}
+
+	override(ZObject) void dispose(ZObject *object)
+	{
+		Self *self = (Self *) object;
+
+                if (selfp->data)
+                        z_object_unref(Z_OBJECT(selfp->data));
+
+		PARENT_HANDLER(object);
+	}
+
+	override(ZtkObject) void export_init(ZtkObject *object)
+        {
+                Self *self = (Self *) object;
+                PARENT_HANDLER(object);
+
+                ZRuntimeContext *runtime_context = ztk_object_get_runtime_context(ZTK_OBJECT(self));
+                enum ZRuntimeTarget target = z_runtime_context_get_target(runtime_context);
+
+                switch(target) {
+                case Z_RUNTIME_CONTEXT_JS:
+                        z_runtime_context_write_line(runtime_context, 0, "this.data = 0;");
+                        break;
+                default:
+                        abort();
+                }
+
+                z_object_unref(Z_OBJECT(runtime_context));
+        }
+
+	override(ZtkObject) void export_methods(ZtkObject *object)
+        {
+                Self *self = (Self *) object;
+                PARENT_HANDLER(object);
+
+                ZRuntimeContext *runtime_context = ztk_object_get_runtime_context(object);
+
+                z_runtime_context_suspend_method_hook(runtime_context);
+                assign(self, NULL);
+
+                z_runtime_context_suspend_method_hook(runtime_context);
+                set_index(self, NULL);
+
+                z_runtime_context_suspend_method_hook(runtime_context);
+                get_index(self);
+
+                z_runtime_context_suspend_method_hook(runtime_context);
+                advance(self, NULL);
+
+                z_runtime_context_suspend_method_hook(runtime_context);
+                increment(self);
+
+                z_runtime_context_suspend_method_hook(runtime_context);
+                decrement(self);
+
+                z_runtime_context_suspend_method_hook(runtime_context);
+                is_equal(self, NULL);
+
+                z_runtime_context_suspend_method_hook(runtime_context);
+                is_lte(self, NULL);
+
+                z_runtime_context_suspend_method_hook(runtime_context);
+                is_gte(self, NULL);
+
+                z_object_unref(Z_OBJECT(runtime_context));
+        }
+
+	public Self *new(ZRuntimeContext *runtime_context)
+	{
+                struct zco_context_t *ctx = CTX_FROM_OBJECT(runtime_context);
+                ZMemoryAllocator *alloc = ALLOCATOR_FROM_OBJECT(runtime_context);
+
+		Self *self = GET_NEW(ctx, alloc);
+                ztk_object_set_runtime_context(ZTK_OBJECT(self), runtime_context);
+                enum ZRuntimeTarget target = z_runtime_context_get_target(runtime_context);
+
+                switch(target) {
+                case Z_RUNTIME_CONTEXT_NATIVE:
+                        selfp->data = z_string_iter_new(ctx, alloc);
+                        break;
+
+                case Z_RUNTIME_CONTEXT_JS:
+                        {
+                                ZString *name = z_runtime_context_generate_name(runtime_context);
+                                z_runtime_context_write_line(runtime_context, 0, "var %S = new %s();", name, ((ZCommonGlobal *) GLOBAL_FROM_OBJECT(self))->name);
+                                ztk_object_set_name(ZTK_OBJECT(self), name);
+                                z_object_unref(Z_OBJECT(name));
+                        }
+                        break;
+                default:
+                        abort();
+                }
+
+		return self;
+	}
+
+        public export void * assign(Self *self, ZtkStringIter *i)
+        {
+                ZRuntimeContext *runtime_context = ztk_object_get_runtime_context(ZTK_OBJECT(self));
+                enum ZRuntimeTarget target = z_runtime_context_get_target(runtime_context);
+
+                switch(target) {
+                case Z_RUNTIME_CONTEXT_NATIVE:
+                        {
+                                ZStringIter *src = get_data(i);
+                                z_string_iter_assign(selfp->data, src);
+                                z_object_unref(Z_OBJECT(src));
+                        }
+                        break;
+
+                case Z_RUNTIME_CONTEXT_JS:
+                        {
+                                z_runtime_context_write_line(runtime_context, 0, "%s.prototype.assign = function(a1) {" , ((ZCommonGlobal *) GLOBAL_FROM_OBJECT(self))->name);
+                                z_runtime_context_write_line(runtime_context, 1, "this.data = a1.data;");
+                                z_runtime_context_write_line(runtime_context, -1, "};");
+                        }
+                        break;
+                default:
+                        abort();
+                }
+
+                z_object_unref(Z_OBJECT(runtime_context));
+        }
+
+        public export void * set_index(Self *self, ZtkInt32 *i)
+        {
+                ZRuntimeContext *runtime_context = ztk_object_get_runtime_context(ZTK_OBJECT(self));
+                enum ZRuntimeTarget target = z_runtime_context_get_target(runtime_context);
+
+                switch(target) {
+                case Z_RUNTIME_CONTEXT_NATIVE:
+                        z_string_iter_set_index(selfp->data, ztk_int32_get_data(i));
+                        break;
+
+                case Z_RUNTIME_CONTEXT_JS:
+                        {
+                                z_runtime_context_write_line(runtime_context, 0, "%s.prototype.set_index = function(a1) {" , ((ZCommonGlobal *) GLOBAL_FROM_OBJECT(self))->name);
+                                z_runtime_context_write_line(runtime_context, 1, "this.data = a1.data;");
+                                z_runtime_context_write_line(runtime_context, -1, "};");
+                        }
+                        break;
+                default:
+                        abort();
+                }
+
+                z_object_unref(Z_OBJECT(runtime_context));
+        }
+
+        public export ZtkInt32 * get_index(Self *self)
+        {
+                ZtkInt32 *ret = NULL;
+                ZRuntimeContext *runtime_context = ztk_object_get_runtime_context(ZTK_OBJECT(self));
+                enum ZRuntimeTarget target = z_runtime_context_get_target(runtime_context);
+
+                switch(target) {
+                case Z_RUNTIME_CONTEXT_NATIVE:
+                        {
+                                int index = z_string_iter_get_index(selfp->data);
+                                ret = ztk_int32_new(runtime_context);
+                                ztk_int32_set_data(ret, index);
+                        }
+                        break;
+
+                case Z_RUNTIME_CONTEXT_JS:
+                        {
+                                z_runtime_context_write_line(runtime_context, 0, "%s.prototype.get_index = function() {" , ((ZCommonGlobal *) GLOBAL_FROM_OBJECT(self))->name);
+                                z_runtime_context_increase_indent(runtime_context);
+
+                                ZtkInt32 *ret_value = ztk_int32_new(runtime_context);
+                                ZString *name = ztk_object_get_name(ZTK_OBJECT(ret_value));
+                                z_runtime_context_write_line(runtime_context, 0, "%S.data = this.data;", name);
+                                z_runtime_context_write_line(runtime_context, 0, "return %S;", name);
+                                z_runtime_context_write_line(runtime_context, -1, "};");
+
+                                z_object_unref(Z_OBJECT(name));
+                                z_object_unref(Z_OBJECT(ret_value));
+                        }
+                        break;
+                default:
+                        abort();
+                }
+
+                z_object_unref(Z_OBJECT(runtime_context));
+                return ret;
+        }
+
+        public export void * advance(Self *self, ZtkInt32 *i)
+        {
+                ZRuntimeContext *runtime_context = ztk_object_get_runtime_context(ZTK_OBJECT(self));
+                enum ZRuntimeTarget target = z_runtime_context_get_target(runtime_context);
+
+                switch(target) {
+                case Z_RUNTIME_CONTEXT_NATIVE:
+                        z_string_iter_advance(selfp->data, ztk_int32_get_data(i));
+                        break;
+
+                case Z_RUNTIME_CONTEXT_JS:
+                        {
+                                z_runtime_context_write_line(runtime_context, 0, "%s.prototype.advance = function(a1) {" , ((ZCommonGlobal *) GLOBAL_FROM_OBJECT(self))->name);
+                                z_runtime_context_write_line(runtime_context, 1, "this.data += a1.data;");
+                                z_runtime_context_write_line(runtime_context, -1, "};");
+                        }
+                        break;
+                default:
+                        abort();
+                }
+
+                z_object_unref(Z_OBJECT(runtime_context));
+        }
+
+        public export void * increment(Self *self)
+        {
+                ZRuntimeContext *runtime_context = ztk_object_get_runtime_context(ZTK_OBJECT(self));
+                enum ZRuntimeTarget target = z_runtime_context_get_target(runtime_context);
+
+                switch(target) {
+                case Z_RUNTIME_CONTEXT_NATIVE:
+                        z_string_iter_increment(selfp->data);
+                        break;
+
+                case Z_RUNTIME_CONTEXT_JS:
+                        {
+                                z_runtime_context_write_line(runtime_context, 0, "%s.prototype.increment = function() {" , ((ZCommonGlobal *) GLOBAL_FROM_OBJECT(self))->name);
+                                z_runtime_context_write_line(runtime_context, 1, "++this.data;");
+                                z_runtime_context_write_line(runtime_context, -1, "};");
+                        }
+                        break;
+                default:
+                        abort();
+                }
+
+                z_object_unref(Z_OBJECT(runtime_context));
+        }
+
+        public export void * decrement(Self *self)
+        {
+                ZRuntimeContext *runtime_context = ztk_object_get_runtime_context(ZTK_OBJECT(self));
+                enum ZRuntimeTarget target = z_runtime_context_get_target(runtime_context);
+
+                switch(target) {
+                case Z_RUNTIME_CONTEXT_NATIVE:
+                        z_string_iter_decrement(selfp->data);
+                        break;
+
+                case Z_RUNTIME_CONTEXT_JS:
+                        {
+                                z_runtime_context_write_line(runtime_context, 0, "%s.prototype.decrement = function() {" , ((ZCommonGlobal *) GLOBAL_FROM_OBJECT(self))->name);
+                                z_runtime_context_write_line(runtime_context, 1, "--this.data;");
+                                z_runtime_context_write_line(runtime_context, -1, "};");
+                        }
+                        break;
+                default:
+                        abort();
+                }
+
+                z_object_unref(Z_OBJECT(runtime_context));
+        }
+
+        public export ZtkInt32 * is_equal(Self *self, ZtkStringIter *i)
+        {
+                ZtkInt32 *ret = NULL;
+                ZRuntimeContext *runtime_context = ztk_object_get_runtime_context(ZTK_OBJECT(self));
+                enum ZRuntimeTarget target = z_runtime_context_get_target(runtime_context);
+
+                switch(target) {
+                case Z_RUNTIME_CONTEXT_NATIVE:
+                        {
+                                ZStringIter *other = get_data(i);
+                                int value = z_string_iter_is_equal(selfp->data, other);
+                                z_object_unref(Z_OBJECT(other));
+
+                                ret = ztk_int32_new(runtime_context);
+                                ztk_int32_set_data(ret, value);
+                        }
+                        break;
+
+                case Z_RUNTIME_CONTEXT_JS:
+                        {
+                                z_runtime_context_write_line(runtime_context, 0, "%s.prototype.is_equal = function(a1) {" , ((ZCommonGlobal *) GLOBAL_FROM_OBJECT(self))->name);
+                                z_runtime_context_increase_indent(runtime_context);
+
+                                ZtkInt32 *ret_value = ztk_int32_new(runtime_context);
+                                ZString *name = ztk_object_get_name(ZTK_OBJECT(ret_value));
+                                z_runtime_context_write_line(runtime_context, 0, "%S.data = (this.data == a1.data)? 1 : 0;", name);
+                                z_runtime_context_write_line(runtime_context, 0, "return %S;", name);
+                                z_runtime_context_write_line(runtime_context, -1, "};");
+
+                                z_object_unref(Z_OBJECT(name));
+                                z_object_unref(Z_OBJECT(ret_value));
+                        }
+                        break;
+                default:
+                        abort();
+                }
+
+                z_object_unref(Z_OBJECT(runtime_context));
+                return ret;
+        }
+
+        public export ZtkInt32 * is_lte(Self *self, ZtkStringIter *i)
+        {
+                ZtkInt32 *ret = NULL;
+                ZRuntimeContext *runtime_context = ztk_object_get_runtime_context(ZTK_OBJECT(self));
+                enum ZRuntimeTarget target = z_runtime_context_get_target(runtime_context);
+
+                switch(target) {
+                case Z_RUNTIME_CONTEXT_NATIVE:
+                        {
+                                ZStringIter *other = get_data(i);
+                                int value = z_string_iter_is_lte(selfp->data, other);
+                                z_object_unref(Z_OBJECT(other));
+
+                                ret = ztk_int32_new(runtime_context);
+                                ztk_int32_set_data(ret, value);
+                        }
+                        break;
+
+                case Z_RUNTIME_CONTEXT_JS:
+                        {
+                                z_runtime_context_write_line(runtime_context, 0, "%s.prototype.is_lte = function(a1) {" , ((ZCommonGlobal *) GLOBAL_FROM_OBJECT(self))->name);
+                                z_runtime_context_increase_indent(runtime_context);
+
+                                ZtkInt32 *ret_value = ztk_int32_new(runtime_context);
+                                ZString *name = ztk_object_get_name(ZTK_OBJECT(ret_value));
+                                z_runtime_context_write_line(runtime_context, 0, "%S.data = (this.data <= a1.data)? 1 : 0;", name);
+                                z_runtime_context_write_line(runtime_context, 0, "return %S;", name);
+                                z_runtime_context_write_line(runtime_context, -1, "};");
+
+                                z_object_unref(Z_OBJECT(name));
+                                z_object_unref(Z_OBJECT(ret_value));
+                        }
+                        break;
+                default:
+                        abort();
+                }
+
+                z_object_unref(Z_OBJECT(runtime_context));
+                return ret;
+        }
+
+        public export ZtkInt32 * is_gte(Self *self, ZtkStringIter *i)
+        {
+                ZtkInt32 *ret = NULL;
+                ZRuntimeContext *runtime_context = ztk_object_get_runtime_context(ZTK_OBJECT(self));
+                enum ZRuntimeTarget target = z_runtime_context_get_target(runtime_context);
+
+                switch(target) {
+                case Z_RUNTIME_CONTEXT_NATIVE:
+                        {
+                                ZStringIter *other = get_data(i);
+                                int value = z_string_iter_is_gte(selfp->data, other);
+                                z_object_unref(Z_OBJECT(other));
+
+                                ret = ztk_int32_new(runtime_context);
+                                ztk_int32_set_data(ret, value);
+                        }
+                        break;
+
+                case Z_RUNTIME_CONTEXT_JS:
+                        {
+                                z_runtime_context_write_line(runtime_context, 0, "%s.prototype.is_gte = function(a1) {" , ((ZCommonGlobal *) GLOBAL_FROM_OBJECT(self))->name);
+                                z_runtime_context_increase_indent(runtime_context);
+
+                                ZtkInt32 *ret_value = ztk_int32_new(runtime_context);
+                                ZString *name = ztk_object_get_name(ZTK_OBJECT(ret_value));
+                                z_runtime_context_write_line(runtime_context, 0, "%S.data = (this.data >= a1.data)? 1 : 0;", name);
+                                z_runtime_context_write_line(runtime_context, 0, "return %S;", name);
+                                z_runtime_context_write_line(runtime_context, -1, "};");
+
+                                z_object_unref(Z_OBJECT(name));
+                                z_object_unref(Z_OBJECT(ret_value));
+                        }
+                        break;
+                default:
+                        abort();
+                }
+
+                z_object_unref(Z_OBJECT(runtime_context));
+                return ret;
+        }
+
+        public ZStringIter * get_data(Self *self)
+        {
+                if (selfp->data)
+                        z_object_ref(Z_OBJECT(selfp->data));
+
+                return selfp->data;
+        }
+}
+

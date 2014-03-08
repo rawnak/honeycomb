@@ -25,13 +25,14 @@
 #include <pthread.h>
 #include <stdint.h>
 
-#define GLOBAL_FROM_OBJECT(o)    ((o)->_global)
-#define CLASS_FROM_OBJECT(o)     ((ZObjectClass *) (o)->class_base)
-#define CLASS_FROM_GLOBAL(g)     ((g)->_class)
-#define GLOBAL_FROM_CLASS(c)     ((ZCommonGlobal *) (c)->real_global)
-#define CTX_FROM_GLOBAL(g)       ((g)->common.ctx)
-#define CTX_FROM_OBJECT(o)       CTX_FROM_GLOBAL(GLOBAL_FROM_OBJECT(o))
-#define ALLOCATOR_FROM_OBJECT(o) z_object_get_allocator_ptr(Z_OBJECT(o))
+#define GLOBAL_FROM_OBJECT(o)      ((o)->_global)
+#define CLASS_FROM_OBJECT(o)       ((ZObjectClass *) (o)->class_base)
+#define CLASS_FROM_GLOBAL(g)       ((g)->_class)
+#define GLOBAL_FROM_CLASS(c)       ((ZCommonGlobal *) (c)->real_global)
+#define REAL_GLOBAL_FROM_OBJECT(o) (GLOBAL_FROM_CLASS(CLASS_FROM_OBJECT(o)))
+#define CTX_FROM_GLOBAL(g)         ((g)->common.ctx)
+#define CTX_FROM_OBJECT(o)         CTX_FROM_GLOBAL(GLOBAL_FROM_OBJECT(Z_OBJECT(o)))
+#define ALLOCATOR_FROM_OBJECT(o)   z_object_get_allocator_ptr(Z_OBJECT(o))
 
 /* Forward declares structs for the class and also typedefs them so the
    'struct' keyword is not required */
@@ -56,6 +57,16 @@
         struct c##Protected _prot
 
 /* Allocates space to store the class id */
+#define ZCO_ALLOCATE_OBJECT_BUFFER(self,type,ctx,size) \
+        { \
+                ZMemoryAllocator *obj_allocator = ctx->fixed_allocator; \
+                if (obj_allocator) { \
+                        self = (type) z_memory_allocator_allocate(obj_allocator, size); \
+                } else { \
+                        self = (type) malloc(size); \
+                } \
+        }
+
 #define ZCO_DEFINE_CLASS_TYPE(c) \
         int c##_type_id = -1; \
         static Self *__##c##_new(struct zco_context_t *ctx, ZMemoryAllocator *allocator) \
@@ -69,11 +80,7 @@
                         } \
                 } \
                 if (!self) { \
-                        ZMemoryAllocator *obj_allocator = ctx->fixed_allocator; \
-                        if (obj_allocator) \
-                                self = (Self *) z_memory_allocator_allocate(obj_allocator, sizeof(Self)); \
-                        else \
-                                self = (Self *) malloc(sizeof(Self)); \
+                        ZCO_ALLOCATE_OBJECT_BUFFER(self,Self *,ctx,sizeof(Self)); \
                         z_object_set_allocator_ptr((ZObject *) self, allocator); \
                         __##c##_init(ctx, self); \
                 } \
@@ -212,23 +219,25 @@
 			z_vector_set_item_destruct(args, (ZVectorItemCallback) z_object_unref) \
 
 #define ZCO_METHOD_HOOK_END(self,args,symbol,ret_type) \
-			ret_type dummy; \
-			ret_type ret = (ret_type) _method_hook((ZObject *) self, #symbol, sizeof(*dummy), args); \
-			z_object_unref(Z_OBJECT(args)); \
-			return ret; \
+			ret_type ret; \
+                        if (_method_hook((ZObject *) self, #symbol, sizeof(*ret), (void **) &ret, args) == 0) { \
+                                z_object_unref(Z_OBJECT(args)); \
+                                return ret; \
+                        } else { \
+                                z_object_unref(Z_OBJECT(args)); \
+                        } \
 		} \
 	}
 
-
 #define ZCO_ADD_ZVALUE_ARG(args,a) \
-        { \
+        if (a) { \
                 ZValue *value = a; \
                 z_object_ref(Z_OBJECT(value)); \
                 z_vector_push_back(args, value); \
         }
 
 #define ZCO_ADD_OBJECT_ARG(args,a) \
-        { \
+        if (a) { \
                 ZValue *value = z_value_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self)); \
                 z_value_set_as_object(value, Z_OBJECT(a)); \
                 z_vector_push_back(args, value); \
@@ -236,7 +245,7 @@
 
 
 #define ZCO_ADD_STRING_ARG(args,a) \
-        { \
+        if (a) { \
                 ZValue *value = z_value_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self)); \
                 ZString *_temp = z_string_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self)); \
                 z_string_set_cstring(_temp, a, Z_STRING_ENCODING_UTF8); \
@@ -245,7 +254,7 @@
                 z_vector_push_back(args, value); \
         }
 
-#define A4(args,a,type) \
+#define ZCO_ADD_PRIMITIVE_ARG(args,a,type) \
         { \
                 ZValue *value = z_value_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self)); \
                 z_value_set_as_##type(value, a); \
