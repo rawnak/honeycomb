@@ -356,5 +356,6 @@ and the overloaded functions can generate code for remote execution if needed.
 Provide a way to post a task across the network. This will allow the UI context (which may run in a remote VM) to post
 tasks to the main application context and vice versa.
 
+Make ZString locale aware.
 
 

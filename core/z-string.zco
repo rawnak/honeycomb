@@ -173,7 +173,7 @@ class ZString : ZObject
 		int new_size = encode(ch, buffer);
 
 		if (new_size == 0) {
-			fputs("invalid unicode character\n", stderr);
+			fputs("Invalid unicode character\n", stderr);
 			abort();
 		}
 
@@ -368,8 +368,25 @@ class ZString : ZObject
 
 	public void erase(Self *self, ZStringIter *first, ZStringIter *last)
 	{
-		ZVectorIter *it1 = get_char_ref(self, first);
-		ZVectorIter *it2 = get_char_ref(self, last);
+		ZVectorIter *it1, *it2;
+
+		if (first) {
+                        it1 = get_char_ref(self, first);
+
+                } else {
+			first = get_begin(self);
+                        it1 = get_char_ref(self, first);
+                        z_object_unref(Z_OBJECT(first));
+                }
+
+		if (last) {
+                        it2 = get_char_ref(self, last);
+
+                } else {
+			last = get_end(self);
+                        it2 = get_char_ref(self, last);
+                        z_object_unref(Z_OBJECT(last));
+                }
 
 		/* compute the size of the string that is to be removed */
 		int diff = 0;
@@ -513,6 +530,17 @@ class ZString : ZObject
 
 		return byte;
 	}
+
+        private uint8_t get_previous_byte(Self *self, ZVectorIter *it)
+        {
+                uint8_t byte = 0;
+
+                z_vector_iter_decrement(it);
+                if (z_vector_iter_is_in_bound(it))
+                        byte = *((uint8_t *) z_vector_get_item(selfp->data, it));
+
+                return byte;
+        }
 
 	private uint32_t strict_decode(Self *self, ZVectorIter *it, int *status)
 	{
@@ -929,6 +957,15 @@ class ZString : ZObject
 		return ch;
 	}
 
+        private void previous_char(Self *self, ZVectorIter *it)
+        {
+                uint8_t ch;
+
+                do {
+                        ch = get_previous_byte(self, it);
+                } while ((ch & 0xc0) == 0x80);
+        }
+
 	public void push_back(Self *self, uint32_t ch)
 	{
 		uint8_t buffer[6];
@@ -974,8 +1011,10 @@ class ZString : ZObject
 		z_object_unref(Z_OBJECT(pos));
 	}
 
-	private uint32_t to_lower(uint32_t ch)
+	private uint32_t to_lower(Self *self, uint32_t ch)
 	{
+                /* FIXME: This function needs to be locale aware */
+
 		if (ch >= 'A' && ch <= 'Z')
 			return ch + ('a' - 'A');
 
@@ -984,11 +1023,13 @@ class ZString : ZObject
 
 	public int compare(Self *self, ZStringIter *it, ZString *other, ZStringIter *other_iter, int flags, int64_t count)
 	{
+                /* FIXME: This function needs to be locale aware */
+
 		ZVectorIter *it1, *it2;
 		uint32_t x1, x2;
 		int64_t i;
 
-		if (count == 0)
+		if (count == 0 || (get_length(self) == 0 && get_length(other) == 0))
 			/* special case that is not covered in the do-while loop below */
 			return 0;
 
@@ -1009,8 +1050,8 @@ class ZString : ZObject
 		if (flags & Z_STRING_FLAG_CASE_INSENSITIVE) {
 			/* perform case insensitive search */
 			for (i=0; i<count; ++i) {
-				x1 = to_lower(decode(self, it1));
-				x2 = to_lower(decode(other, it2));
+				x1 = to_lower(self, decode(self, it1));
+				x2 = to_lower(self, decode(other, it2));
 
 				if (!x1 || x1 != x2)
 					break;
@@ -1032,6 +1073,52 @@ class ZString : ZObject
 
 		return (int32_t) x1 - (int32_t) x2;
 	}
+
+        public void to_upper_case(Self *self)
+        {
+                /* FIXME: This function needs to be locale aware */
+
+                ZStringIter *it = get_begin(self);
+                ZStringIter *end = get_end(self);
+                uint32_t diff = 'a' - 'A';
+
+                while (!z_string_iter_is_equal(it, end)) {
+                        uint32_t ch = get_char(self, it);
+
+                        if (ch >= 'a' && ch <= 'z') {
+                                ch -= diff;
+                                set_char(self, it, ch);
+                        }
+
+                        z_string_iter_increment(it);
+                }
+
+                z_object_unref(Z_OBJECT(end));
+                z_object_unref(Z_OBJECT(it));
+        }
+
+        public void to_lower_case(Self *self)
+        {
+                /* FIXME: This function needs to be locale aware */
+
+                ZStringIter *it = get_begin(self);
+                ZStringIter *end = get_end(self);
+                uint32_t diff = 'a' - 'A';
+
+                while (!z_string_iter_is_equal(it, end)) {
+                        uint32_t ch = get_char(self, it);
+
+                        if (ch >= 'A' && ch <= 'Z') {
+                                ch += diff;
+                                set_char(self, it, ch);
+                        }
+
+                        z_string_iter_increment(it);
+                }
+
+                z_object_unref(Z_OBJECT(end));
+                z_object_unref(Z_OBJECT(it));
+        }
 
 	public int length
 	{
@@ -1115,7 +1202,7 @@ class ZString : ZObject
 		do {
 			if (compare(self, temp, needle, NULL, flags, needlelen) == 0) {
 				if (it)
-					z_string_iter_set_index(it, z_string_iter_get_index(temp));
+                                        z_string_iter_assign(it, temp);
 
 				z_object_unref(Z_OBJECT(temp));
 				return 1;
@@ -1123,6 +1210,61 @@ class ZString : ZObject
 
 			z_string_iter_increment(temp);
 		} while (find_char(self, temp, first_ch, flags) != 0);
+
+		z_object_unref(Z_OBJECT(temp));
+		return 0;
+	}
+
+	public int rfind(Self *self, ZStringIter *it, ZString *needle, int flags)
+	{
+		ZStringIter *temp;
+		int needlelen;
+		uint32_t last_ch;
+
+		needlelen = get_length(needle);
+
+		/* always return TRUE for an empty needle */
+		if (needlelen == 0)
+			return 1;
+
+		/* always return FALSE for an empty hay */
+		if (selfp->length == 0)
+			return 0;
+
+		/* get the last character of the needle */
+		temp = get_end(needle);
+                z_string_iter_decrement(temp);
+		last_ch = get_char(needle, temp);
+		z_object_unref(Z_OBJECT(temp));
+
+		/* if the 'it' iterator was specified, start the search from that point. if it
+		   was not specified, start from the end of the hay string */
+		if (it) {
+			temp = z_string_iter_dup(it);
+                } else {
+			temp = get_end(self);
+                        z_string_iter_decrement(temp);
+                }
+
+		/* repeatedly locate the first character of the needle in the hay and then
+		   do a string compare */
+		do {
+			if (compare(self, temp, needle, NULL, flags, needlelen) == 0) {
+				if (it)
+                                        z_string_iter_assign(it, temp);
+
+				z_object_unref(Z_OBJECT(temp));
+				return 1;
+			}
+
+			z_string_iter_decrement(temp);
+
+                        if (rfind_char(self, temp, last_ch, flags) == 0)
+                                break;
+
+                        z_string_iter_advance(temp, 1-needlelen);
+
+		} while (z_string_iter_get_index(temp) >= 0);
 
 		z_object_unref(Z_OBJECT(temp));
 		return 0;
@@ -1145,25 +1287,46 @@ class ZString : ZObject
 
 		if (flags & Z_STRING_FLAG_CASE_INSENSITIVE) {
 			/* perform case insensitive search */
-			uint32_t temp_ch = to_lower(ch);
+			uint32_t temp_ch = to_lower(self, ch);
 
 			while(1) {
 				x = decode(self, ptr);
 
-				if (x && to_lower(x) != temp_ch)
-					z_string_iter_increment(temp);
-				else
-					break;
+                                if (!x) {
+                                        break;
+
+                                } else if (flags & Z_STRING_FLAG_NEGATIVE) {
+                                        if (to_lower(self, x) == temp_ch)
+                                                z_string_iter_increment(temp);
+                                        else
+                                                break;
+
+                                } else {
+                                        if (to_lower(self, x) != temp_ch)
+                                                z_string_iter_increment(temp);
+                                        else
+                                                break;
+                                }
 			}
 		} else {
 			/* perform standard search */
 			while(1) {
 				x = decode(self, ptr);
 
-				if (x && x != ch)
-					z_string_iter_increment(temp);
-				else
-					break;
+                                if (!x) {
+                                        break;
+
+                                } else if (flags & Z_STRING_FLAG_NEGATIVE) {
+                                        if (x == ch)
+                                                z_string_iter_increment(temp);
+                                        else
+                                                break;
+                                } else {
+                                        if (x != ch)
+                                                z_string_iter_increment(temp);
+                                        else
+                                                break;
+                                }
 			}
 		}
 
@@ -1171,7 +1334,107 @@ class ZString : ZObject
 
 		if (x) {
 			if (it)
-				z_string_iter_set_index(it, z_string_iter_get_index(temp));
+                                z_string_iter_assign(it, temp);
+
+			z_object_unref(Z_OBJECT(temp));
+			return 1;
+		}
+
+		/* no match found */
+		z_object_unref(Z_OBJECT(temp));
+		return 0;
+	}
+
+	public int rfind_char(Self *self, ZStringIter *it, uint32_t ch, int flags)
+	{
+		ZStringIter *temp;
+		uint32_t x;
+
+		/* if the 'it' iterator was specified, start the search from that point. if it
+		   was not specified, start from the beginning of the hay string */
+		if (it) {
+			temp = z_string_iter_dup(it);
+                } else {
+			temp = get_end(self);
+                        z_string_iter_decrement(temp);
+                }
+
+		/* iterate through the string to locate the character */
+		ZVectorIter *ptr = get_char_ref(self, temp);
+
+		if (flags & Z_STRING_FLAG_CASE_INSENSITIVE) {
+			/* perform case insensitive search */
+			uint32_t temp_ch = to_lower(self, ch);
+
+			while(1) {
+                                /* backup the vector iterator */
+                                ZVectorIter *original_it = z_vector_iter_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                                z_vector_iter_assign(original_it, ptr);
+
+                                /* decode the UTF-8 encoded character */
+				x = decode(self, ptr);
+
+                                /* restore the vector iterator */
+                                z_object_unref(Z_OBJECT(ptr));
+                                ptr = original_it;
+
+                                /* move iterator to the start of the previous character */
+                                previous_char(self, ptr);
+
+                                if (!x) {
+                                        break;
+
+                                } if (flags & Z_STRING_FLAG_NEGATIVE) {
+                                        if (to_lower(self, x) == temp_ch)
+                                                z_string_iter_decrement(temp);
+                                        else
+                                                break;
+                                } else {
+                                        if (to_lower(self, x) != temp_ch)
+                                                z_string_iter_decrement(temp);
+                                        else
+                                                break;
+                                }
+			}
+		} else {
+			/* perform standard search */
+			while(1) {
+                                /* backup the vector iterator */
+                                ZVectorIter *original_it = z_vector_iter_new(CTX_FROM_OBJECT(self), ALLOCATOR_FROM_OBJECT(self));
+                                z_vector_iter_assign(original_it, ptr);
+
+                                /* decode the UTF-8 encoded character */
+				x = decode(self, ptr);
+
+                                /* restore the vector iterator */
+                                z_object_unref(Z_OBJECT(ptr));
+                                ptr = original_it;
+
+                                /* move iterator to the start of the previous character */
+                                previous_char(self, ptr);
+
+                                if (!x) {
+                                        break;
+
+                                } else if (flags & Z_STRING_FLAG_NEGATIVE) {
+                                        if (x == ch)
+                                                z_string_iter_decrement(temp);
+                                        else
+                                                break;
+                                } else {
+                                        if (x != ch)
+                                                z_string_iter_decrement(temp);
+                                        else
+                                                break;
+                                }
+			}
+		}
+
+		z_object_unref(Z_OBJECT(ptr));
+
+		if (x) {
+			if (it)
+                                z_string_iter_assign(it, temp);
 
 			z_object_unref(Z_OBJECT(temp));
 			return 1;
@@ -1195,6 +1458,12 @@ class ZString : ZObject
 
 		/* iterate over each character in the hay string */
 		if (flags & Z_STRING_FLAG_NEGATIVE) {
+
+                        /* when we search for a character in the 'list', we want to check if the target
+                           character exists in the 'list', not the first occurance of the non-target
+                           character in the list; thus, we disable the NEGATIVE flag */
+                        flags &= ~Z_STRING_FLAG_NEGATIVE;
+
 			/* perform negative search */
 			while ((ch = decode(self, ptr))) {
 				/* break out of the loop if the character is not in the needle list */
@@ -1218,7 +1487,7 @@ class ZString : ZObject
 		if (ch) {
 			/* match found */
 			if (it)
-				z_string_iter_set_index(it, z_string_iter_get_index(temp));
+                                z_string_iter_assign(it, temp);
 
 			z_object_unref(Z_OBJECT(temp));
 			return 1;
@@ -1331,7 +1600,7 @@ class ZString : ZObject
 
 		switch (base) {
 			case 2:
-				for (; !z_string_iter_is_gte(it, it2);) {
+				while (!z_string_iter_is_gte(it, it2)) {
 					uint32_t ch = decode(self, ptr);
 					z_string_iter_increment(it);
 					assert(z_string_iter_is_lte(it, it2));
@@ -1344,7 +1613,7 @@ class ZString : ZObject
 				break;
 
 			case 8:
-				for (; !z_string_iter_is_gte(it, it2);) {
+				while (!z_string_iter_is_gte(it, it2)) {
 					uint32_t ch = decode(self, ptr);
 					z_string_iter_increment(it);
 					assert(z_string_iter_is_lte(it, it2));
@@ -1376,7 +1645,7 @@ class ZString : ZObject
 				break;
 
 			case 16:
-				for (; !z_string_iter_is_gte(it, it2);) {
+				while (!z_string_iter_is_gte(it, it2)) {
 					uint32_t ch = decode(self, ptr);
 					z_string_iter_increment(it);
 					assert(z_string_iter_is_lte(it, it2));
@@ -1431,7 +1700,7 @@ class ZString : ZObject
 
 		switch (base) {
 			case 2:
-				for (; !z_string_iter_is_gte(it, it2);) {
+				while (!z_string_iter_is_gte(it, it2)) {
 					uint32_t ch = decode(self, ptr);
 					z_string_iter_increment(it);
 					assert(z_string_iter_is_lte(it, it2));
@@ -1444,7 +1713,7 @@ class ZString : ZObject
 				break;
 
 			case 8:
-				for (; !z_string_iter_is_gte(it, it2);) {
+				while (!z_string_iter_is_gte(it, it2)) {
 					uint32_t ch = decode(self, ptr);
 					z_string_iter_increment(it);
 					assert(z_string_iter_is_lte(it, it2));
@@ -1470,7 +1739,7 @@ class ZString : ZObject
 				break;
 
 			case 16:
-				for (; !z_string_iter_is_gte(it, it2);) {
+				while (!z_string_iter_is_gte(it, it2)) {
 					uint32_t ch = decode(self, ptr);
 					z_string_iter_increment(it);
 					assert(z_string_iter_is_lte(it, it2));
@@ -1748,11 +2017,11 @@ class ZString : ZObject
 
 	public int token_next(Self *self, ZString *separator, ZStringIter *first, ZStringIter *last)
 	{
-		z_string_iter_set_index(first, z_string_iter_get_index(selfp->token_it));
+                z_string_iter_assign(first, selfp->token_it);
 
 		if (separator && find(self, selfp->token_it, separator, 0) != 0) {
 			/* match found */
-			z_string_iter_set_index(last, z_string_iter_get_index(selfp->token_it));
+                        z_string_iter_assign(last, selfp->token_it);
 			z_string_iter_advance(selfp->token_it, get_length(separator));
 
 			return is_in_bound(self, selfp->token_it);
@@ -1760,7 +2029,7 @@ class ZString : ZObject
 
 		/* no matches found */
 		ZStringIter *temp = get_end(self);
-		z_string_iter_set_index(last, z_string_iter_get_index(temp));
+                z_string_iter_assign(last, temp);
 		z_object_unref(Z_OBJECT(temp));
 
 		return 0;

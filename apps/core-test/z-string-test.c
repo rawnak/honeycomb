@@ -44,8 +44,6 @@ static void case1(struct zco_context_t *context)
         ZString *dummy2 = z_string_new(context, NULL);
         z_object_unref(Z_OBJECT(dummy2));
 
-
-        return;
 	char *test_string = "Test string";
 	ZString *str;
 	ZStringIter *it, *end;
@@ -808,6 +806,23 @@ static void case14(struct zco_context_t *context)
 	}
 
 	z_object_unref(Z_OBJECT(it));
+	it = z_string_get_end(hay);
+        z_string_iter_decrement(it);
+
+	idx = 1;
+	while (z_string_rfind(hay, it, needle, 0)) {
+		position = z_string_iter_get_index(it);
+
+		trace("needle found in position: %d\n", position);
+		fflush(stdout);
+
+		assert(position == positions[idx]);
+		--idx;
+
+		z_string_iter_decrement(it);
+	}
+
+	z_object_unref(Z_OBJECT(it));
 	z_object_unref(Z_OBJECT(needle));
 	z_object_unref(Z_OBJECT(hay));
 
@@ -865,7 +880,7 @@ static void case16(struct zco_context_t *context)
 
 	ZString *hay, *list;
 	ZStringIter *it, *end;
-	char test_hay[] = "Replace the consonants in this sentence by asterisks.";
+	char test_hay[]    = "Replace the consonants in this sentence by asterisks.";
 	char test_string[] = "*e**a*e **e *o**o*a*** i* **i* *e**e**e ** a**e*i***.";
 	int idx;
 
