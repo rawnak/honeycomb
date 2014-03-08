@@ -56,6 +56,7 @@ static ZString *to_zstring(char *s)
 
 \/\/.*$                 { yylval=to_zstring(yytext);                return COMMENT;        }
 L?\"(\\.|[^\\"])*\"     { yylval=to_zstring(yytext);                return STRING_LITERAL; }
+"enum"                  { yylval=to_zstring("enum");                return ENUM;           }
 "struct"                { yylval=to_zstring("struct");              return STRUCT;         }
 "union"                 { yylval=to_zstring("union");               return UNION;          }
 "const"                 { yylval=to_zstring("const");               return CONST;          }

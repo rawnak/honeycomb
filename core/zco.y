@@ -38,7 +38,7 @@ int yylex(void);
 
 %token HEADER_BLK_START SOURCE_BLK_START FILE_BLK_END CLASS INTERFACE STRUCT UNION CONST SIGNED UNSIGNED COLON GLOBAL
 %token OVERRIDE VIRTUAL WORD CODE OBRACE EBRACE OPAREN EPAREN SEMICOLON VAR_ARGS SPACE ASTERISK COMMENT COMMA HASH
-%token BANG VOLATILE PUBLIC PROTECTED PRIVATE GET SET EXPORT STRING_LITERAL
+%token BANG VOLATILE PUBLIC PROTECTED PRIVATE GET SET EXPORT ENUM STRING_LITERAL
 
 %start translation_unit
 
@@ -167,13 +167,13 @@ ccodes
 		z_object_unref(Z_OBJECT($2));
 	}
 
-	| struct_union
+	| custom_type
 	{
 		$$=z_zco_source_generator_new_string(source_generator,NULL);
 		z_string_append_format($$, "%S", $1);
 		z_object_unref(Z_OBJECT($1));
 	}
-	| ccodes struct_union
+	| ccodes custom_type
 	{
 		z_string_append_format((ZString *) $1, "%S", $2);
 		z_object_unref(Z_OBJECT($2));
@@ -666,9 +666,10 @@ pointers
 	}
 	;
 
-struct_union
+custom_type
 	: STRUCT
 	| UNION
+        | ENUM
 	;
 
 var_keyword
@@ -704,7 +705,7 @@ argument
 		z_object_unref(Z_OBJECT($5));
 	}
 
-	| struct_union ignorables WORD pointers WORD
+	| custom_type ignorables WORD pointers WORD
 	{
 		ZString *res = z_zco_source_generator_new_string(source_generator,NULL);
 		$$=res;
@@ -717,7 +718,7 @@ argument
 		z_object_unref(Z_OBJECT($5));
 	}
 
-	| var_keyword ignorables struct_union ignorables WORD pointers WORD
+	| var_keyword ignorables custom_type ignorables WORD pointers WORD
 	{
 		ZString *res = z_zco_source_generator_new_string(source_generator,NULL);
 		$$=res;
@@ -918,7 +919,7 @@ type_name
 		z_object_unref(Z_OBJECT(res));
 	}
 
-	| struct_union ignorables WORD pointers
+	| custom_type ignorables WORD pointers
 	{
 		ZString *res = z_zco_source_generator_new_string(source_generator,NULL);
 		z_string_append_format(res, "%S %S%S", $1,$3,$4);
@@ -931,7 +932,7 @@ type_name
 		z_object_unref(Z_OBJECT(res));
 	}
 
-	| var_keyword ignorables struct_union ignorables WORD pointers
+	| var_keyword ignorables custom_type ignorables WORD pointers
 	{
 		ZString *res = z_zco_source_generator_new_string(source_generator,NULL);
 		z_string_append_format(res, "%S %S %S%S", $1,$3,$5,$6);
