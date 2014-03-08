@@ -100,7 +100,6 @@ static char * receive_message(ZSocket *socket, char *sender)
         z_object_unref(Z_OBJECT(stream));
 
         if (!text || z_string_get_length(text) == 0) {
-                perror("read");
                 buffer = malloc(1);
                 buffer[0] = 0;
 
