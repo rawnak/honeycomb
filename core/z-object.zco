@@ -26,7 +26,7 @@ struct ZObject;
 typedef void(*ZObjectSignalHandler)(struct ZObject *self, ...);
 
 struct ZVector;
-typedef void*(*ZObjectMethodHookHandler)(struct ZObject *self, const char *symbol, int return_value_size, struct ZVector *args);
+typedef int(*ZObjectMethodHookHandler)(struct ZObject *self, const char *symbol, int return_value_size, void **return_value, struct ZVector *args);
 
 struct ZMemoryAllocator;
 typedef struct ZMemoryAllocator ZMemoryAllocator;
@@ -161,6 +161,11 @@ class ZObject
 
                         dispose(self);
                 }
+        }
+
+        public void set_method_hook(Self *self, ZObjectMethodHookHandler handler)
+        {
+                selfp->_method_hook = handler;
         }
 
 	private ZObjectSignalHandler lookup_method(Self *self, char *method_name)

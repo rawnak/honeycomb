@@ -449,8 +449,34 @@ class ZVector : ZObject
                         return -1;
 
                 ZVectorSegment *segment = z_vector_iter_get_segment(iter);
-                int rc = z_vector_segment_insert(segment, iter, n, item, selfp->item_size, selfp->storage_mode,
-                                selfp->userdata, selfp->item_copy_construct);
+                int rc;
+
+                if (segment) {
+                        rc = z_vector_segment_insert(segment, iter, n, item, selfp->item_size, selfp->storage_mode,
+                                        selfp->userdata, selfp->item_copy_construct);
+                } else {
+                        /* If the iterator is pointing at a NULL segment but this vector is not empty, it must mean
+                           that the iterator is not associated with this vector */
+                        assert(selfp->count == 0);
+                        assert(selfp->head == NULL);
+                        assert(selfp->tail == NULL);
+
+                        /* We need a new segment */
+                        segment = create_segment(self);
+                        z_vector_iter_set_segment(iter, segment);
+
+                        rc = z_vector_segment_insert(segment, iter, n, item, selfp->item_size, selfp->storage_mode,
+                                        selfp->userdata, selfp->item_copy_construct);
+
+                        z_vector_segment_set_prev(segment, NULL);
+                        z_vector_segment_set_next(segment, NULL);
+
+                        selfp->head = segment;
+                        z_object_ref(Z_OBJECT(segment));
+
+                        selfp->tail = segment;
+                        z_object_ref(Z_OBJECT(segment));
+                }
 
                 if (rc < 0) {
 			int index = z_vector_iter_get_index(iter);
