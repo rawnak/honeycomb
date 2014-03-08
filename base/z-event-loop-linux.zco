@@ -70,9 +70,8 @@ class ZEventLoopLinux : ZEventLoop, ZInOutMultiplexer
 		return self;
 	}
 
-        private void event_task_destroy(void *event_task, Self *self)
+        private void event_task_destroy(void *event_task, ZMemoryAllocator *allocator)
         {
-                ZMemoryAllocator *allocator = CTX_FROM_OBJECT(self)->fixed_allocator;
                 z_memory_allocator_deallocate_by_size(allocator, event_task, sizeof(ZEventBind));
         }
 
@@ -97,7 +96,7 @@ class ZEventLoopLinux : ZEventLoop, ZInOutMultiplexer
                 z_map_set_compare(list, map_compare);
                 z_map_set_key_destruct(list, (ZMapItemCallback) z_object_unref);
                 z_map_set_value_destruct(list, (ZMapItemCallback) event_task_destroy);
-                z_map_set_userdata(list, self);
+                z_map_set_userdata(list, CTX_FROM_OBJECT(self)->fixed_allocator);
 
                 struct epoll_event event;
                 event.data.ptr = list;
@@ -365,10 +364,11 @@ class ZEventLoopLinux : ZEventLoop, ZInOutMultiplexer
                 int rc = z_map_insert(listeners, task, event_bind);
                 z_object_unref(Z_OBJECT(listeners));
 
-                if (rc == 0)
+                if (rc == 0) {
                         z_object_ref(Z_OBJECT(task));
-                else
+                } else {
                         z_memory_allocator_deallocate_by_size(allocator, event_bind, sizeof(ZEventBind));
+                }
 
                 return rc;
         }
