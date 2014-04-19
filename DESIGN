@@ -1,10 +1,10 @@
 
-Design goals for ZCLib
+Design goals for Honeycomb
 =======================
 
 Introduction
 --------------
-ZCLib is a general purpose library with a few specific aims:
+Honeycomb is a general purpose library with a few specific aims:
 
 1. All vectors, maps, strings and anything that obtains a list of discrete items are internally stored as vector
    segments. These segments are reference counted and are copy-on-writeable, meaning that when a large vector, string
@@ -13,7 +13,7 @@ ZCLib is a general purpose library with a few specific aims:
    will help reduce memory usage as well as improve performance (by avoiding large memory copies) for applications that
    need to duplicate large amounts of data.
 
-2. The UI toolkit code in ZCLib has two modes of option. It can interact directly with the active display as a
+2. The UI toolkit code in honeycomb has two modes of option. It can interact directly with the active display as a
    standalone program, just like Gtk and Qt. It can also generate code to run inside a VM hosted by another
    application, such as a web browser with a JavaScript VM. This will allow applications written in a native language
    to work as a standalone program and will allow a web browser to make a network connection to it so the application
@@ -25,8 +25,8 @@ requirement that the language of the generated code is a procedural programming 
 
 Type inheritance
 --------------
-ZCLib heavily relies on reference counting to reduce data copy. It makes perfect sense for every object bound to a
-ZCLib context to have a common field to represent its reference count. There are also other common fields for every
+Honeycomb heavily relies on reference counting to reduce data copy. It makes perfect sense for every object bound to a
+honeycomb context to have a common field to represent its reference count. There are also other common fields for every
 object, such as a list of attached properties, signals, and a reference to an allocator.
 
 Every class can have private, public, global or class data members. Private data members are specific to the class
@@ -44,7 +44,7 @@ object type.
 
 Multiple Inheritance
 -------------
-ZClib does not support multiple inheritance. Multiple inheritance in a reference counted environment doesn't work well
+Honeycomb does not support multiple inheritance. Multiple inheritance in a reference counted environment doesn't work well
 because an object that derives from two base classes will have two ZObject classes, thus two reference counts. This
 makes no sense and so it simply isn't supported.
 
@@ -52,35 +52,18 @@ By not supporting multiple inheritance, we can assume that the base pointer of t
 will be the same. This eliminates the need to offset the base address during a downcast, which would have a performance
 hit. 
 
-Virtual Inheritance
--------------
-ZClib does not support virtual inheritance. Virtual inheritance requires the implementation of a derived type to know
-the memory layout of the parent type to avoid defining the same parent multiple times. 
-
-ZClib supports virtual inheritances only for functions, not for data members. Virtual inheritance requires the derived
-type to have internal structure layout of its parent classes. 
-
-** TODO: WRITE DOWN WHY **
-
-//class_off_list:
-We have to store a full list of possible class offset (the offset within the *Class struct) in every class. It may seem that
-we should be able to store just the offset number in the corresponding *Global struct but that would not be possible for an
-interface. Suppose there are two interfaces X and Y. If class A implements interface X, Y and class B implements
-interface Y, X,  the interface X will have a different offset for both classes so we cannot have just a single constant
-within the interface's Global struct.
-
 Why C?
 --------------
-One of the design goals for ZCLib is to be very efficient and portable. This rules out scripting languages as they
+One of the design goals for honeycomb is to be very efficient and portable. This rules out scripting languages as they
 require a virtual machine. The two widely known portable languages C, C++ were primary candidates. Although C++
-can be considered as a superset of C, almost all of the additional features it brings cannot be used in ZClib.
+can be considered as a superset of C, almost all of the additional features it brings cannot be used in honeycomb.
 For example, the built-in type system cannot be used since we need to be able to support type inheritance for
 code that is dynamically generated. If an object B inherits from object A, we want the fields in A to be available in
 B. This is achievable in C++ as long as the objects are natively implemented. For generated code, we also want the
 object B to contain all the fields from object A. This requires the type system to generate the language specific code
 to clone the fields from the base class to the derived class.
 
-Given that ZClib generates code to be executed in another language, there is a requirement for having multiple contexts
+Given that honeycomb generates code to be executed in another language, there is a requirement for having multiple contexts
 within the same program. With C++ classes, a static variable is shared among all instances of the class in the running
 process. We need static variables but we need to be able to group them based on contexts in the same process.
 
@@ -101,9 +84,9 @@ in C and call the appropiate functions to generate remotely executable code.
 
 Code generation also has the benefit of allowing the addition of new language support without requiring any change on
 the application code. For example, suppose the application calls add(z,x,y); mult(z, z, z);, the add, mult functions
-will be responsible for generating the code in the target language. If a new language support is added to ZCLib and the
+will be responsible for generating the code in the target language. If a new language support is added to honeycomb and the
 context is switched to use this new language, the add, mult functions will simply generate code in the new language.
-Only the ZCLib library needs to change to add support for a new language; The application will remain binary
+Only the honeycomb library needs to change to add support for a new language; The application will remain binary
 compatible.
 
 ZCO preprocessor
@@ -121,7 +104,7 @@ automatically handled by the glue code that is facilitated by the preprocessor.
 
 Library names
 --------------
-The codebase in zclib is broken down into multiple libraries
+The codebase in honeycomb is broken down into multiple libraries
 
 bootstrap: This library contains the bare minimum to build a zco preprocessor. Given that its build process cannot
     depend on the existance of the zco preprocessor, it contains preprocessed .c and .h files for corresponding
@@ -153,12 +136,12 @@ his/her likings.
 
 Dynamic calling library
 --------------
-To support signals and closures, ZCLib needs to be able to be able to store function arguments in a vector and have
+To support signals and closures, honeycomb needs to be able to be able to store function arguments in a vector and have
 the ability to call a function with the stored arguments. In order to call a C function without having prior knowledge
 of the function parameter, we need to use a dynamic calling library to use the proper calling convention for the
 target architecture.
 
-There are a handful of dynamic calling libraries. Some common ones are dynlib, libffi, c/invoke, ffcall. ZClib uses
+There are a handful of dynamic calling libraries. Some common ones are dynlib, libffi, c/invoke, ffcall. Honeycomb uses
 libffi primarily because the libffi project is developed using a Git repository. 
 
 Vector segments
@@ -236,7 +219,7 @@ reasons mentioned above, we use the combined model instead of the split model.
 
 Contexts
 --------------
-A ZClib context is the environment that maintains the configuration and hosts the type system, closure marshaller,
+A honeycomb context is the environment that maintains the configuration and hosts the type system, closure marshaller,
 framework events, event loops, and allocators. A context is not allowed to touch variables of another context but there
 is no memory protection to enforce this. The only thing that is shared between multiple contexts is the type id
 allocations. The only way two contexts can communicate with one another is by posting tasks over to the another context.
